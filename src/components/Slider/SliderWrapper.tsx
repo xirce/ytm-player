@@ -1,12 +1,13 @@
 import React from 'react';
 import Slider, {SliderProps} from "@mui/material/Slider";
 
-export const SliderWrapper: React.FC<SliderProps> = (props) => {
+export const SliderWrapper: React.FC<SliderProps> = ({sx, onChange}) => {
     return (
         <Slider
+            onChange={onChange}
             size='small'
             sx={{
-                ...props.sx,
+                ...sx,
                 height: 3.5,
                 padding: 0,
                 '& .MuiSlider-thumb': {

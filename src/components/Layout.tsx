@@ -1,24 +1,26 @@
 import React from 'react';
-import {Link, Outlet} from 'react-router-dom';
+import {NavLink, Outlet} from 'react-router-dom';
 import {AudioWrapper} from './AudioPlayer/AudioWrapper';
 import Box from "@mui/material/Box";
 import {ThemeProvider} from "@mui/material/styles";
 import mainTheme from '../mainTheme';
 import '../styles/Layout.css';
+import {Search} from './Search/Search'
 
 export const Layout: React.FC = () => {
     return (
         <ThemeProvider theme={mainTheme}>
                 <Box sx={(theme) => ({
                     display: "flex",
-                    padding: "10px",
                     alignItems: "center",
-                    gap: "20px",
+                    height: '3rem',
+                    padding: 2,
+                    gap: 3,
                     backgroundColor: theme.palette.primary.dark,
-                    height: "50px"
                     })}>
-                    <Link to="/" className="navElem">Главная</Link>
-                    <Link to="/search" className="navElem">Поиск</Link>
+                    <NavLink to="/" className="navElem">Главная</NavLink>
+                    <NavLink to="/myMusic" className="navElem">Моя медиатека</NavLink>
+                    <NavLink to="/search" className="navElem">Поиск</NavLink>
                 </Box>
                 <Box sx={(theme) => ({
                     width: '100%',
