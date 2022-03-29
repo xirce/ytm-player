@@ -1,19 +1,18 @@
 import React from 'react';
 import {InputBase, Grid} from "@mui/material";
+import styles from './Search.module.scss';
 
 export const Search: React.FC = () => {
     return (
-        <Grid container justifyContent='center' padding={2}>
+        <Grid container justifyContent='center' padding={1}>
             <InputBase
-                type='search'
-                placeholder='Search...'
+                className={styles.field}
+                placeholder='Поиск...'
                 sx={theme => ({
                     backgroundColor: theme.palette.background.paper,
                     color: theme.palette.getContrastText(theme.palette.background.paper),
-                    width: '50%',
-                    padding: 1,
-                    borderRadius: 2,
-                })}/>
+                })}
+            />
         </Grid>
     );
 }

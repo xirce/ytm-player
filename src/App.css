@@ -1,25 +1,40 @@
+:root {
+  --primary-color: #212121;
+  --secondary-color: #b3b3b3;
+  --tertiary-color: #171717;
+}
+
 body,
 #root {
   width: 100%;
   height: 100%;
 }
+
 body {
   position: fixed;
 }
+
 #root {
   position: relative;
   vertical-align: baseline;
 }
+
 header {
   display: flex;
 }
+
 a {
   text-decoration: none;
 }
+
 button {
   display: flex;
   padding: 0;
   border: none;
   justify-content: center;
   align-items: center;
+}
+
+.active {
+  color: white;
 }

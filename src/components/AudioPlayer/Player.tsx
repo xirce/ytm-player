@@ -10,10 +10,13 @@ import Stack from '@mui/material/Stack';
 import React, { useEffect, useRef, useState } from 'react';
 import { formatSeconds } from '../../utils/formatting';
 import { SliderWrapper } from '../Slider/SliderWrapper';
-import { PlayerButton, TransparentButton } from './PlayerButton';
 import { VolumeControls } from './VolumeControls';
+import styles from './Player.module.css';
+import classNames from 'classnames';
 
-export const Player: React.FC = () => {
+
+
+export const AudioPlayer: React.FC = () => {
     const audio = useRef(new Audio());
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState('0:00');
@@ -40,7 +43,7 @@ export const Player: React.FC = () => {
 
     return (
         <Grid container
-            className='container'
+            className={styles.container}
             justifyContent='center'
             alignItems='center'
             sx={(theme) => ({
@@ -53,18 +56,15 @@ export const Player: React.FC = () => {
             <Grid item xs={4}>
                 <Stack>
                     <Grid container justifyContent='center' alignItems='center' gap={2} marginBottom={1}>
-                        <TransparentButton>
+                        <button className={classNames(styles.btn, styles.iconBtn)}>
                             <SkipPreviousRounded fontSize='large' />
-                        </TransparentButton>
-                        <PlayerButton
-                            onClick={() => setIsPlaying(!isPlaying)}
-                            sx={(theme) => ({ backgroundColor: theme.palette.text.primary })}
-                        >
+                        </button>
+                        <button className={classNames(styles.btn, styles.playPausebtn)} onClick={() => setIsPlaying(!isPlaying)}>
                             {isPlaying ? <PlayArrowRounded /> : <PauseRounded />}
-                        </PlayerButton>
-                        <TransparentButton>
+                        </button>
+                        <button className={classNames(styles.btn, styles.iconBtn)}>
                             <SkipNextRounded fontSize='large' />
-                        </TransparentButton>
+                        </button>
                     </Grid>
                     <Grid container justifyContent='space-between' alignItems='stretch' direction='row' gap={1} fontSize={'small'}>
                         <Grid item><Box sx={{ verticalAlign: 'center' }}>{currentTime}</Box></Grid>
