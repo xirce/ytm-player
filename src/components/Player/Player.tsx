@@ -7,11 +7,13 @@ import {
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
-import React, { useEffect, useRef, useState } from 'react';
-import { formatSeconds } from '../../utils/formatting';
-import { SliderWrapper } from '../Slider/SliderWrapper';
-import { PlayerButton, TransparentButton } from './PlayerButton';
-import { VolumeControls } from './VolumeControls';
+import React, {useEffect, useRef, useState} from 'react';
+import {formatSeconds} from '../../utils/formatting';
+import {SliderWrapper} from '../Slider/SliderWrapper';
+import {VolumeControls} from './VolumeControls';
+import styles from './Player.module.css';
+import classNames from 'classnames';
+
 
 export const Player: React.FC = () => {
     const audio = useRef(new Audio());
@@ -40,37 +42,35 @@ export const Player: React.FC = () => {
 
     return (
         <Grid container
-            className='container'
-            justifyContent='center'
-            alignItems='center'
-            sx={(theme) => ({
-                color: theme.palette.primary.light,
-                backgroundColor: theme.palette.primary.dark,
-                borderTopColor: theme.palette.primary.main,
-            })}
+              className={styles.container}
+              justifyContent='center'
+              alignItems='center'
         >
             <Grid item xs>ИНФОРМАЦИЯ О ТРЕКЕ</Grid>
             <Grid item xs={4}>
                 <Stack>
                     <Grid container justifyContent='center' alignItems='center' gap={2} marginBottom={1}>
-                        <TransparentButton>
-                            <SkipPreviousRounded fontSize='large' />
-                        </TransparentButton>
-                        <PlayerButton
-                            onClick={() => setIsPlaying(!isPlaying)}
-                            sx={(theme) => ({ backgroundColor: theme.palette.text.primary })}
-                        >
-                            {isPlaying ? <PlayArrowRounded /> : <PauseRounded />}
-                        </PlayerButton>
-                        <TransparentButton>
-                            <SkipNextRounded fontSize='large' />
-                        </TransparentButton>
+                        <button className={classNames(styles.btn, styles.iconBtn)}>
+                            <SkipPreviousRounded fontSize='large'/>
+                        </button>
+                        <button className={classNames(styles.btn, styles.playPausebtn)}
+                                onClick={() => setIsPlaying(!isPlaying)}>
+                            {isPlaying ? <PlayArrowRounded/> : <PauseRounded/>}
+                        </button>
+                        <button className={classNames(styles.btn, styles.iconBtn)}>
+                            <SkipNextRounded fontSize='large'/>
+                        </button>
                     </Grid>
-                    <Grid container justifyContent='space-between' alignItems='stretch' direction='row' gap={1} fontSize={'small'}>
-                        <Grid item><Box sx={{ verticalAlign: 'center' }}>{currentTime}</Box></Grid>
+                    <Grid container
+                          justifyContent='space-between'
+                          alignItems='stretch'
+                          direction='row'
+                          gap={1}
+                          fontSize='small'>
+                        <Grid item><Box>{currentTime}</Box></Grid>
                         <Grid container item xs justifyContent='center' alignItems='center'>
                             <Grid item xs>
-                                <SliderWrapper defaultValue={0} sx={{ color: 'primary.light' }} />
+                                <SliderWrapper defaultValue={0}/>
                             </Grid>
                         </Grid>
                         <Grid item><Box>{duration}</Box></Grid>
@@ -78,7 +78,7 @@ export const Player: React.FC = () => {
                 </Stack>
             </Grid>
             <Grid item xs>
-                <VolumeControls audioElement={audio.current} />
+                <VolumeControls audioElement={audio.current}/>
             </Grid>
         </Grid>);
 }

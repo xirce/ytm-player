@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import React from 'react';
-import {AudioPlayer} from './Player';
+import {Player} from './Player';
 
 export const PlayerWrapper: React.FC = () => {
     return (
@@ -10,7 +10,7 @@ export const PlayerWrapper: React.FC = () => {
             right: 0,
             bottom: 0
         }}>
-            <AudioPlayer/>
+            <Player/>
         </Box>
     );
 }

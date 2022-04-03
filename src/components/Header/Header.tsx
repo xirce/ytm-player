@@ -1,8 +1,7 @@
 import Grid from '@mui/material/Grid';
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import './Header.css';
-import styles from './Header.module.scss';
+import styles from './Header.module.css';
 
 const Header: React.FC = () => {
     return (
@@ -10,10 +9,7 @@ const Header: React.FC = () => {
             container
             justifyContent='left'
             alignItems='center'
-            direction='row'
-            sx={(theme) => ({
-                backgroundColor: theme.palette.primary.dark,
-            })}>
+            direction='row'>
             <Grid item>
                 <NavLink to="/" className={styles.navElem}>Главная</NavLink>
             </Grid>

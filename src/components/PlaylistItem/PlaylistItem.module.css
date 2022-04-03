@@ -1,0 +1,23 @@
+.container {
+    margin: 8px;
+}
+
+.content {
+    padding: 8px;
+    border-radius: 4px;
+    color: var(--text-light-color);
+    background-color: var(--bg-dark-color);
+    transition: background-color 0.4s;
+}
+
+.content:hover {
+    background-color: var(--bg-main-color);
+    transition: background-color 0.4s;
+}
+
+.content .image {
+    width: 150px;
+    height: 150px;
+    border-radius: 4px;
+    background-color: var(--bg-darker-color);
+}

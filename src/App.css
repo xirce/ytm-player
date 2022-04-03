@@ -1,40 +1,50 @@
 :root {
-  --primary-color: #212121;
-  --secondary-color: #b3b3b3;
-  --tertiary-color: #171717;
+    --primary-color: #212121;
+    --secondary-color: #aaa;
+    --tertiary-color: #171717;
+    --light-color: #fff;
+    --dark-color: #000;
+    --bg-main-color: var(--primary-color);
+    --bg-light-color: var(--secondary-color);
+    --bg-dark-color: var(--tertiary-color);
+    --bg-darker-color: var(--dark-color);
+    --text-main-color: var(--secondary-color);
+    --text-light-color: var(--light-color);
+    --text-dark-color: var(--dark-color);
 }
 
 body,
 #root {
-  width: 100%;
-  height: 100%;
+    width: 100%;
+    height: 100%;
 }
 
 body {
-  position: fixed;
+    position: fixed;
 }
 
 #root {
-  position: relative;
-  vertical-align: baseline;
+    position: relative;
+    vertical-align: baseline;
 }
 
 header {
-  display: flex;
+    display: flex;
 }
 
 a {
-  text-decoration: none;
+    text-decoration: none;
+}
+
+a.active {
+    color: var(--text-light-color);
 }
 
 button {
-  display: flex;
-  padding: 0;
-  border: none;
-  justify-content: center;
-  align-items: center;
+    display: flex;
+    padding: 0;
+    border: none;
+    justify-content: center;
+    align-items: center;
 }
 
-.active {
-  color: white;
-}
