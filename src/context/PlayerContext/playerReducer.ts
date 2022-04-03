@@ -1,4 +1,4 @@
-import { IPlayerState, PlayerAction, PlayerActionType } from "./types";
+import {IPlayerState, PlayerAction, PlayerActionType} from "./types";
 
 
 export const playerReducer = (state: IPlayerState, action: PlayerAction): IPlayerState => {

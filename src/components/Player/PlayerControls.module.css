@@ -1,6 +1,6 @@
 .container {
     height: 96px;
-    padding: 0 8px;
+    padding: 0 16px;
     text-align: center;
     color: var(--text-main-color);
     background-color: var(--bg-dark-color);
@@ -27,4 +27,4 @@
 .iconBtn:active {
     filter: brightness(100%);
 }
-               
+

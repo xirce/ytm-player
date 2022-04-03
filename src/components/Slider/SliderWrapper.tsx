@@ -1,13 +1,31 @@
-import React from 'react';
-import Slider, {SliderProps} from "@mui/material/Slider";
+import React, {MouseEventHandler} from 'react';
+import Slider from "@mui/material/Slider";
 
-export const SliderWrapper: React.FC<SliderProps> = (props) => {
+export interface SliderProps {
+    onChange?: (event: Event, value: number) => void;
+    onMouseDown?: MouseEventHandler;
+    onMouseUp?: MouseEventHandler;
+    value?: number;
+    defaultValue?: number;
+    min?: number;
+    max?: number;
+    step?: number;
+}
+
+export const SliderWrapper: React.FC<SliderProps> = props => {
     return (
         <Slider
-            {...props}
+            onMouseDown={props.onMouseDown}
+            onMouseUp={props.onMouseUp}
+            onChange={(event, value, _) =>
+                props.onChange && props.onChange(event, value as number)}
+            value={props.value}
+            defaultValue={props.defaultValue}
+            min={props.min}
+            max={props.max ?? 1}
+            step={props.step ?? 0.01}
             size='small'
             sx={{
-                ...props.sx,
                 color: 'inherit',
                 height: 3.5,
                 padding: 0,

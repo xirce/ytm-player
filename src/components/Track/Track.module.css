@@ -1,0 +1,12 @@
+.container {
+    display: 'flex'; 
+    color: 'white'; 
+    margin: '10px';
+}
+
+.image {
+    width: 50; 
+    height: 50;
+    background-color: 'white'; 
+    margin-right: "10px";
+}

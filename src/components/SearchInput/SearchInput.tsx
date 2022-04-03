@@ -1,6 +1,6 @@
 import React from 'react';
 import { InputBase, Grid } from "@mui/material";
-import styles from './Search.module.css';
+import styles from './SearchInput.module.css';
 
 export const SearchInput: React.FC = () => {
     return (
