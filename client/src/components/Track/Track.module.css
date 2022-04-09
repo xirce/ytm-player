@@ -1,0 +1,59 @@
+.container {
+    display: grid;
+    align-items: center;
+    grid-template-columns: 1fr 3fr 3fr 1fr 1fr;
+    color: var(--text-light-color);
+    gap: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    width: 800px;
+    box-sizing: border-box;
+}
+
+.container:not(:last-of-type) {
+    margin-bottom: 16px;
+}
+
+.container:hover {
+    background-color: var(--bg-main-color);
+}
+
+.imageContainer {
+    position: relative;
+    cursor: pointer;
+    align-content: center;
+}
+
+.playBtn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-85%, -50%);
+    color: transparent;
+    filter: drop-shadow(0 0 3px var(--bg-darker-color));
+}
+
+.imageContainer:hover .playBtn, .title {
+    color: var(--text-light-color);
+}
+
+.artist, .duration {
+    color: var(--text-main-color);
+}
+
+.title, .duration {
+    cursor: default;
+}
+
+.menuBtn {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    justify-self: end;
+    border-radius: 50%;
+    color: var(--text-main-color);
+    background-color: transparent;
+}
+
+.menuBtn:hover {
+    filter: brightness(200%);
+}
