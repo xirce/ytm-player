@@ -92,6 +92,7 @@ app.get('/api/search', async (req, res) => {
     }
 });
 
+<<<<<<< HEAD
 app.get('/api/track_url/:id', async (req, res) => {
     const id = req.params.id;
     try {
@@ -105,6 +106,9 @@ app.get('/api/track_url/:id', async (req, res) => {
 });
 
 app.get('/api/playlist/:id', async (req, res) => {
+=======
+app.get('/api/getTrackUrl/:id', async (req, res) => {
+>>>>>>> 2e348c2e87cdbb915edb247c41480c20d8733ee2
     const id = req.params.id;
     try {
         const playlist = await ytmusic.getPlaylist(id);

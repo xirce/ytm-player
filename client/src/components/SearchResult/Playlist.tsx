@@ -1,14 +1,22 @@
+<<<<<<< HEAD
 import React from 'react';
 import styles from './SearchResult.module.css';
+=======
+import React, { useState } from 'react';
+import styles from './Styles.module.css';
+>>>>>>> 2e348c2e87cdbb915edb247c41480c20d8733ee2
 import { IPlaylist } from '../../../../shared';
 import { Link } from 'react-router-dom';
 
 export interface IPlaylistProps {
     info: IPlaylist;
 }
-
 export const Playlist: React.FC<IPlaylistProps> = ({ info }) => {
+<<<<<<< HEAD
     const to = `/playlist/${info.id}`;
+=======
+    const to = `/playlist?id=${info.id}`;
+>>>>>>> 2e348c2e87cdbb915edb247c41480c20d8733ee2
 
     return (
         <Link to={to}>

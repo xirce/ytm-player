@@ -1,4 +1,5 @@
 import React from "react";
+<<<<<<< HEAD
 import { useParams } from 'react-router-dom';
 import Box from "@mui/material/Box";
 import { IPlaylistProps, getLabel } from '../../components/SearchResult/Playlist';
@@ -18,11 +19,21 @@ export const PlaylistPage: React.FC = () => {
     if (isLoading) {
         return <h1 style={{ color: 'white' }}>ЗАГРУЖАЮ...</h1>
     }
+=======
+import { useSearchParams } from 'react-router-dom';
+import Box from "@mui/material/Box";
+import { IPlaylistProps } from '../../components/SearchResult/Playlist';
+import { Track } from "../../components/Track/Track";
+
+export const PlaylistPage: React.FC = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+>>>>>>> 2e348c2e87cdbb915edb247c41480c20d8733ee2
 
     return (
         <div style={{ padding: '20px' }}>
             <div style={{ display: 'flex', color: 'white', flexWrap: 'wrap', gap: '20px' }}>
                 <Box sx={{
+<<<<<<< HEAD
                     width: 192,
                     height: 192,
                     backgroundColor: 'white'
@@ -32,6 +43,16 @@ export const PlaylistPage: React.FC = () => {
                 <div className="description">
                     <h2>{data.name}</h2>
                     <p>{data.videoCount} {getLabel(data.videoCount)}</p>
+=======
+                    width: 264,
+                    height: 264,
+                    backgroundColor: 'white'
+                }}>
+                </Box>
+                <div className="description">
+                    <h1>{searchParams.get('name')}</h1>
+                    {/* <h2>{info.tracksCount}</h2> */}
+>>>>>>> 2e348c2e87cdbb915edb247c41480c20d8733ee2
                 </div>
             </div>
             <div className="tracks">
