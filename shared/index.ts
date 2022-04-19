@@ -10,8 +10,17 @@ export interface ITrack extends ITrackBase {
     url: string;
 }
 
-export interface IAllInfo {
-    type: string;
+export interface IPlaylist {
+    id: string;
     name: string;
-    artists: string;
+    imageUrl: string;
+    tracksCount: number;
+}
+
+export interface IAlbum {
+    id: string;
+    name: string;
+    year: number;
+    imageUrl: string;
+    artist: string;
 }

@@ -1,0 +1,48 @@
+.container {
+    display: flex;
+    color: white;
+    gap: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-sizing: border-box;
+    margin-bottom: 16px;
+    
+}
+
+.container:hover {
+    background-color: var(--bg-main-color);
+}
+
+.images {
+    width: 84.64px;
+    height: 64px;
+}
+
+.image {
+    width: 60px;
+    height: 60px;
+}
+
+.info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 60px;
+}
+
+p {
+    margin: 0;
+    color: var(--text-main-color);
+}
+
+.white {
+    color: white;
+}
+
+.white:hover, .images:hover {
+    cursor: pointer;
+}
+
+.line {
+    display: flex;
+    gap: 0.5em;
+}

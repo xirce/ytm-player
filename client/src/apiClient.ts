@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {ITrackBase} from '../../shared';
+import { ITrackBase } from '../../shared';
 
 const apiClient = axios.create({
     baseURL: 'http://localhost:3001/api',
@@ -14,6 +14,10 @@ export async function getSearchSuggestions(query: string) {
 
 export async function search(query: string) {
     return await apiClient.get<ITrackBase[]>(`/search?q=${query}`);
+}
+
+export async function searchAll(query: string) {
+    return await apiClient.get<any[]>(`/searchAll?q=${query}`);
 }
 
 export async function getTrackUrl(id: string) {

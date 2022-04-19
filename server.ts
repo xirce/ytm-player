@@ -1,7 +1,7 @@
 import express from 'express';
-import YTMusic from 'ytmusic-api';
+import YTMusic, { SongDetailed, SearchResult } from 'ytmusic-api';
 import cors from 'cors';
-import { ITrackBase } from './shared';
+import { ITrackBase, IPlaylist, IAlbum } from './shared';
 // @ts-ignore
 import ytcog from 'ytcog';
 
@@ -18,9 +18,67 @@ app.get('/api/searchSuggestions', async (req, res) => {
     res.json(searchSuggestions);
 });
 
-app.get('/api/anotherSearch', async (req, res) => {
+app.get('/api/searchAll', async (req, res) => {
     const query = req.query.q;
-    const searchRes = await ytmusic.search(query as string);
+    const searchAll = await ytmusic.search(query as string);
+
+    try {
+        const sorted = {
+            songs: <any>[],
+            playlists: <any>[],
+            albums: <any>[]
+        };
+
+        searchAll.forEach(item => {
+            switch (item.type) {
+                case 'SONG':
+                    sorted.songs.push(item);
+                    break;
+                case 'PLAYLIST':
+                    sorted.playlists.push(item);
+                    break;
+                case 'ALBUM':
+                    sorted.albums.push(item);
+                    break;
+            }
+        });
+
+        const songs = sorted.songs.map((song: any) => {
+            return {
+                id: song.videoId,
+                title: song.name,
+                artist: song.artists[0]?.name,
+                imageUrl: song.thumbnails[0].url,
+                duration: song.duration
+            }
+        });
+
+        const playlists = sorted.playlists.map((playlist: any) => {
+            return {
+                id: playlist.playlistId,
+                name: playlist.name,
+                artist: playlist.artist?.name,
+                imageUrl: playlist.thumbnails[0].url,
+                tracksCount: playlist.videoCount
+            }
+        });
+        const albums = sorted.albums.map((album: any) => {
+            return {
+                id: album.albumId,
+                name: album.name,
+                artist: album.artists[0]?.name,
+                imageUrl: album.thumbnails[0].url,
+                year: album.year
+            }
+        });
+
+        res.json([songs, playlists, albums]);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(400);
+    }
+
+
 });
 
 app.get('/api/search', async (req, res) => {

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { InputBase, TextField } from "@mui/material";
+import React, { useState } from 'react';
+import { InputBase } from "@mui/material";
 import styles from './SearchInput.module.css';
 
 export interface SearchInputProps {
