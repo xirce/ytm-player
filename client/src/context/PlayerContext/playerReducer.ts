@@ -19,9 +19,9 @@ export const playerReducer = (state: IPlayerState, action: PlayerAction): IPlaye
                 tracks: [...state.tracks, ...action.tracks]
             }
         case PlayerActionType.AppendLeftTracks:
-            state.tracks.splice(state.trackIndex, 0, ...action.tracks);
             return {
-                ...state
+                ...state,
+                tracks: [...state.tracks.slice(0, state.trackIndex), ...action.tracks, ...state.tracks.slice(state.trackIndex)]
             }
         case PlayerActionType.SetTrackIndex:
             return {

@@ -21,7 +21,7 @@ export enum PlayerActionType {
     SetIsPlaying = 'SET_IS_PLAYING',
     SetTracks = 'SET_TRACKS',
     AppendTracks = 'APPEND_TRACKS',
-    AppendLeftTracks = 'APPEND_LEFT_Tracks',
+    AppendLeftTracks = 'APPEND_LEFT_TRACKS',
     SetTrackIndex = 'SET_TRACK_INDEX',
 }
 

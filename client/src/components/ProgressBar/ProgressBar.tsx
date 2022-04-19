@@ -4,25 +4,30 @@ import apiClient from '../../apiClient';
 import styles from './ProgressBar.module.css';
 
 export const ProgressBar: React.FC = () => {
-    const [progress, setProgress] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        apiClient.defaults.onUploadProgress = event => {
-            const currentProgress = 100 * event.loaded / event.total;
-            setProgress(currentProgress % 100);
-        };
+        apiClient.interceptors.request.use(config => {
+            setIsLoading(true);
+            return config;
+        });
+
+        apiClient.interceptors.response.use(config => {
+            setIsLoading(false);
+            return config;
+        });
     }, []);
 
     return (
         <div className={styles.container}>
             <LinearProgress
-                variant='determinate'
-                value={progress}
+                variant='indeterminate'
                 sx={{
                     height: '4px',
                     backgroundColor: 'var(--bg-dark-color)',
-                    bar1Determinate: {
-                        backgroundColor: 'blue'
+                    '& .MuiLinearProgress-bar': {
+                        display: isLoading ? 'block' : 'none',
+                        backgroundColor: 'var(--progress-var-color)'
                     }
                 }}
             />

@@ -6,7 +6,6 @@ import { MyLibrary } from './pages/MyLibrary/MyLibrary';
 import './App.css';
 import { PlaylistPage } from './pages/Playlist/PlaylistPage';
 import { Search } from './pages/Search/Search';
-import { SearchAll } from './pages/SearchAll/SearchAll';
 import { PlayerProvider } from './context/PlayerContext/PlayerContext';
 import { QueryClient, QueryClientProvider } from "react-query";
 import { Playlists } from './pages/Playlists/Playlists';
@@ -26,14 +25,14 @@ export const App: React.FC = () => {
                 <Routes>
                     <Route path="/" element={<Layout />}>
                         <Route index element={<Main />} />
-                        <Route path="search" element={<Search />} />
                         <Route path="myLibrary" element={<MyLibrary />}>
                             <Route path="playlists" element={<Playlists />} />
                             <Route path="albums" element={<Albums />} />
                             <Route path="tracks" element={<Tracks />} />
                         </Route>
-                        <Route path="playlist" element={<PlaylistPage />} />
-                        <Route path="anotherSearch" element={<SearchAll />} />
+                        <Route path="playlist/:id" element={<PlaylistPage />} />
+                        <Route path="search" element={<Search />} />
+                        <Route path="*" element={<Main />} />
                     </Route>
                 </Routes>
             </PlayerProvider>

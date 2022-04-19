@@ -1,29 +1,29 @@
-import React, { MouseEventHandler, useMemo, useRef, useState } from 'react';
+import React, {MouseEventHandler, useMemo, useRef, useState} from 'react';
 import styles from "./Track.module.css";
-import { ITrack, ITrackBase } from '../../../../shared';
-import { formatSeconds } from '../../utils/formatting';
-import { usePlayerContext } from '../../context/PlayerContext/PlayerContext';
-import { getTrackUrl } from '../../apiClient';
+import {ITrack, ITrackBase} from '../../../../shared';
+import {formatSeconds} from '../../utils/formatting';
+import {usePlayerContext} from '../../context/PlayerContext/PlayerContext';
+import {getTrackUrl} from '../../apiClient';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import MoreVertRounded from '@mui/icons-material/MoreVertRounded';
-import { PlayArrowRounded, PlaylistPlayRounded } from '@mui/icons-material';
-import { Link } from "react-router-dom";
+import {PlayArrowRounded, PlaylistPlayRounded} from '@mui/icons-material';
+import {Link} from "react-router-dom";
 
 export interface ITrackProps {
     info: ITrackBase;
 }
 
 async function convertToTrack(info: ITrackBase) {
-    const { data } = await getTrackUrl(info.id);
+    const {data} = await getTrackUrl(info.id);
     const track = info as ITrack;
     track.url = data;
     return track;
 }
 
 
-export const Track: React.FC<ITrackProps> = ({ info }) => {
-    const { appendTracks, appendLeftTracks } = usePlayerContext();
+export const Track: React.FC<ITrackProps> = ({info}) => {
+    const {appendTracks, appendLeftTracks} = usePlayerContext();
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null);
 
     const handlePlay = async () => {
@@ -51,14 +51,14 @@ export const Track: React.FC<ITrackProps> = ({ info }) => {
     return (
         <div className={styles.container}>
             <div className={styles.imageContainer} onClick={handlePlay}>
-                <img src={info.imageUrl} />
-                <PlayArrowRounded className={styles.playBtn} fontSize='large' />
+                <img className={styles.image} src={info.imageUrl}/>
+                <PlayArrowRounded className={styles.playBtn} fontSize='large'/>
             </div>
-            <span className={styles.title}>{info.title}</span>
-            <Link to='/'><span className={styles.artist}>{info.artist}</span></Link>
-            <Link to='/'><span className={styles.duration}>{formatSeconds(info.duration)}</span></Link>
+            <div className={styles.title}>{info.title}</div>
+            <Link to='#'><span className={styles.artist}>{info.artist}</span></Link>
+            <span className={styles.duration}>{formatSeconds(info.duration)}</span>
             <button className={styles.menuBtn} onClick={handleOpenMenu}>
-                <MoreVertRounded />
+                <MoreVertRounded/>
             </button>
             <Menu
                 id={`trackMenu-${info.id}`}
@@ -66,7 +66,7 @@ export const Track: React.FC<ITrackProps> = ({ info }) => {
                 open={menuIsOpen}
                 onClose={handleCloseMenu}
             >
-                <MenuItem onClick={handleAddToQueue}><PlaylistPlayRounded fontSize='small' /></MenuItem>
+                <MenuItem onClick={handleAddToQueue}><PlaylistPlayRounded fontSize='small'/></MenuItem>
             </Menu>
         </div>
     );

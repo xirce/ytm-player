@@ -1,16 +1,16 @@
 import React from 'react';
-import styles from './Styles.module.css';
-import { IAlbum } from '../../../../shared';
+import styles from './SearchResult.module.css';
+import {IAlbum} from '../../../../shared';
 
-export interface AlbumProps {
+export interface IAlbumProps {
     info: IAlbum;
 }
 
-export const Album: React.FC<AlbumProps> = ({ info }) => {
+export const Album: React.FC<IAlbumProps> = ({info}) => {
     return (
         <div className={styles.container}>
-            <div className={styles.images}>
-                <img src={info.imageUrl} className={styles.image} />
+            <div className={styles.imageContainer}>
+                <img className={styles.image} src={info.imageUrl}/>
             </div>
             <div className={styles.info}>
                 <p className={styles.white}>{info.name}</p>

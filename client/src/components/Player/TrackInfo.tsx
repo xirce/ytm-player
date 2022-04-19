@@ -12,7 +12,8 @@ export const TrackInfo: React.FC = () => {
         <Grid container item xs justifyContent='left' alignItems='center' gap={2} direction='row'>
             <Grid item width='60px' height='60px'>
                 <Link to='/'>
-                    <img className={styles.image} alt='Track image' src={tracks[trackIndex]?.imageUrl}/>
+                    {tracks[trackIndex]?.imageUrl
+                    && <img className={styles.image} alt='Track image' src={tracks[trackIndex]?.imageUrl}/>}
                 </Link>
             </Grid>
             <Grid item>

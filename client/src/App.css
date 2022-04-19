@@ -11,6 +11,7 @@
     --text-main-color: var(--secondary-color);
     --text-light-color: var(--light-color);
     --text-dark-color: var(--dark-color);
+    --progress-var-color: #ffaf0a;
 }
 
 body,
