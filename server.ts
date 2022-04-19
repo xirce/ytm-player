@@ -1,10 +1,9 @@
 import express from 'express';
 import YTMusic from 'ytmusic-api';
 import cors from 'cors';
-import { ITrackBase, IPlaylist, IAlbum } from './shared';
 // @ts-ignore
 import ytcog from 'ytcog';
-import { measure } from './utils';
+import {measure} from './utils';
 
 const app = express();
 const ytmusic = new YTMusic();
@@ -67,7 +66,7 @@ async function searchAll(query: string) {
 }
 
 async function getTrackUrl(id: string) {
-    const video = new ytcog.Video(session, { id: id });
+    const video = new ytcog.Video(session, {id: id});
     await video.fetch();
     return video.info();
 }
@@ -92,7 +91,6 @@ app.get('/api/search', async (req, res) => {
     }
 });
 
-<<<<<<< HEAD
 app.get('/api/track_url/:id', async (req, res) => {
     const id = req.params.id;
     try {
@@ -106,9 +104,6 @@ app.get('/api/track_url/:id', async (req, res) => {
 });
 
 app.get('/api/playlist/:id', async (req, res) => {
-=======
-app.get('/api/getTrackUrl/:id', async (req, res) => {
->>>>>>> 2e348c2e87cdbb915edb247c41480c20d8733ee2
     const id = req.params.id;
     try {
         const playlist = await ytmusic.getPlaylist(id);
@@ -117,7 +112,8 @@ app.get('/api/getTrackUrl/:id', async (req, res) => {
         console.log(error);
         res.sendStatus(400);
     }
-})
+});
+
 const PORT = process.env.PORT || 3001;
 
 async function start() {

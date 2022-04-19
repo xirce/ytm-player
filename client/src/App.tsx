@@ -5,11 +5,7 @@ import { Layout } from './layouts/Layout';
 import { MyLibrary } from './pages/MyLibrary/MyLibrary';
 import './App.css';
 import { PlaylistPage } from './pages/Playlist/PlaylistPage';
-<<<<<<< HEAD
 import { Search } from './pages/Search/Search';
-=======
-import { SearchAll } from './pages/SearchAll/SearchAll';
->>>>>>> 2e348c2e87cdbb915edb247c41480c20d8733ee2
 import { PlayerProvider } from './context/PlayerContext/PlayerContext';
 import { QueryClient, QueryClientProvider } from "react-query";
 import { Playlists } from './pages/Playlists/Playlists';

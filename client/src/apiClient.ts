@@ -23,7 +23,4 @@ export async function getPlaylist(id: string) {
     return await apiClient.get(`/playlist/${id}`);
 }
 
-export async function getPlaylist(id: string) {
-    return await apiClient.get(`/getPlaylist/${id}`);
-}
 export default apiClient;

@@ -1,28 +1,20 @@
-<<<<<<< HEAD
 import React from 'react';
 import styles from './SearchResult.module.css';
-=======
-import React, { useState } from 'react';
-import styles from './Styles.module.css';
->>>>>>> 2e348c2e87cdbb915edb247c41480c20d8733ee2
-import { IPlaylist } from '../../../../shared';
-import { Link } from 'react-router-dom';
+import {IPlaylist} from '../../../../shared';
+import {Link} from 'react-router-dom';
 
 export interface IPlaylistProps {
     info: IPlaylist;
 }
-export const Playlist: React.FC<IPlaylistProps> = ({ info }) => {
-<<<<<<< HEAD
+
+export const Playlist: React.FC<IPlaylistProps> = ({info}) => {
     const to = `/playlist/${info.id}`;
-=======
-    const to = `/playlist?id=${info.id}`;
->>>>>>> 2e348c2e87cdbb915edb247c41480c20d8733ee2
 
     return (
         <Link to={to}>
             <div className={styles.container}>
                 <div className={styles.imageContainer}>
-                    <img className={styles.image} src={info.imageUrl} />
+                    <img className={styles.image} src={info.imageUrl}/>
                 </div>
                 <div className={styles.info}>
                     <p className={styles.white}>{info.name}</p>
