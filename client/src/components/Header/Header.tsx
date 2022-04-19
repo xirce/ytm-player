@@ -17,10 +17,7 @@ const Header: React.FC = () => {
                 <NavLink to="/myLibrary" className={styles.navElem}>Моя медиатека</NavLink>
             </Grid>
             <Grid item>
-                <NavLink to="/search" className={styles.navElem}>Поиск</NavLink>
-            </Grid>
-            <Grid item>
-                <NavLink to="/anotherSearch" className={styles.navElem}>Search</NavLink>
+                <NavLink to="/anotherSearch" className={styles.navElem}>Поиск</NavLink>
             </Grid>
         </Grid>
     );

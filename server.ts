@@ -81,32 +81,6 @@ app.get('/api/searchAll', async (req, res) => {
 
 });
 
-app.get('/api/search', async (req, res) => {
-    const query = req.query.q;
-    const startTime = Date.now();
-    const searchResults = await ytmusic.searchSongs(query as string);
-    const endTime = Date.now();
-    console.log(`[took ${(endTime - startTime) / 1000}s]`);
-    try {
-        const tracks = searchResults.map<ITrackBase>(song => {
-            if (!song.artists) {
-                console.log('Without artists', song);
-            }
-            return {
-                id: song.videoId,
-                title: song.name,
-                artist: song.artists[0]?.name,
-                imageUrl: song.thumbnails[0].url,
-                duration: song.duration
-            }
-        });
-        res.json(tracks);
-    } catch (error) {
-        console.log(error);
-        res.sendStatus(400);
-    }
-});
-
 app.get('/api/getTrackUrl/:id', async (req, res) => {
     const id = req.params.id;
     try {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './Styles.module.css';
 import { IPlaylist } from '../../../../shared';
 import { Link } from 'react-router-dom';
@@ -6,9 +6,9 @@ import { Link } from 'react-router-dom';
 export interface IPlaylistProps {
     info: IPlaylist;
 }
-
 export const Playlist: React.FC<IPlaylistProps> = ({ info }) => {
-    const to = `/playlist?name=${info.name}`;
+    const to = `/playlist?id=${info.id}`;
+
     return (
         <Link to={to}>
             <div className={styles.container}>
