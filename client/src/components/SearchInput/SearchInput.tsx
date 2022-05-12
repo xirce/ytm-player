@@ -1,12 +1,12 @@
-import React, {useRef, useState} from 'react';
-import {InputBase} from "@mui/material";
+import React, { useRef, useState } from 'react';
+import InputBase from "@mui/material/InputBase/InputBase";
 import styles from './SearchInput.module.css';
 
 export interface SearchInputProps {
     onSearch?: (query: string) => void;
 }
 
-export const SearchInput: React.FC<SearchInputProps> = ({onSearch}) => {
+export const SearchInput: React.FC<SearchInputProps> = ({ onSearch }) => {
     const [query, setQuery] = useState('');
     const inputRef = useRef<HTMLInputElement>();
 

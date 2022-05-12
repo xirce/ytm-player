@@ -16,7 +16,7 @@ export async function search(query: string) {
 }
 
 export async function getTrackUrl(id: string) {
-    return await apiClient.get(`/track_url/${id}`);
+    return await apiClient.get<string>(`/track_url/${id}`);
 }
 
 export async function getPlaylist(id: string) {

@@ -1,18 +1,27 @@
-import React, {MouseEventHandler, MutableRefObject, useContext, useEffect, useMemo, useState} from 'react';
-import Grid from "@mui/material/Grid";
-import classNames from "classnames";
-import {PauseRounded, PlayArrowRounded, SkipNextRounded, SkipPreviousRounded} from "@mui/icons-material";
+import React, { MutableRefObject, useEffect, useRef } from 'react';
 import Stack from "@mui/material/Stack";
-import {usePlayerContext} from "../../context/PlayerContext/PlayerContext";
+import Grid from "@mui/material/Grid";
+import { PauseRounded, PlayArrowRounded, SkipNextRounded, SkipPreviousRounded } from "@mui/icons-material";
+import cx from "classnames";
+import { TimeProgressBar } from './TimeProgressBar';
+import { useAppAction, useAppSelector } from "../../store";
+import {
+    getCurrentTrack,
+    getIsPlaying, getTracks
+} from '../../store/player';
+import { getTrackUrl } from '../../apiClient';
 import styles from "./PlayerControls.module.css";
-import {TimeProgressBar} from './TimeProgressBar';
+import { useDependentRef } from "../../hooks/useDependentRef";
 
 export interface TrackControlProps {
     audio: MutableRefObject<HTMLAudioElement>;
 }
 
-export const TrackControl: React.FC<TrackControlProps> = ({audio}) => {
-    const {tracks, trackIndex, isPlaying, setIsPlaying, skipPrev, skipNext} = usePlayerContext();
+export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
+    const { setIsPlaying, skipNext, skipPrev } = useAppAction();
+    const tracksRef = useDependentRef(useAppSelector(getTracks));
+    const isPlaying = useAppSelector(getIsPlaying);
+    const currentTrack = useAppSelector(getCurrentTrack);
 
     useEffect(() => {
         const handlePlay = () => {
@@ -23,15 +32,12 @@ export const TrackControl: React.FC<TrackControlProps> = ({audio}) => {
             setIsPlaying(false);
         }
 
-        const handleEnd = async () => {
-            if (trackIndex + 1 >= tracks.length) {
+        const handleEnd = () => {
+            if ((tracksRef.current?.length || 0) > 1) {
+                skipNext();
+            } else {
                 setIsPlaying(false);
                 audio.current.currentTime = 0;
-            } else {
-                skipNext();
-                if (!isPlaying) {
-                    setIsPlaying(true);
-                }
             }
         }
 
@@ -40,17 +46,21 @@ export const TrackControl: React.FC<TrackControlProps> = ({audio}) => {
         audio.current.addEventListener('pause', handlePause);
         audio.current.addEventListener('ended', handleEnd);
         return () => {
+            audio.current.pause();
             audio.current.removeEventListener('play', handlePlay);
             audio.current.removeEventListener('pause', handlePause);
             audio.current.removeEventListener('ended', handleEnd);
-            audio.current.pause();
         }
-    }, [audio.current]);
+    }, []);
 
     useEffect(() => {
-        audio.current.src = tracks[trackIndex]?.url;
-        document.title = tracks[trackIndex]?.title ?? 'Слава Украине';
-    }, [tracks[trackIndex]]);
+        if (currentTrack) {
+            getTrackUrl(currentTrack?.id).then(({ data }) => {
+                audio.current.src = data;
+                document.title = currentTrack?.title ?? 'UNISON';
+            });
+        }
+    }, [currentTrack]);
 
     const handlePlaying = async () => {
         isPlaying ? audio.current.pause() : await audio.current.play();
@@ -62,12 +72,15 @@ export const TrackControl: React.FC<TrackControlProps> = ({audio}) => {
 
     const handleSkipNext = () => {
         skipNext();
+        if (!isPlaying) {
+            setIsPlaying(true);
+        }
     }
 
     return (
         <Stack>
             <Grid container justifyContent='center' alignItems='center' gap={2} marginBottom={1}>
-                <button className={classNames(styles.btn, styles.iconBtn)}
+                <button className={cx(styles.btn, styles.iconBtn)}
                         onClick={handleSkipPrev}>
                     <SkipPreviousRounded fontSize='large'/>
                 </button>
@@ -75,11 +88,12 @@ export const TrackControl: React.FC<TrackControlProps> = ({audio}) => {
                         onClick={handlePlaying}>
                     {isPlaying ? <PauseRounded/> : <PlayArrowRounded/>}
                 </button>
-                <button className={classNames(styles.btn, styles.iconBtn)}
+                <button className={cx(styles.btn, styles.iconBtn)}
                         onClick={handleSkipNext}>
                     <SkipNextRounded fontSize='large'/>
                 </button>
             </Grid>
             <TimeProgressBar audio={audio}/>
-        </Stack>);
+        </Stack>
+    );
 };

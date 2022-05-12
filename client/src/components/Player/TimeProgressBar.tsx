@@ -1,5 +1,5 @@
-import Grid from '@mui/material/Grid';
 import React, {MouseEventHandler, MutableRefObject, useState, useEffect, useMemo} from 'react';
+import Grid from '@mui/material/Grid';
 import {useReferredState} from '../../hooks/useReferredState';
 import {formatSeconds} from '../../utils/formatting';
 import {SliderWrapper} from '../Slider/SliderWrapper';
@@ -10,8 +10,8 @@ export interface ITimeProgressBarProps {
 
 export const TimeProgressBar: React.FC<ITimeProgressBarProps> = ({audio}) => {
     const [currentTime, setCurrentTime] = useState(audio.current.currentTime || 0);
-    const [duration, setDuration] = useState(audio.current.duration || 0);
     const [isChangingTimeRef, setIsChangingTimeRef] = useReferredState(false);
+    const [duration, setDuration] = useState(audio.current.duration || 0);
 
     const formattedCurrentTime = useMemo(() => {
         return formatSeconds(currentTime);
@@ -29,8 +29,8 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = ({audio}) => {
     useEffect(() => {
         const handleLoadedMetadata = async (event: Event) => {
             const audioElement = event.target as HTMLAudioElement;
-            const dur = audioElement?.duration ?? 0;
-            setDuration(dur);
+            const duration = audioElement?.duration ?? 0;
+            setDuration(duration);
         }
 
         const handleTimeUpdate = (event: Event) => {

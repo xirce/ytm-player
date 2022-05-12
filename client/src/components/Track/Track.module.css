@@ -3,8 +3,9 @@
     align-items: center;
     grid-template-columns: auto 3fr 3fr 1fr 1fr;
     color: var(--text-light-color);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    width: 800px;
+    border-bottom: 1px solid var(--bg-main-color);
+    width: 100%;
+    gap: 8px;
     box-sizing: border-box;
 }
 
@@ -44,12 +45,22 @@
     color: var(--text-light-color);
 }
 
+.hidden-overflow {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .artist, .duration {
     color: var(--text-main-color);
 }
 
 .title, .duration {
     cursor: default;
+}
+
+.title {
+    composes: hidden-overflow;
 }
 
 .artist:hover, .menuBtn:hover {

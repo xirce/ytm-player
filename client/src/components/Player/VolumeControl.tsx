@@ -1,7 +1,7 @@
-import {VolumeOffRounded, VolumeUpRounded} from '@mui/icons-material';
+import React, {MutableRefObject, useEffect, useState} from 'react';
 import Grid from '@mui/material/Grid';
+import {VolumeOffRounded, VolumeUpRounded} from '@mui/icons-material';
 import classNames from 'classnames';
-import React, {MutableRefObject, useEffect, useRef, useState} from 'react';
 import {SliderWrapper} from '../Slider/SliderWrapper';
 import styles from './PlayerControls.module.css';
 

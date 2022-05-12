@@ -1,7 +1,6 @@
 {
-  "name": "ytm-player",
-  "version": "1.0.0",
-  "description": "",
+  "name": "ytm-player-server",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "server": "ts-node-dev server.ts",
@@ -12,9 +11,6 @@
     "type": "git",
     "url": "git+https://github.com/xirce/ytm-player.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "bugs": {
     "url": "https://github.com/xirce/ytm-player/issues"
   },

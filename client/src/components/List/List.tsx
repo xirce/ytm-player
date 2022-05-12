@@ -11,9 +11,9 @@ export const List: React.FC<ListProps> = ({ title, source, renderItem }) => {
 
     return (
         <>
-            <h2>{title}</h2>
+            {title && <h2>{title}</h2>}
             <div>
-                {source?.map(renderItem)}
+                {source?.map((item, index) => <React.Fragment key={index}>{renderItem(item)}</React.Fragment>)}
             </div>
         </>);
 }

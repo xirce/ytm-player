@@ -6,10 +6,6 @@ export interface ITrackBase {
     duration: number;
 }
 
-export interface ITrack extends ITrackBase {
-    url: string;
-}
-
 export interface IPlaylist {
     id: string;
     name: string;

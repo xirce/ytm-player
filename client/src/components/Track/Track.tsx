@@ -1,42 +1,33 @@
-import React, {MouseEventHandler, useMemo, useRef, useState} from 'react';
-import styles from "./Track.module.css";
-import {ITrack, ITrackBase} from '../../../../shared';
-import {formatSeconds} from '../../utils/formatting';
-import {usePlayerContext} from '../../context/PlayerContext/PlayerContext';
-import {getTrackUrl} from '../../apiClient';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
+import React, { MouseEventHandler, useMemo, useState } from 'react';
+import MenuItem from "@mui/material/MenuItem/MenuItem";
 import MoreVertRounded from '@mui/icons-material/MoreVertRounded';
-import {PlayArrowRounded, PlaylistPlayRounded} from '@mui/icons-material';
-import {Link} from "react-router-dom";
+import { PlayArrowRounded, PlaylistPlayRounded } from '@mui/icons-material';
+import { ListItemIcon } from "@mui/material";
+import { Link } from "react-router-dom";
+import { ITrackBase } from '../../../../shared';
+import { useAppAction } from "../../store";
+import { formatSeconds } from '../../utils/formatting';
+import { MenuWrapper } from "../Menu/MenuWrapper";
+import styles from "./Track.module.css";
 
 export interface ITrackProps {
     info: ITrackBase;
 }
 
-async function convertToTrack(info: ITrackBase) {
-    const {data} = await getTrackUrl(info.id);
-    const track = info as ITrack;
-    track.url = data;
-    return track;
-}
-
-
-export const Track: React.FC<ITrackProps> = ({info}) => {
-    const {appendTracks, appendLeftTracks} = usePlayerContext();
+export const Track: React.FC<ITrackProps> = ({ info }) => {
+    const [isPlaying, setIsPlaying] = useState();
+    const { appendLeftTracks, appendTracks } = useAppAction();
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null);
 
     const handlePlay = async () => {
-        const track = await convertToTrack(info);
-        appendLeftTracks(track);
+        appendLeftTracks([info]);
     }
 
     const handleAddToQueue = async () => {
-        const track = await convertToTrack(info);
-        appendTracks(track);
+        appendTracks([info]);
     }
 
-    const menuIsOpen = useMemo(() => {
+    const isMenuOpen = useMemo(() => {
         return Boolean(anchorElement);
     }, [anchorElement]);
 
@@ -60,14 +51,23 @@ export const Track: React.FC<ITrackProps> = ({info}) => {
             <button className={styles.menuBtn} onClick={handleOpenMenu}>
                 <MoreVertRounded/>
             </button>
-            <Menu
-                id={`trackMenu-${info.id}`}
+            <MenuWrapper
+                id={`track-menu-${info.id}`}
+                anchorOrigin={{
+                    horizontal: 'right',
+                    vertical: 'bottom'
+                }}
                 anchorEl={anchorElement}
-                open={menuIsOpen}
+                open={isMenuOpen}
                 onClose={handleCloseMenu}
             >
-                <MenuItem onClick={handleAddToQueue}><PlaylistPlayRounded fontSize='small'/></MenuItem>
-            </Menu>
+                <MenuItem onClick={handleAddToQueue}>
+                    <ListItemIcon>
+                        <PlaylistPlayRounded fontSize='small'/>
+                    </ListItemIcon>
+                    Добавить в очередь
+                </MenuItem>
+            </MenuWrapper>
         </div>
     );
 }

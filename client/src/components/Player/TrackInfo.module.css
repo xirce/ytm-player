@@ -11,7 +11,15 @@
     box-shadow: 0 0 3px 1px var(--bg-darker-color);
 }
 
+.hidden-overflow {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .title {
+    composes: hidden-overflow;
+    max-width: 300px;
     cursor: default;
     color: var(--text-light-color);
 }

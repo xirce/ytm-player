@@ -1,6 +1,6 @@
-import Box from '@mui/material/Box';
 import React from 'react';
-import {PlayerControls} from './PlayerControls';
+import Box from '@mui/material/Box';
+import { PlayerControls } from './PlayerControls';
 
 export const PlayerWrapper: React.FC = () => {
     return (
@@ -8,9 +8,10 @@ export const PlayerWrapper: React.FC = () => {
             position: 'fixed',
             left: 0,
             right: 0,
-            bottom: 0
+            bottom: 0,
+            minWidth: '800px'
         }}>
-            <PlayerControls/>
+            <PlayerControls />
         </Box>
     );
 }
