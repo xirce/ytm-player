@@ -23,4 +23,12 @@ export async function getPlaylist(id: string) {
     return await apiClient.get(`/playlist/${id}`);
 }
 
+export async function getAlbum(id: string) {
+    return await apiClient.get(`/album/${id}`);
+}
+
+export async function getArtist(id: string) {
+    return await apiClient.get(`/artist/${id}`);
+}
+
 export default apiClient;

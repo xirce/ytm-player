@@ -27,7 +27,8 @@ async function searchAll(query: string) {
     const sorted = {
         songs: <any>[],
         playlists: <any>[],
-        albums: <any>[]
+        albums: <any>[],
+        artist: <any>[]
     };
 
     searchAll.forEach(item => {
@@ -41,6 +42,8 @@ async function searchAll(query: string) {
             case 'ALBUM':
                 sorted.albums.push(item);
                 break;
+            case 'ARTIST':
+                sorted.artist.push(item);
         }
     });
 
@@ -66,7 +69,15 @@ async function searchAll(query: string) {
         }
     });
 
-    return [songs, playlists, albums];
+    const artist = sorted.artist.map((artist: any) => {
+        return {
+            id: artist.artistId,
+            name: artist.name,
+            imageUrl: artist.thumbnails[0].url
+        }
+    })
+
+    return [songs, playlists, albums, artist];
 }
 
 async function fetchTrackUrl(id: string): Promise<string> {
@@ -136,6 +147,31 @@ app.get('/api/playlist/:id', async (req, res) => {
         const videos = await ytmusic.getPlaylistVideos(id);
         const tracks = videos.map(mapSongToTrack);
         res.json([playlist, tracks]);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(400);
+    }
+});
+
+app.get('/api/album/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const album = await ytmusic.getAlbum(id);
+        const tracks = album.songs.map(mapSongToTrack);
+        res.json([album, tracks]);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(400);
+    }
+});
+
+app.get('/api/artist/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const artistInfo = await ytmusic.getArtist(id);
+        const songs = await ytmusic.getArtistSongs(artistInfo.artistId);
+        const albums = await ytmusic.getArtistAlbums(artistInfo.artistId);
+        res.json([artistInfo, songs, albums]);
     } catch (error) {
         console.log(error);
         res.sendStatus(400);

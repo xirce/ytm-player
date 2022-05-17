@@ -13,6 +13,7 @@ import { Tracks } from './pages/Tracks/Tracks';
 import { ProgressBar } from "./components/ProgressBar/ProgressBar";
 import { store } from "./store";
 import './App.css';
+import { AlbumPage } from './pages/Album/AlbumPage';
 
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ export const App: React.FC = () => {
                             <Route path="tracks" element={<Tracks/>}/>
                         </Route>
                         <Route path="playlist/:id" element={<PlaylistPage/>}/>
+                        <Route path="album/:id" element={<AlbumPage/>}/>
                         <Route path="search" element={<Search/>}/>
                         <Route path="*" element={<Main/>}/>
                     </Route>

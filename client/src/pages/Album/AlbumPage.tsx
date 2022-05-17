@@ -1,21 +1,21 @@
 import React from "react";
 import { getLabel } from '../../components/SearchResult/Playlist';
-import { getPlaylist } from '../../apiClient';
+import { getAlbum } from '../../apiClient';
 import { List } from '../../components/List/List';
 import { useQuery } from "react-query";
 import { useParams } from "react-router-dom";
-import styles from './Playlist.module.css';
+import styles from './Album.module.css';
 import { Track } from '../../components/Track/Track';
 
-async function getPlaylistInfo(id: string) {
-    const response = await getPlaylist(id);
+async function getAlbumInfo(id: string) {
+    const response = await getAlbum(id);
     console.log(response.data);
     return response.data;
 }
 
-export const PlaylistPage: React.FC = () => {
+export const AlbumPage: React.FC = () => {
     const { id } = useParams();
-    const { isLoading, data } = useQuery(['playlist', id], async () => await getPlaylistInfo(id as string));
+    const { isLoading, data } = useQuery(['album', id], async () => await getAlbumInfo(id as string));
     if (isLoading) {
         return <h1 style={{ color: 'white' }}>ЗАГРУЖАЮ...</h1>
     }
@@ -26,9 +26,18 @@ export const PlaylistPage: React.FC = () => {
                 <div className={styles.imageContainer}>
                     <img className={styles.image} src={data[0].thumbnails[0].url} style={{ width: '192px', height: '192px' }} />
                 </div>
-                <div className="description">
+                <div className={styles.description}>
                     <h2>{data[0].name}</h2>
-                    <p>{data[0].videoCount} {getLabel(data[0].videoCount)}</p>
+                    <div className={styles.info}>
+                        <p>Альбом</p>
+                        <p> • </p>
+                        <p>{data[0].artists[0].name}</p>
+                        <p> • </p>
+                        <p>{data[0].year}</p>
+                    </div>
+                    <div className={styles.info}>
+                        <p>{data[1].length} {getLabel(data[0].videoCount)}</p>
+                    </div>
                 </div>
             </div>
             <div className={styles.tracks}>
