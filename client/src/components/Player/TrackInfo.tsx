@@ -12,16 +12,15 @@ export const TrackInfo: React.FC = () => {
     return (
         <Grid container item xs justifyContent='left' alignItems='center' wrap='nowrap' gap={2} direction='row'>
             <Grid item width='60px' height='60px'>
-                <Link to='/'>
-                    {currentTrack?.imageUrl
-                    && <img className={styles.image} alt='Track image' src={currentTrack?.imageUrl}/>}
-                </Link>
+                {currentTrack?.imageUrl && <img className={styles.image} src={currentTrack?.imageUrl}/>}
             </Grid>
             <Grid item>
                 <Stack direction='column' alignItems='start'>
-                    <span className={styles.title}>{currentTrack?.title ?? 'Название трека'}</span>
-                    <Link to='/' className={styles.artist}>
-                        <span>{currentTrack?.artist ?? 'Артист'}</span>
+                    <span className={styles.title} title={currentTrack?.title ?? ''}>
+                        {currentTrack?.title ?? 'Название трека'}
+                    </span>
+                    <Link to={`/artist/${currentTrack?.artist.name}`} className={styles.artist}>
+                        <span>{currentTrack?.artist.name ?? 'Артист'}</span>
                     </Link>
                 </Stack>
             </Grid>

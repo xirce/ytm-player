@@ -2,9 +2,8 @@
     padding: 8px;
     width: 100%;
     height: 3rem;
-    border-radius: 4px;
-    color: var(--text-dark-color);
-    background-color: var(--light-color);
+    color: var(--text-light-color) !important;
+    background-color: var(--bg-main-color);
 }
 
 .field input {

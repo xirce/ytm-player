@@ -1,0 +1,26 @@
+.btn {
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: var(--dark-color);
+    background-color: var(--light-color);
+}
+
+.container {
+    padding: 32px 96px 64px 96px
+}
+
+.iconBtn {
+    composes: btn;
+    color: var(--secondary-color);
+    background-color: transparent;
+}
+
+.iconBtn:hover {
+    filter: brightness(200%);
+}
+
+.iconBtn:active {
+    filter: brightness(100%);
+}

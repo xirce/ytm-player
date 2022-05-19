@@ -30,6 +30,9 @@ export const playerSlice = createSlice({
         appendLeftTracks(state, action: PayloadAction<ITrackBase[]>) {
             state.tracks.splice(state.trackIndex, 0, ...action.payload);
         },
+        setTrackIndex(state, action: PayloadAction<number>) {
+            state.trackIndex = action.payload;
+        },
         skipNext(state) {
             state.trackIndex = state.trackIndex === state.tracks.length - 1 ? 0 : state.trackIndex + 1;
             if (!state.isPlaying) {
@@ -46,5 +49,7 @@ export const playerSlice = createSlice({
 });
 
 export const getIsPlaying = (state: RootState) => state.player.isPlaying;
+export const getTrackIndex = (state: RootState) => state.player.trackIndex;
 export const getCurrentTrack = (state: RootState) => state.player.tracks[state.player.trackIndex];
 export const getTracks = (state: RootState) => state.player.tracks;
+export const getNextTracks = (state: RootState) => state.player.tracks.slice(state.player.trackIndex + 1);

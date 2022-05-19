@@ -17,6 +17,11 @@
     background-color: var(--bg-main-color);
 }
 
+.playingContainer {
+    composes: container;
+    background-color: var(--bg-main-color);
+}
+
 .imageContainer {
     width: 60px;
     height: 60px;
@@ -63,11 +68,11 @@
     composes: hidden-overflow;
 }
 
-.artist:hover, .menuBtn:hover {
+.artist:hover, .actionsBtn:hover {
     filter: brightness(200%);
 }
 
-.menuBtn {
+.actionsBtn {
     width: 24px;
     height: 24px;
     cursor: pointer;

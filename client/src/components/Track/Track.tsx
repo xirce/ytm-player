@@ -1,73 +1,43 @@
-import React, { MouseEventHandler, useMemo, useState } from 'react';
-import MenuItem from "@mui/material/MenuItem/MenuItem";
-import MoreVertRounded from '@mui/icons-material/MoreVertRounded';
-import { PlayArrowRounded, PlaylistPlayRounded } from '@mui/icons-material';
-import { ListItemIcon } from "@mui/material";
+import React from 'react';
 import { Link } from "react-router-dom";
+import { PauseRounded, PlayArrowRounded } from '@mui/icons-material';
 import { ITrackBase } from '../../../../shared';
-import { useAppAction } from "../../store";
 import { formatSeconds } from '../../utils/formatting';
-import { MenuWrapper } from "../Menu/MenuWrapper";
+import { TrackActionsControl } from "./TrackActionsControl";
+import { useAppAction,  } from "../../store";
 import styles from "./Track.module.css";
 
 export interface ITrackProps {
-    info: ITrackBase;
+    source: ITrackBase[];
+    index: number;
+    isPlaying?: boolean;
 }
 
-export const Track: React.FC<ITrackProps> = ({ info }) => {
-    const [isPlaying, setIsPlaying] = useState();
-    const { appendLeftTracks, appendTracks } = useAppAction();
-    const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null);
+export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlaying }) => {
+    const { setTracks, setTrackIndex, setIsPlaying } = useAppAction();
+    const info = source[index];
 
-    const handlePlay = async () => {
-        appendLeftTracks([info]);
-    }
-
-    const handleAddToQueue = async () => {
-        appendTracks([info]);
-    }
-
-    const isMenuOpen = useMemo(() => {
-        return Boolean(anchorElement);
-    }, [anchorElement]);
-
-    const handleOpenMenu: MouseEventHandler = (event) => {
-        setAnchorElement(event.target as HTMLElement);
-    }
-
-    const handleCloseMenu = () => {
-        setAnchorElement(null);
+    const togglePlay = async () => {
+        if (isPlaying) {
+            setIsPlaying(false);
+        } else {
+            setTracks(source);
+            setTrackIndex(index);
+        }
     }
 
     return (
-        <div className={styles.container}>
-            <div className={styles.imageContainer} onClick={handlePlay}>
+        <div className={isPlaying ? styles.playingContainer : styles.container}>
+            <div className={styles.imageContainer} onClick={togglePlay}>
                 <img className={styles.image} src={info.imageUrl}/>
-                <PlayArrowRounded className={styles.playBtn} fontSize='large'/>
+                {isPlaying
+                    ? <PauseRounded className={styles.playBtn} fontSize='large'/>
+                    : <PlayArrowRounded className={styles.playBtn} fontSize='large'/>}
             </div>
             <div className={styles.title}>{info.title}</div>
-            <Link to='#'><span className={styles.artist}>{info.artist}</span></Link>
+            <Link to={`/artist/${info.artist.id}`}><span className={styles.artist}>{info.artist.name}</span></Link>
             <span className={styles.duration}>{formatSeconds(info.duration)}</span>
-            <button className={styles.menuBtn} onClick={handleOpenMenu}>
-                <MoreVertRounded/>
-            </button>
-            <MenuWrapper
-                id={`track-menu-${info.id}`}
-                anchorOrigin={{
-                    horizontal: 'right',
-                    vertical: 'bottom'
-                }}
-                anchorEl={anchorElement}
-                open={isMenuOpen}
-                onClose={handleCloseMenu}
-            >
-                <MenuItem onClick={handleAddToQueue}>
-                    <ListItemIcon>
-                        <PlaylistPlayRounded fontSize='small'/>
-                    </ListItemIcon>
-                    Добавить в очередь
-                </MenuItem>
-            </MenuWrapper>
+            <TrackActionsControl info={info}/>
         </div>
     );
-}
+});

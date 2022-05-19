@@ -8,7 +8,7 @@ export const MenuWrapper: React.FC<MenuProps> = React.memo(props => {
               sx={{
                   '& .MuiMenu-paper': {
                       backgroundColor: 'var(--bg-dark-color)',
-                      color: 'var(--text-light-color)'
+                      color: 'var(--text-light-color)',
                   },
                   '& .MuiMenuItem-root:hover': {
                       backgroundColor: 'var(--bg-main-color)'

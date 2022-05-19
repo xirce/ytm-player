@@ -4,31 +4,36 @@ import { VolumeControl } from './VolumeControl';
 import { TrackControl } from "./TrackControl";
 import { TrackInfo } from "./TrackInfo";
 import styles from './PlayerControls.module.css';
-import { TrackQueueControl } from './TrackQueueControl';
+import QueueMusicRoundedIcon from "@mui/icons-material/QueueMusicRounded";
+import { Link } from "react-router-dom";
 
 export const PlayerControls: React.FC = React.memo(() => {
     const audio = useRef(new Audio());
 
     return (
         <Grid container
-            className={styles.container}
-            justifyContent='center'
-            alignItems='center'
-            direction='row'
+              className={styles.container}
+              justifyContent='center'
+              alignItems='center'
+              direction='row'
         >
             <Grid item xs>
-                <TrackInfo />
+                <TrackInfo/>
             </Grid>
             <Grid item xs={4}>
-                <TrackControl audio={audio} />
+                <TrackControl audio={audio}/>
             </Grid>
             <Grid container item xs justifyContent='center'>
                 <Grid item xs={8}>
-                    <VolumeControl audio={audio} />
+                    <VolumeControl audio={audio}/>
                 </Grid>
                 <Grid item>
-                    <TrackQueueControl />
+                    <Link to='/queue'>
+                        <button className={styles.iconBtn} title='Очередь'>
+                            <QueueMusicRoundedIcon/>
+                        </button>
+                    </Link>
                 </Grid>
             </Grid>
-        </Grid >);
+        </Grid>);
 });

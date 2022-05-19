@@ -1,16 +1,15 @@
 import React from 'react';
 import styles from './SearchResult.module.css';
-import { IAlbum } from '../../../../shared';
+import { IAlbumBase } from '../../../../shared';
 import { Link } from 'react-router-dom';
 
 export interface IAlbumProps {
-    info: IAlbum;
+    info: IAlbumBase;
 }
 
 export const Album: React.FC<IAlbumProps> = ({ info }) => {
-    const to = `/album/${info.id}`
     return (
-        <Link to={to}>
+        <Link to={`/album/${info.id}`}>
             <div className={styles.container}>
                 <div className={styles.imageContainer}>
                     <img className={styles.image} src={info.imageUrl} />
@@ -18,7 +17,7 @@ export const Album: React.FC<IAlbumProps> = ({ info }) => {
                 <div className={styles.info}>
                     <p className={styles.white}>{info.name}</p>
                     <div className={styles.line}>
-                        <p>{info.artist}</p>
+                        <p>{info.artist.name}</p>
                         <p>{info.year}</p>
                     </div>
                 </div>

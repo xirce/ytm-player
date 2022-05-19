@@ -5,23 +5,14 @@
     background-color: var(--bg-darker-color);
 }
 
-.content::-webkit-scrollbar {
-    width: 0.7rem;
-}
-
 .content::-webkit-scrollbar-track {
-    background-color: var(--bg-dark-color);
-    border-left: 1px solid var(--bg-main-color);
     margin-bottom: 166px;
-}
-
-.content::-webkit-scrollbar-thumb {
-    background-color: var(--bg-light-color);
 }
 
 .container {
     display: inline-block;
     width: 100%;
     box-sizing: border-box;
+    padding: 32px 160px 64px 160px;
     margin-bottom: 166px;
 }

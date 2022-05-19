@@ -1,0 +1,10 @@
+@value btn, iconBtn from '../../Common.module.css';
+
+.header {
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--bg-main-color);
+}
+
+.title {
+    font-size: x-large;
+}

@@ -1,23 +1,26 @@
-import Grid from '@mui/material/Grid';
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import Grid from '@mui/material/Grid';
+import { SearchInput } from "../SearchInput/SearchInput";
 import styles from './Header.module.css';
 
 const Header: React.FC = () => {
+    const [params, _] = useSearchParams();
+    const query = params.get('q') ?? '';
+    const navigate = useNavigate();
+
+    const handleSearch = (query: string) => {
+        navigate(`/search?q=${query}`);
+    }
+
     return (
         <Grid className={styles.navBar}
-            container
-            justifyContent='left'
-            alignItems='center'
-            direction='row'>
-            <Grid item>
-                <NavLink to="/" className={styles.navElem}>Главная</NavLink>
-            </Grid>
-            <Grid item>
-                <NavLink to="/myLibrary" className={styles.navElem}>Моя медиатека</NavLink>
-            </Grid>
-            <Grid item>
-                <NavLink to="/search" className={styles.navElem}>Поиск</NavLink>
+              container
+              justifyContent='center'
+              alignItems='center'
+              direction='row'>
+            <Grid item xs={4}>
+                <SearchInput  onSearch={handleSearch} value={query}/>
             </Grid>
         </Grid>
     );

@@ -1,3 +1,5 @@
+@value btn, iconBtn from '../../Common.module.css';
+
 .container {
     height: 96px;
     padding: 0 16px;
@@ -6,25 +8,3 @@
     background-color: var(--bg-dark-color);
     border-top: 1px solid var(--bg-main-color);
 }
-
-.btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    color: var(--dark-color);
-    background-color: var(--light-color);
-}
-
-.iconBtn {
-    color: var(--secondary-color);
-    background-color: transparent;
-}
-
-.iconBtn:hover {
-    filter: brightness(200%);
-}
-
-.iconBtn:active {
-    filter: brightness(100%);
-}
-

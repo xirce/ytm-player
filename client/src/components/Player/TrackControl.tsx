@@ -1,17 +1,17 @@
-import React, { MutableRefObject, useEffect, useRef } from 'react';
+import React, { MutableRefObject, useEffect } from 'react';
 import Stack from "@mui/material/Stack";
 import Grid from "@mui/material/Grid";
+import { skipToken } from "@reduxjs/toolkit/query";
 import { PauseRounded, PlayArrowRounded, SkipNextRounded, SkipPreviousRounded } from "@mui/icons-material";
-import cx from "classnames";
 import { TimeProgressBar } from './TimeProgressBar';
 import { useAppAction, useAppSelector } from "../../store";
 import {
     getCurrentTrack,
     getIsPlaying, getTracks
 } from '../../store/player';
-import { getTrackUrl } from '../../apiClient';
-import styles from "./PlayerControls.module.css";
+import { useGetTrackUrlQuery } from '../../apiClient';
 import { useDependentRef } from "../../hooks/useDependentRef";
+import styles from "./PlayerControls.module.css";
 
 export interface TrackControlProps {
     audio: MutableRefObject<HTMLAudioElement>;
@@ -22,6 +22,7 @@ export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
     const tracksRef = useDependentRef(useAppSelector(getTracks));
     const isPlaying = useAppSelector(getIsPlaying);
     const currentTrack = useAppSelector(getCurrentTrack);
+    const { data: trackUrl } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
 
     useEffect(() => {
         const handlePlay = () => {
@@ -54,13 +55,15 @@ export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
     }, []);
 
     useEffect(() => {
-        if (currentTrack) {
-            getTrackUrl(currentTrack?.id).then(({ data }) => {
-                audio.current.src = data;
-                document.title = currentTrack?.title ?? 'UNISON';
-            });
+        if (trackUrl) {
+            audio.current.src = trackUrl;
         }
-    }, [currentTrack]);
+        document.title = currentTrack?.title ?? 'UNISON';
+    }, [trackUrl]);
+
+    useEffect(() => {
+        isPlaying ? audio.current.play() : audio.current.pause();
+    }, [isPlaying]);
 
     const handlePlaying = async () => {
         isPlaying ? audio.current.pause() : await audio.current.play();
@@ -80,15 +83,15 @@ export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
     return (
         <Stack>
             <Grid container justifyContent='center' alignItems='center' gap={2} marginBottom={1}>
-                <button className={cx(styles.btn, styles.iconBtn)}
+                <button className={styles.iconBtn}
                         onClick={handleSkipPrev}>
                     <SkipPreviousRounded fontSize='large'/>
                 </button>
-                <button className={styles.btn}
+                <button className={styles.iconBtn}
                         onClick={handlePlaying}>
-                    {isPlaying ? <PauseRounded/> : <PlayArrowRounded/>}
+                    {isPlaying ? <PauseRounded fontSize='large'/> : <PlayArrowRounded fontSize='large'/>}
                 </button>
-                <button className={cx(styles.btn, styles.iconBtn)}
+                <button className={styles.iconBtn}
                         onClick={handleSkipNext}>
                     <SkipNextRounded fontSize='large'/>
                 </button>

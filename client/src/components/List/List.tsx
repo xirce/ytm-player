@@ -1,19 +1,21 @@
 import React, { ReactNode } from 'react';
 
-export interface ListProps {
+export interface IListProps<T> {
     title?: string;
-    source: any[];
-    renderItem: (item: any) => ReactNode;
+    source: T[];
+    renderItem: (item: T, index: number) => ReactNode;
 }
 
-export const List: React.FC<ListProps> = ({ title, source, renderItem }) => {
+export const List = <T, >(props: IListProps<T>) => {
+    const { title, source, renderItem } = props;
+
     if (!source?.length) return null;
 
     return (
         <>
             {title && <h2>{title}</h2>}
             <div>
-                {source?.map((item, index) => <React.Fragment key={index}>{renderItem(item)}</React.Fragment>)}
+                {source?.map((item, index) => <React.Fragment key={index}>{renderItem(item, index)}</React.Fragment>)}
             </div>
         </>);
 }

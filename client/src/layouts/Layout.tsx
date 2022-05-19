@@ -2,7 +2,6 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { PlayerWrapper } from '../components/Player/PlayerWrapper';
 import Header from '../components/Header';
-import Grid from '@mui/material/Grid';
 import styles from './Layout.module.css';
 
 export const Layout: React.FC = () => {

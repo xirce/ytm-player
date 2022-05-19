@@ -1,17 +1,15 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { IPlaylistBase } from '../../../../shared';
 import styles from './SearchResult.module.css';
-import {IPlaylist} from '../../../../shared';
-import {Link} from 'react-router-dom';
 
 export interface IPlaylistProps {
-    info: IPlaylist;
+    info: IPlaylistBase;
 }
 
-export const Playlist: React.FC<IPlaylistProps> = ({info}) => {
-    const to = `/playlist/${info.id}`;
-
+export const Playlist: React.FC<IPlaylistProps> = ({ info }) => {
     return (
-        <Link to={to}>
+        <Link to={`/playlist/${info.id}`}>
             <div className={styles.container}>
                 <div className={styles.imageContainer}>
                     <img className={styles.image} src={info.imageUrl}/>
