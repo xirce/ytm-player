@@ -14,13 +14,13 @@ router.get('/:id', async (req, res) => {
             id: albumInfo.albumId,
             name: albumInfo.name,
             year: albumInfo.year,
-            imageUrl: albumInfo.thumbnails[1].url,
+            imageUrl: albumInfo.thumbnails[2].url,
             artist: mapToArtistBase(albumInfo.artists[0]),
             tracks: tracks
         }
         res.json(album);
-    } catch (error) {
-        console.log(error);
+    } catch (error: any) {
+        console.log(error.response.data.error);
         res.sendStatus(400);
     }
 })

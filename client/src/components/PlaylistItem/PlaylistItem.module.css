@@ -1,21 +1,34 @@
-.container:not(:last-of-type) {
-    margin-right: 16px;
-}
-
-.content {
+.container {
+    display: flex;
+    flex-direction: column;
     padding: 8px;
-    border-radius: 4px;
-    color: var(--text-light-color);
     background-color: var(--bg-dark-color);
 }
 
-.content:hover {
+.container:hover {
     background-color: var(--bg-main-color);
 }
 
-.content .image {
-    width: 150px;
-    height: 150px;
-    border-radius: 4px;
-    background-color: var(--bg-darker-color);
+.imageContainer {
+    width: 192px;
+    height: 192px;
+    margin-bottom: 8px;
+}
+
+.image {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+.name {
+    max-width: 192px;
+    color: var(--text-light-color);
+    overflow-wrap: break-word;
+}
+
+.year {
+    color: var(--text-main-color);
+    justify-self: end;
+    align-self: flex-end;
 }

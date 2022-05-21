@@ -14,7 +14,7 @@ router.get('/:id', async (req, res) => {
         const playlist: IPlaylist = {
             id: playlistInfo.playlistId,
             name: playlistInfo.name,
-            imageUrl: playlistInfo.thumbnails[1].url,
+            imageUrl: playlistInfo.thumbnails[2].url,
             tracksCount: playlistInfo.videoCount,
             tracks: tracks
         }

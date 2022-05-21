@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { LinearProgress } from "@mui/material";
 import styles from './ProgressBar.module.css';
+import { instance } from '../../apiClient';
 
 export const ProgressBar: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        axios.interceptors.request.use(config => {
+        instance.interceptors.request.use(config => {
             setIsLoading(true);
             return config;
         });
 
-        axios.interceptors.response.use(config => {
+        instance.interceptors.response.use(config => {
             setIsLoading(false);
             return config;
         });

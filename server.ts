@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { NextFunction } from 'express';
 import YTMusic from 'ytmusic-api';
 // @ts-ignore
 import ytcog from 'ytcog';
@@ -10,15 +10,16 @@ import albumRouter from "./routers/albumRouter";
 import artistRouter from "./routers/artistRouter";
 
 const app = express();
-export const ytmusic = new YTMusic();
-export const session = new ytcog.Session();
+const ytmusic = new YTMusic();
+const session = new ytcog.Session();
 
 app.use(express.json());
 app.use(cors());
 
+
 app.use('/api/track_urls', trackUrlRouter);
 app.use('/api/search', searchRouter);
-app.use('/api/playlists', playlistRouter)
+app.use('/api/playlists', playlistRouter);
 app.use('/api/albums', albumRouter);
 app.use('/api/artists', artistRouter);
 
@@ -36,3 +37,5 @@ async function start() {
 }
 
 start();
+
+export { ytmusic, session };

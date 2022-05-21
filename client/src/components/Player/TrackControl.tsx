@@ -2,12 +2,12 @@ import React, { MutableRefObject, useEffect } from 'react';
 import Stack from "@mui/material/Stack";
 import Grid from "@mui/material/Grid";
 import { skipToken } from "@reduxjs/toolkit/query";
-import { PauseRounded, PlayArrowRounded, SkipNextRounded, SkipPreviousRounded } from "@mui/icons-material";
+import { PauseRounded, PlayArrowRounded, RepeatOneRounded, RepeatRounded, Shuffle, ShuffleRounded, SkipNextRounded, SkipPreviousRounded } from "@mui/icons-material";
 import { TimeProgressBar } from './TimeProgressBar';
 import { useAppAction, useAppSelector } from "../../store";
 import {
     getCurrentTrack,
-    getIsPlaying, getTracks
+    getIsPlaying, getTracks, getRepeat
 } from '../../store/player';
 import { useGetTrackUrlQuery } from '../../apiClient';
 import { useDependentRef } from "../../hooks/useDependentRef";
@@ -18,10 +18,11 @@ export interface TrackControlProps {
 }
 
 export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
-    const { setIsPlaying, skipNext, skipPrev } = useAppAction();
+    const { setIsPlaying, skipNext, skipPrev, setRepeat, shuffle } = useAppAction();
     const tracksRef = useDependentRef(useAppSelector(getTracks));
     const isPlaying = useAppSelector(getIsPlaying);
     const currentTrack = useAppSelector(getCurrentTrack);
+    const repeat = useAppSelector(getRepeat);
     const { data: trackUrl } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
 
     useEffect(() => {
@@ -34,7 +35,10 @@ export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
         }
 
         const handleEnd = () => {
-            if ((tracksRef.current?.length || 0) > 1) {
+            if (repeat) {
+                audio.current.currentTime = 0;
+                handlePlay();
+            } else if ((tracksRef.current?.length || 0) > 1) {
                 skipNext();
             } else {
                 setIsPlaying(false);
@@ -80,23 +84,39 @@ export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
         }
     }
 
+    const handleToggleRepeat = () => {
+        setRepeat(!repeat);
+    }
+
+    const handleShuffle = () => {
+        shuffle();
+    }
+
     return (
         <Stack>
             <Grid container justifyContent='center' alignItems='center' gap={2} marginBottom={1}>
                 <button className={styles.iconBtn}
-                        onClick={handleSkipPrev}>
-                    <SkipPreviousRounded fontSize='large'/>
+                    onClick={handleShuffle}>
+                    <ShuffleRounded />
                 </button>
                 <button className={styles.iconBtn}
-                        onClick={handlePlaying}>
-                    {isPlaying ? <PauseRounded fontSize='large'/> : <PlayArrowRounded fontSize='large'/>}
+                    onClick={handleSkipPrev}>
+                    <SkipPreviousRounded fontSize='large' />
                 </button>
                 <button className={styles.iconBtn}
-                        onClick={handleSkipNext}>
-                    <SkipNextRounded fontSize='large'/>
+                    onClick={handlePlaying}>
+                    {isPlaying ? <PauseRounded fontSize='large' /> : <PlayArrowRounded fontSize='large' />}
+                </button>
+                <button className={styles.iconBtn}
+                    onClick={handleSkipNext}>
+                    <SkipNextRounded fontSize='large' />
+                </button>
+                <button className={styles.iconBtn}
+                    onClick={handleToggleRepeat}>
+                    {repeat ? <RepeatOneRounded /> : <RepeatRounded />}
                 </button>
             </Grid>
-            <TimeProgressBar audio={audio}/>
+            <TimeProgressBar audio={audio} />
         </Stack>
     );
 };

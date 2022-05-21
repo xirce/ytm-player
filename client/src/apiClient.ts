@@ -3,6 +3,12 @@ import { BaseQueryFn } from "@reduxjs/toolkit/query";
 import { createApi } from "@reduxjs/toolkit/dist/query/react";
 import { IAlbum, IArtist, IPlaylist, ISearchResponse } from "../../shared";
 
+export const instance = axios.create({
+    headers: {
+        "Content-type": "application/json"
+    }
+})
+
 export const axiosBaseQuery = ({ baseUrl }: { baseUrl: string } = { baseUrl: '' }): BaseQueryFn<{
     url: string
     method: AxiosRequestConfig['method']
@@ -10,7 +16,7 @@ export const axiosBaseQuery = ({ baseUrl }: { baseUrl: string } = { baseUrl: '' 
     params?: AxiosRequestConfig['params']
 }> => async ({ url, method, data, params }) => {
     try {
-        const result = await axios.request({ url: baseUrl + url, method, data, params })
+        const result = await instance.request({ url: baseUrl + url, method, data, params })
         return { data: result.data }
     } catch (axiosError) {
         let err = axiosError as AxiosError
@@ -37,6 +43,18 @@ const api = createApi({
         search: build.query<ISearchResponse, string>({
             query: (query: string) => ({ url: `/search?q=${query}`, method: 'GET' })
         }),
+        searchArtits: build.query<ISearchResponse, string>({
+            query: (query: string) => ({ url: `/search/artists?q=${query}`, method: 'GET' })
+        }),
+        searchTracks: build.query<ISearchResponse, string>({
+            query: (query: string) => ({ url: `/search/tracks?q=${query}`, method: 'GET' })
+        }),
+        searchAlbums: build.query<ISearchResponse, string>({
+            query: (query: string) => ({ url: `/search/albums?q=${query}`, method: 'GET' })
+        }),
+        searchPlaylists: build.query<ISearchResponse, string>({
+            query: (query: string) => ({ url: `/search/playlists?q=${query}`, method: 'GET' })
+        }),
         getArtist: build.query<IArtist, string>({
             query: (id: string) => ({ url: `/artists/${id}`, method: 'GET' })
         }),
@@ -47,7 +65,7 @@ const api = createApi({
             query: (id: string) => ({ url: `/playlists/${id}`, method: 'GET' })
         }),
     })
-})
+});
 
 export const { useSearchQuery, useGetTrackUrlQuery, useGetPlaylistQuery, useGetAlbumQuery, useGetArtistQuery } = api;
 

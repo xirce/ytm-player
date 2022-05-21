@@ -1,22 +1,24 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from './PlaylistItem.module.css';
+import { IAlbumBase } from '../../../../shared';
 
 export interface IPlaylistItemProps {
-    name: string;
-    link: string;
+    info: IAlbumBase
 }
 
-export const PlaylistItem: React.FC<IPlaylistItemProps> = ({ name, link }: IPlaylistItemProps) => {
-    const to = `/playlist?name=${name}`;
+export const PlaylistItem: React.FC<IPlaylistItemProps> = ({ info }: IPlaylistItemProps) => {
+    const to = `/album/${info.id}`;
+
     return (
-        <div className={styles.container}>
-            <Link to={to}>
-                <div className={styles.content}>
-                    <div className={styles.image} />
-                    <p>{name}</p>
+        <Link to={to}>
+            <div className={styles.container}>
+                <div className={styles.imageContainer}>
+                    <img src={info.imageUrl} className={styles.image} />
                 </div>
-            </Link>
-        </div>
+                <span className={styles.name}>{info.name}</span>
+                <span className={styles.year}>{info.year}</span>
+            </div>
+        </Link>
     );
 }

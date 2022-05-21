@@ -3,8 +3,13 @@ export interface IArtistBase {
     name: string;
 }
 
-export interface IArtist extends IArtistBase {
+export interface IArtistDetailed extends IArtistBase{ 
+    imageUrl: string;
+}
+
+export interface IArtist extends IArtistDetailed {
     tracks: ITrackBase[],
+    albums: IAlbumBase[],
 }
 
 export interface ITrackBase {
@@ -39,7 +44,7 @@ export interface IAlbum extends IAlbumBase {
 }
 
 export interface ISearchResponse {
-    artists: IArtistBase[];
+    artists: IArtistDetailed[];
     tracks: ITrackBase[];
     albums: IAlbumBase[];
     playlists: IPlaylistBase[];

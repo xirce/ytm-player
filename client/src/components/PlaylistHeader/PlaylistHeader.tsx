@@ -19,7 +19,7 @@ export const PlaylistHeader: React.FC<IPlaylistHeaderProps> = React.memo(({ titl
             </div>
             <div className="description">
                 <h2>{title}</h2>
-                <span>{rest?.join(' ')}</span>
+                <span>{rest?.join(' • ')}</span>
             </div>
         </Stack>
     );

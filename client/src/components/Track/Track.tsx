@@ -4,7 +4,7 @@ import { PauseRounded, PlayArrowRounded } from '@mui/icons-material';
 import { ITrackBase } from '../../../../shared';
 import { formatSeconds } from '../../utils/formatting';
 import { TrackActionsControl } from "./TrackActionsControl";
-import { useAppAction,  } from "../../store";
+import { useAppAction, } from "../../store";
 import styles from "./Track.module.css";
 
 export interface ITrackProps {
@@ -29,15 +29,15 @@ export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlayi
     return (
         <div className={isPlaying ? styles.playingContainer : styles.container}>
             <div className={styles.imageContainer} onClick={togglePlay}>
-                <img className={styles.image} src={info.imageUrl}/>
+                <img className={styles.image} src={info.imageUrl} />
                 {isPlaying
-                    ? <PauseRounded className={styles.playBtn} fontSize='large'/>
-                    : <PlayArrowRounded className={styles.playBtn} fontSize='large'/>}
+                    ? <PauseRounded className={styles.playBtn} fontSize='large' />
+                    : <PlayArrowRounded className={styles.playBtn} fontSize='large' />}
             </div>
             <div className={styles.title}>{info.title}</div>
-            <Link to={`/artist/${info.artist.id}`}><span className={styles.artist}>{info.artist.name}</span></Link>
-            <span className={styles.duration}>{formatSeconds(info.duration)}</span>
-            <TrackActionsControl info={info}/>
+            {info.artist && <Link to={`/artist/${info.artist.id}`}><span className={styles.artist}>{info.artist.name}</span></Link>}
+            {info.duration && <span className={styles.duration}>{formatSeconds(info.duration)}</span>}
+            <TrackActionsControl info={info} />
         </div>
     );
 });

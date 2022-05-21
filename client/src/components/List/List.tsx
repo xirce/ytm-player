@@ -2,11 +2,11 @@ import React, { ReactNode } from 'react';
 
 export interface IListProps<T> {
     title?: string;
-    source: T[];
+    source: T[] | undefined;
     renderItem: (item: T, index: number) => ReactNode;
 }
 
-export const List = <T, >(props: IListProps<T>) => {
+export const List = <T,>(props: IListProps<T>) => {
     const { title, source, renderItem } = props;
 
     if (!source?.length) return null;

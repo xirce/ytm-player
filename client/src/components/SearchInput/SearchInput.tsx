@@ -19,6 +19,6 @@ export const SearchInput: React.FC<SearchInputProps> = ({ value, onSearch }) => 
             placeholder='Поиск...'
             inputRef={element => inputRef.current = element as HTMLInputElement}
             onInput={event => setQuery((event.target as HTMLInputElement).value)}
-            onKeyDown={event => event.key === 'Enter' && onSearch && onSearch(query)}
+            onKeyDown={event => event.key === 'Enter' && query && onSearch && onSearch(query)}
         />);
 }

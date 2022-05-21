@@ -1,16 +1,17 @@
 .container {
     display: grid;
     align-items: center;
-    grid-template-columns: auto 3fr 3fr 1fr 1fr;
+    grid-template-columns: auto 3fr 3fr auto auto;
     color: var(--text-light-color);
     border-bottom: 1px solid var(--bg-main-color);
     width: 100%;
     gap: 8px;
     box-sizing: border-box;
+    margin-bottom: 16px;;
 }
 
-.container:not(:last-of-type) {
-    margin-bottom: 16px;
+.container:last-of-type {
+    margin-bottom: 0;
 }
 
 .container:hover {

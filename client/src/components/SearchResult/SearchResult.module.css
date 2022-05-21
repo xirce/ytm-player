@@ -6,6 +6,10 @@
     margin-bottom: 16px;
 }
 
+a:last-of-type > .container {
+    margin-bottom: 0;
+}
+
 .container:hover {
     background-color: var(--bg-main-color);
 }
@@ -41,7 +45,8 @@ p {
     color: white;
 }
 
-.white:hover, .images:hover {
+.white:hover,
+.images:hover {
     cursor: pointer;
 }
 
