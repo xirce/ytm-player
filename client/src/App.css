@@ -21,6 +21,7 @@ body,
 }
 
 body {
+    min-width: 800px;
     margin: 0;
     position: fixed;
     font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen',
@@ -39,10 +40,11 @@ header {
 }
 
 a {
+    color: var(--text-main-color);
     text-decoration: none;
 }
 
-a.active {
+a:hover, a:active {
     color: var(--text-light-color);
 }
 
@@ -64,6 +66,16 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
+    opacity: 0.5;
     background-color: var(--bg-light-color);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    opacity: 1;
+}
+
+input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: searchfield-cancel-button;
+    background-color: red;
 }
 

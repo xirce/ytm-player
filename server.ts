@@ -1,5 +1,4 @@
-import express, { NextFunction } from 'express';
-import YTMusic from 'ytmusic-api';
+import express from 'express';
 // @ts-ignore
 import ytcog from 'ytcog';
 import cors from 'cors';
@@ -8,9 +7,10 @@ import searchRouter from "./routers/searchRouter";
 import playlistRouter from "./routers/playlistRouter";
 import albumRouter from "./routers/albumRouter";
 import artistRouter from "./routers/artistRouter";
+import { YTMusicApiWrapper } from "./utils/ytmusic-api-wrapper";
 
 const app = express();
-const ytmusic = new YTMusic();
+const ytmusic = new YTMusicApiWrapper();
 const session = new ytcog.Session();
 
 app.use(express.json());
@@ -27,12 +27,11 @@ const PORT = process.env.PORT || 3001;
 
 async function start() {
     try {
-        await ytmusic.initialize();
-        await session.fetch();
+        await Promise.all([ytmusic.initialize(), session.fetch()]);
         app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
     } catch (error) {
         console.log('Server error', (error as Error).message);
-        process.exit(1);
+        process.exit(1)
     }
 }
 

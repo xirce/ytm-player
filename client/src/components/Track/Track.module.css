@@ -1,7 +1,6 @@
 .container {
-    display: grid;
+    display: flex;
     align-items: center;
-    grid-template-columns: auto 3fr 3fr auto auto;
     color: var(--text-light-color);
     border-bottom: 1px solid var(--bg-main-color);
     width: 100%;
@@ -67,17 +66,26 @@
 
 .title {
     composes: hidden-overflow;
+    flex: 3 1 0;
+}
+
+.artist {
+    composes: hidden-overflow;
+    flex: 2 1 0;
 }
 
 .artist:hover, .actionsBtn:hover {
     filter: brightness(200%);
 }
 
+.duration {
+    flex: 1 1 0;
+}
+
 .actionsBtn {
     width: 24px;
     height: 24px;
     cursor: pointer;
-    justify-self: end;
     border-radius: 50%;
     color: var(--text-main-color);
     background-color: transparent;

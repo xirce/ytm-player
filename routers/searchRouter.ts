@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { AlbumDetailed, ArtistDetailed, PlaylistFull, SongDetailed } from "ytmusic-api"; const router = Router();
 import { ytmusic } from "../server";
-import { mapToAlbumBase, mapToArtistDetailed, mapToPlaylistBase, mapToTrack } from "../mappings/ytmusic-api";
+import { mapToAlbumBase, mapToArtistInfo, mapToPlaylistBase, mapToTrack } from "../mappings/ytmusic-api";
 import { ISearchResponse } from "../shared";
 
 
@@ -30,7 +30,7 @@ async function searchAll(query: string): Promise<ISearchResponse> {
     });
 
     return {
-        artists: artists.map(mapToArtistDetailed),
+        artists: artists.map(mapToArtistInfo),
         tracks: songs.map(mapToTrack),
         albums: albums.map(mapToAlbumBase),
         playlists: playlists.map(mapToPlaylistBase)
@@ -52,7 +52,7 @@ router.get('/artists', async (req, res) => {
     try {
         const query = req.query.q;
         const artists = await ytmusic.searchArtists(query as string);
-        const mappedArtists = artists.map(mapToArtistDetailed);
+        const mappedArtists = artists.map(mapToArtistInfo);
         res.json(mappedArtists);
     } catch (error) {
         console.log(error);

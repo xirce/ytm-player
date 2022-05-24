@@ -21,7 +21,7 @@ export const PlaylistPage: React.FC = () => {
         <>
             <PlaylistHeader title={data.name} imageUrl={data.imageUrl}/>
             <div className={styles.tracks}>
-                <TrackList source={data?.tracks || []}/>
+                <TrackList source={data.tracks || []}/>
             </div>
         </>
     );

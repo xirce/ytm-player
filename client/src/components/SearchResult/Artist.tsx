@@ -1,10 +1,10 @@
 import React from 'react';
 import styles from './SearchResult.module.css';
-import { IArtistDetailed } from '../../../../shared';
+import { IArtistInfo } from '../../../../shared';
 import { Link } from 'react-router-dom';
 
 export interface IArtistProps {
-    info: IArtistDetailed;
+    info: IArtistInfo;
 }
 
 export const Artist: React.FC<IArtistProps> = ({ info }) => {

@@ -1,13 +1,14 @@
-export interface IArtistBase {
+export interface IArtistInfoBase {
     id: string,
     name: string;
 }
 
-export interface IArtistDetailed extends IArtistBase{ 
+export interface IArtistInfo extends IArtistInfoBase {
     imageUrl: string;
 }
 
-export interface IArtist extends IArtistDetailed {
+export interface IArtist {
+    info: IArtistInfo
     tracks: ITrackBase[],
     albums: IAlbumBase[],
 }
@@ -15,7 +16,7 @@ export interface IArtist extends IArtistDetailed {
 export interface ITrackBase {
     id: string;
     title: string;
-    artist: IArtistBase;
+    artist: IArtistInfoBase;
     imageUrl: string;
     duration: number;
 }
@@ -36,7 +37,7 @@ export interface IAlbumBase {
     name: string;
     year: number;
     imageUrl: string;
-    artist: IArtistBase;
+    artist: IArtistInfoBase;
 }
 
 export interface IAlbum extends IAlbumBase {
@@ -44,7 +45,7 @@ export interface IAlbum extends IAlbumBase {
 }
 
 export interface ISearchResponse {
-    artists: IArtistDetailed[];
+    artists: IArtistInfo[];
     tracks: ITrackBase[];
     albums: IAlbumBase[];
     playlists: IPlaylistBase[];

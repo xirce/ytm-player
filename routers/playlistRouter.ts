@@ -19,7 +19,8 @@ router.get('/:id', async (req, res) => {
             tracks: tracks
         }
         res.json(playlist);
-    } catch (error) {
+    } catch (error: any) {
+        console.log(error.response);
         res.sendStatus(400);
     }
 })

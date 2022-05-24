@@ -14,15 +14,16 @@ const Header: React.FC = () => {
     }
 
     return (
-        <Grid className={styles.navBar}
-              container
-              justifyContent='center'
-              alignItems='center'
-              direction='row'>
-            <Grid item xs={4}>
-                <SearchInput  onSearch={handleSearch} value={query}/>
+        <header className={styles.container}>
+            <Grid container
+                  justifyContent='center'
+                  alignItems='center'
+                  direction='row'>
+                <Grid item xs={4}>
+                    <SearchInput onSearch={handleSearch} value={query}/>
+                </Grid>
             </Grid>
-        </Grid>
+        </header>
     );
 }
 

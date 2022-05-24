@@ -1,16 +1,7 @@
-.navBar {
+.container {
     height: 70px;
     padding: 0 16px;
     gap: 24px;
     background-color: var(--bg-dark-color);
     border-bottom: 1px solid var(--bg-main-color);
-}
-
-.navElem {
-    color: var(--text-main-color);
-    font-size: 1.3rem;
-}
-
-.navElem:hover {
-    color: var(--text-light-color);
 }

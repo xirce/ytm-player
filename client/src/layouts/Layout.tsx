@@ -8,12 +8,12 @@ export const Layout: React.FC = () => {
     return (
         <>
             <Header />
-            <div className={styles.content}>
-                <div className={styles.container}>
+            <div className={styles.container}>
+                <div className={styles.content}>
                     <Outlet />
                 </div>
             </div>
-            <PlayerWrapper  />
+            <PlayerWrapper />
         </>
     );
 }

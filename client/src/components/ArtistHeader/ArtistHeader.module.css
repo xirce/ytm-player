@@ -1,0 +1,28 @@
+.container {
+    position: relative;
+    overflow: hidden;
+    margin: -32px -160px 16px;
+}
+
+.imageContainer {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.image {
+    object-fit: cover;
+    object-position: top;
+    width: 100%;
+    height: 100%;
+}
+
+.info {
+    position: relative;
+    padding: 320px 160px 8px;
+}
+
+.name {
+    text-shadow: 0 0 16px black;
+}

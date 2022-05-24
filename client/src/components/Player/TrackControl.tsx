@@ -23,6 +23,7 @@ export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
     const isPlaying = useAppSelector(getIsPlaying);
     const currentTrack = useAppSelector(getCurrentTrack);
     const repeat = useAppSelector(getRepeat);
+    const repeatRef = useDependentRef(repeat);
     const { data: trackUrl } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
 
     useEffect(() => {
@@ -35,7 +36,7 @@ export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
         }
 
         const handleEnd = () => {
-            if (repeat) {
+            if (repeatRef.current) {
                 audio.current.currentTime = 0;
                 handlePlay();
             } else if ((tracksRef.current?.length || 0) > 1) {

@@ -11,7 +11,7 @@ import { useSearchQuery } from '../../apiClient';
 import styles from './Search.module.css';
 
 
-export const Search: React.FC = () => {
+export const SearchPage: React.FC = () => {
     const [params, _] = useSearchParams();
     const query = params.get('q') as string;
     const { data, error, isLoading } = useSearchQuery(query || skipToken);

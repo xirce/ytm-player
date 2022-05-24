@@ -10,8 +10,8 @@
 }
 
 .imageContainer {
-    width: 192px;
-    height: 192px;
+    width: 100%;
+    height: 100%;
     margin-bottom: 8px;
 }
 
@@ -22,7 +22,7 @@
 }
 
 .name {
-    max-width: 192px;
+    max-width: 100%;
     color: var(--text-light-color);
     overflow-wrap: break-word;
 }

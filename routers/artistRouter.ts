@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ytmusic } from "../server";
-import { IArtist } from './../shared/index';
-import { mapToTrack, mapToAlbumBase } from '../mappings/ytmusic-api';
+import { IArtist } from '../shared';
+import { mapToTrack, mapToAlbumBase, mapToArtistInfo } from '../mappings/ytmusic-api';
 
 const router = Router();
 
@@ -11,10 +11,9 @@ router.get('/:id', async (req, res) => {
         const artistInfo = await ytmusic.getArtist(id);
         const tracks = artistInfo.topSongs.map(mapToTrack);
         const albums = artistInfo.topAlbums.map(mapToAlbumBase);
+        const mappedArtistInfo = mapToArtistInfo(artistInfo);
         const artist: IArtist = {
-            id: artistInfo.artistId,
-            name: artistInfo.name,
-            imageUrl: artistInfo.thumbnails[2].url,
+            info: mappedArtistInfo,
             tracks: tracks,
             albums: albums
         }

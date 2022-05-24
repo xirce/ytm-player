@@ -1,15 +1,15 @@
-.content {
+.container {
     width: 100%;
     height: 100%;
     overflow: auto;
     background-color: var(--bg-darker-color);
 }
 
-.content::-webkit-scrollbar-track {
+.container::-webkit-scrollbar-track {
     margin-bottom: 166px;
 }
 
-.container {
+.content {
     display: inline-block;
     width: 100%;
     box-sizing: border-box;

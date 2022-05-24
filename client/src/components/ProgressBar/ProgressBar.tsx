@@ -12,10 +12,16 @@ export const ProgressBar: React.FC = () => {
             return config;
         });
 
-        instance.interceptors.response.use(config => {
-            setIsLoading(false);
-            return config;
-        });
+        instance.interceptors.response.use(
+            response => {
+                setIsLoading(false);
+                return response;
+            },
+            error => {
+                setIsLoading(false);
+                return Promise.reject(error);
+            }
+        );
     }, []);
 
     return (
