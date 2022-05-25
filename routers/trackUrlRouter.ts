@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { session } from "../server";
 // @ts-ignore
 import ytcog from 'ytcog';
+import session from '../utils/session';
 
 const router = Router();
 

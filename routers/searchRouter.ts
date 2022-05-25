@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { AlbumDetailed, ArtistDetailed, PlaylistFull, SongDetailed } from "ytmusic-api"; const router = Router();
-import { ytmusic } from "../server";
+import { AlbumDetailed, ArtistDetailed, PlaylistFull, SongDetailed } from "ytmusic-api";
+import ytmusic from "../utils/YTMusicApiWrapper";
 import { mapToAlbumBase, mapToArtistInfo, mapToPlaylistBase, mapToTrack } from "../mappings/ytmusic-api";
 import { ISearchResponse } from "../shared";
 
+const router = Router();
 
 async function searchAll(query: string): Promise<ISearchResponse> {
     const searchAll = await ytmusic.search(query as string);

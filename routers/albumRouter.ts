@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { ytmusic } from "../server";
+import ytmusic from "../utils/YTMusicApiWrapper";
 import { IAlbum } from "../shared";
 import { mapToArtistInfoBase, mapToTrack } from "../mappings/ytmusic-api";
 
