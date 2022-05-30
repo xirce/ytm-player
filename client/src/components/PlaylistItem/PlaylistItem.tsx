@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { IAlbumInfo } from '../../../../shared';
 import styles from './PlaylistItem.module.css';
-import { IAlbumBase } from '../../../../shared';
 
 export interface IPlaylistItemProps {
-    info: IAlbumBase
+    info: IAlbumInfo
 }
 
 export const PlaylistItem: React.FC<IPlaylistItemProps> = ({ info }: IPlaylistItemProps) => {

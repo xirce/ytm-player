@@ -9,7 +9,7 @@ interface VolumeControlsProps {
     audio: MutableRefObject<HTMLAudioElement>;
 }
 
-export const VolumeControl: React.FC<VolumeControlsProps> = ({audio}) => {
+export const VolumeControl: React.FC<VolumeControlsProps> = React.memo(({audio}) => {
     const [isMuted, setIsMuted] = useState(false);
     const [volume, setVolume] = useState(audio.current.volume);
     const [prevVolume, setPrevVolume] = useState(audio.current.volume);
@@ -56,4 +56,4 @@ export const VolumeControl: React.FC<VolumeControlsProps> = ({audio}) => {
             </Grid>
         </Grid>
     );
-}
+});

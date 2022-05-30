@@ -98,9 +98,14 @@ router.get('/playlists', async (req, res) => {
 });
 
 router.get('/suggestions', async (req, res) => {
-    const query = req.query.q;
-    const searchSuggestions = await ytmusic.getSearchSuggestions(query as string);
-    res.json(searchSuggestions);
+    try {
+        const query = req.query.q;
+        const searchSuggestions = await ytmusic.getSearchSuggestions(query as string);
+        res.json(searchSuggestions);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(400);
+    }
 });
 
 export default router;

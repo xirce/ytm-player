@@ -1,27 +1,11 @@
 import React from 'react';
-import styles from './SearchResult.module.css';
-import { IAlbumBase } from '../../../../shared';
-import { Link } from 'react-router-dom';
+import { IAlbumInfo } from '../../../../shared';
+import { PlaylistBase } from './PlaylistBase';
 
 export interface IAlbumProps {
-    info: IAlbumBase;
+    info: IAlbumInfo;
 }
 
-export const Album: React.FC<IAlbumProps> = ({ info }) => {
-    return (
-        <Link to={`/album/${info.id}`}>
-            <div className={styles.container}>
-                <div className={styles.imageContainer}>
-                    <img className={styles.image} src={info.imageUrl} />
-                </div>
-                <div className={styles.info}>
-                    <p className={styles.white}>{info.name}</p>
-                    <div className={styles.line}>
-                        <p>{info.artist?.name}</p>
-                        <p>{info.year}</p>
-                    </div>
-                </div>
-            </div>
-        </Link>
-    )
-}
+export const Album: React.FC<IAlbumProps> = React.memo(({ info }) => {
+    return <PlaylistBase info={info} link={`/album/${info.id}`} />;
+});

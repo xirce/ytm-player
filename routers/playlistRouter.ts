@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import ytmusic from "../utils/YTMusicApiWrapper";
-import { mapToTrack } from "../mappings/ytmusic-api";
+import { mapToPlaylistBase, mapToTrack } from "../mappings/ytmusic-api";
 import { IPlaylist } from "../shared";
 
 const router = Router();
@@ -11,11 +11,9 @@ router.get('/:id', async (req, res) => {
         const playlistInfo = await ytmusic.getPlaylist(id);
         const videos = await ytmusic.getPlaylistVideos(id);
         const tracks = videos.map(mapToTrack);
+        const mappedPlaylistInfo = mapToPlaylistBase(playlistInfo);
         const playlist: IPlaylist = {
-            id: playlistInfo.playlistId,
-            name: playlistInfo.name,
-            imageUrl: playlistInfo.thumbnails[2].url,
-            tracksCount: playlistInfo.videoCount,
+            info: mappedPlaylistInfo,
             tracks: tracks
         }
         res.json(playlist);
@@ -23,6 +21,6 @@ router.get('/:id', async (req, res) => {
         console.log(error.response);
         res.sendStatus(400);
     }
-})
+});
 
 export default router;

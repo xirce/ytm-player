@@ -38,15 +38,11 @@ export const playerSlice = createSlice({
         },
         skipNext(state) {
             state.trackIndex = state.trackIndex === state.tracks.length - 1 ? 0 : state.trackIndex + 1;
-            if (!state.isPlaying) {
-                state.isPlaying = true;
-            }
+            state.isPlaying = true;
         },
         skipPrev(state) {
             state.trackIndex = (state.trackIndex === 0 ? state.tracks.length - 1 : state.trackIndex - 1);
-            if (!state.isPlaying) {
-                state.isPlaying = true;
-            }
+            state.isPlaying = true;
         },
         setRepeat(state, action: PayloadAction<boolean>) {
             state.repeat = action.payload;
@@ -65,5 +61,4 @@ export const getIsPlaying = (state: RootState) => state.player.isPlaying;
 export const getTrackIndex = (state: RootState) => state.player.trackIndex;
 export const getCurrentTrack = (state: RootState) => state.player.tracks[state.player.trackIndex];
 export const getTracks = (state: RootState) => state.player.tracks;
-export const getNextTracks = (state: RootState) => state.player.tracks.slice(state.player.trackIndex + 1);
 export const getRepeat = (state: RootState) => state.player.repeat;

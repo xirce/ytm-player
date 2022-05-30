@@ -1,12 +1,14 @@
 .container {
     display: flex;
-    color: white;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--bg-main-color);
     box-sizing: border-box;
     margin-bottom: 16px;
 }
 
-a:last-of-type > .container {
+a:last-of-type>.container {
     margin-bottom: 0;
 }
 
@@ -14,9 +16,15 @@ a:last-of-type > .container {
     background-color: var(--bg-main-color);
 }
 
+.content {
+    display: flex;
+    flex-direction: row;
+}
+
 .imageContainer {
     width: 60px;
     height: 60px;
+    min-width: 60px;
     position: relative;
     cursor: pointer;
     align-content: center;
@@ -29,28 +37,12 @@ a:last-of-type > .container {
     object-fit: cover;
 }
 
-.info {
+.infoContainer {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    height: 60px;
 }
 
-p {
-    margin: 0;
-    color: var(--text-main-color);
-}
-
-.white {
-    color: white;
-}
-
-.white:hover,
-.images:hover {
-    cursor: pointer;
-}
-
-.line {
-    display: flex;
-    gap: 0.5em;
+.name {
+    color: var(--text-light-color);
 }

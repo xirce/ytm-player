@@ -9,12 +9,14 @@ import { Artist } from '../../components/SearchResult/Artist';
 import { TrackList } from "../../components/TrackList/TrackList";
 import { useSearchQuery } from '../../apiClient';
 import styles from './Search.module.css';
+import { ISearchResponse } from '../../../../shared';
 
 
 export const SearchPage: React.FC = () => {
     const [params, _] = useSearchParams();
     const query = params.get('q') as string;
-    const { data, error, isLoading } = useSearchQuery(query || skipToken);
+    let { data, error, isLoading } = useSearchQuery(query ? { query } : skipToken);
+    data = data as ISearchResponse;
 
     if (isLoading) {
         return <h1>Загружаю...</h1>;
@@ -26,7 +28,7 @@ export const SearchPage: React.FC = () => {
 
     return (
         <Stack className={styles.container} justifyContent='left' alignItems='stretch' direction='column'>
-            <List title='Артисты' source={data?.artists} renderItem={artist => <Artist info={artist}/>}/>
+            <List title='Артисты' source={data?.artists} renderItem={artist => <Artist info={artist} />} />
             <TrackList title='Треки' source={data?.tracks || []} />
             <List title='Плейлисты' source={data?.playlists || []} renderItem={pl => <Playlist info={pl} />} />
             <List title='Альбомы' source={data?.albums || []} renderItem={album => <Album info={album} />} />

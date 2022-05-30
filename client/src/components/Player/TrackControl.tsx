@@ -17,14 +17,14 @@ export interface TrackControlProps {
     audio: MutableRefObject<HTMLAudioElement>;
 }
 
-export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
+export const TrackControl: React.FC<TrackControlProps> = React.memo(({ audio }) => {
     const { setIsPlaying, skipNext, skipPrev, setRepeat, shuffle } = useAppAction();
     const tracksRef = useDependentRef(useAppSelector(getTracks));
     const isPlaying = useAppSelector(getIsPlaying);
     const currentTrack = useAppSelector(getCurrentTrack);
     const repeat = useAppSelector(getRepeat);
     const repeatRef = useDependentRef(repeat);
-    const { data: trackUrl } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
+    const { data: trackUrl, isFetching } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
 
     useEffect(() => {
         const handlePlay = () => {
@@ -57,7 +57,7 @@ export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
             audio.current.removeEventListener('pause', handlePause);
             audio.current.removeEventListener('ended', handleEnd);
         }
-    }, []);
+    }, [audio]);
 
     useEffect(() => {
         if (trackUrl) {
@@ -65,6 +65,12 @@ export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
         }
         document.title = currentTrack?.title ?? 'UNISON';
     }, [trackUrl]);
+
+    useEffect(() => {
+        if (isFetching) {
+            audio.current.src = '';
+        }
+    }, [isFetching]);
 
     useEffect(() => {
         isPlaying ? audio.current.play() : audio.current.pause();
@@ -120,4 +126,4 @@ export const TrackControl: React.FC<TrackControlProps> = ({ audio }) => {
             <TimeProgressBar audio={audio} />
         </Stack>
     );
-};
+});

@@ -1,33 +1,40 @@
 import React from 'react';
-import { Link } from "react-router-dom";
-import { PauseRounded, PlayArrowRounded } from '@mui/icons-material';
-import { ITrackBase } from '../../../../shared';
+import { ListItemIcon, ListItemText, MenuItem } from '@mui/material';
+import { PauseRounded, PlayArrowRounded, PlaylistPlayRounded, QueueMusicRounded } from '@mui/icons-material';
+import { ArtistLink } from '../ArtistLink/ArtistLink';
+import { ActionsControl } from '../Actions/ActionsControl';
+import { ToRadioAction } from '../Actions/ToRadioAction';
 import { formatSeconds } from '../../utils/formatting';
-import { TrackActionsControl } from "./TrackActionsControl";
+import { ITrackBase } from '../../../../shared';
 import { useAppAction, } from "../../store";
 import styles from "./Track.module.css";
 
 export interface ITrackProps {
     source: ITrackBase[];
     index: number;
+    isCurrent?: boolean;
     isPlaying?: boolean;
 }
 
-export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlaying }) => {
-    const { setTracks, setTrackIndex, setIsPlaying } = useAppAction();
+export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlaying, isCurrent }) => {
+    const { setTracks, setTrackIndex, setIsPlaying, appendLeftTracks, appendTracks } = useAppAction();
     const info = source[index];
 
     const togglePlay = async () => {
-        if (isPlaying) {
-            setIsPlaying(false);
+        if (isCurrent) {
+            setIsPlaying(!isPlaying);
         } else {
             setTracks(source);
             setTrackIndex(index);
+            setIsPlaying(true);
         }
     }
+    const handlePlayNext = () => appendLeftTracks([info]);
+
+    const handleEnqueue = () => appendTracks([info]);
 
     return (
-        <div className={isPlaying ? styles.playingContainer : styles.container}>
+        <div className={isCurrent ? styles.playingContainer : styles.container}>
             <div className={styles.imageContainer} onClick={togglePlay}>
                 <img className={styles.image} src={info.imageUrl} />
                 {isPlaying
@@ -36,9 +43,27 @@ export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlayi
             </div>
             <div className={styles.title}>{info.title}</div>
             {info.artist &&
-            <span className={styles.artist}><Link to={`/artist/${info.artist.id}`}>{info.artist.name}</Link></span>}
+                <span className={styles.artist}><ArtistLink info={info.artist} /></span>}
             {info.duration && <span className={styles.duration}>{formatSeconds(info.duration)}</span>}
-            <TrackActionsControl info={info} />
+            <ActionsControl>
+                <MenuItem onClick={handlePlayNext}>
+                    <ListItemIcon>
+                        <PlaylistPlayRounded fontSize='small' />
+                    </ListItemIcon>
+                    <ListItemText>
+                        Включить следующим
+                    </ListItemText>
+                </MenuItem>
+                <MenuItem onClick={handleEnqueue}>
+                    <ListItemIcon>
+                        <QueueMusicRounded fontSize='small' />
+                    </ListItemIcon>
+                    <ListItemText>
+                        Добавить в очередь
+                    </ListItemText>
+                </MenuItem>
+                <ToRadioAction source={info} />
+            </ActionsControl>
         </div>
     );
 });

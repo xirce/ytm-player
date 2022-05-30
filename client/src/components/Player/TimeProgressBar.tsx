@@ -1,30 +1,30 @@
-import React, {MouseEventHandler, MutableRefObject, useState, useEffect, useMemo} from 'react';
+import React, { MouseEventHandler, MutableRefObject, useState, useEffect, useMemo } from 'react';
 import Grid from '@mui/material/Grid';
-import {useReferredState} from '../../hooks/useReferredState';
-import {formatSeconds} from '../../utils/formatting';
-import {SliderWrapper} from '../Slider/SliderWrapper';
+import { useReferredState } from '../../hooks/useReferredState';
+import { formatSeconds } from '../../utils/formatting';
+import { SliderWrapper } from '../Slider/SliderWrapper';
 
 export interface ITimeProgressBarProps {
     audio: MutableRefObject<HTMLAudioElement>;
 }
 
-export const TimeProgressBar: React.FC<ITimeProgressBarProps> = ({audio}) => {
-    const [currentTime, setCurrentTime] = useState(audio.current.currentTime || 0);
+export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({ audio }) => {
+    const [currentTimeRef, setCurrentTimeRef] = useReferredState(audio.current.currentTime || 0);
     const [isChangingTimeRef, setIsChangingTimeRef] = useReferredState(false);
     const [duration, setDuration] = useState(audio.current.duration || 0);
 
     const formattedCurrentTime = useMemo(() => {
-        return formatSeconds(currentTime);
-    }, [currentTime]);
+        return formatSeconds(currentTimeRef.current as number);
+    }, [currentTimeRef.current]);
 
     const formattedDuration = useMemo(() => {
         return formatSeconds(duration);
     }, [duration]);
 
     const sliderValue = useMemo(() => {
-        const currentValue = currentTime / duration;
+        const currentValue = (currentTimeRef.current as number) / duration;
         return isNaN(currentValue) ? 0 : currentValue;
-    }, [currentTime, duration]);
+    }, [currentTimeRef.current, duration]);
 
     useEffect(() => {
         const handleLoadedMetadata = async (event: Event) => {
@@ -37,38 +37,42 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = ({audio}) => {
             if (isChangingTimeRef.current) return;
 
             const audioElement = event.target as HTMLAudioElement;
-            setCurrentTime(audioElement?.currentTime);
+            setCurrentTimeRef(audioElement?.currentTime);
+        }
+
+        const handleMouseUp = () => {
+            if (!isChangingTimeRef.current) return;
+
+            setIsChangingTimeRef(false);
+            audio.current.currentTime = currentTimeRef.current as number;
         }
 
         audio.current.addEventListener('loadedmetadata', handleLoadedMetadata);
         audio.current.addEventListener('timeupdate', handleTimeUpdate);
+        document.addEventListener('mouseup', handleMouseUp);
 
         return () => {
             audio.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
             audio.current.removeEventListener('timeupdate', handleTimeUpdate);
+            document.removeEventListener('mouseup', handleMouseUp);
         }
-    });
+    }, []);
 
     const changeCurrentTime = (event: Event, value: number) => {
-        setCurrentTime(value * duration);
+        setCurrentTimeRef(value * duration);
     }
 
     const handleMouseDown: MouseEventHandler = _ => {
         setIsChangingTimeRef(true);
     }
 
-    const handleMouseUp: MouseEventHandler = _ => {
-        setIsChangingTimeRef(false);
-        audio.current.currentTime = currentTime;
-    }
-
     return (
         <Grid container
-              justifyContent='space-between'
-              alignItems='center'
-              direction='row'
-              gap={1}
-              fontSize='small'
+            justifyContent='space-between'
+            alignItems='center'
+            direction='row'
+            gap={1}
+            fontSize='small'
         >
             <Grid item><span>{formattedCurrentTime}</span></Grid>
             <Grid container item xs>
@@ -76,9 +80,9 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = ({audio}) => {
                     value={sliderValue}
                     onChange={changeCurrentTime}
                     onMouseDown={handleMouseDown}
-                    onMouseUp={handleMouseUp}/>
+                />
             </Grid>
             <Grid item><span>{formattedDuration}</span></Grid>
         </Grid>
     );
-}
+});

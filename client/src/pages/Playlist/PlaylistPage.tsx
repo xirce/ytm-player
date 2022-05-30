@@ -17,12 +17,12 @@ export const PlaylistPage: React.FC = () => {
         return <h1>Что-то пошло не так</h1>
     }
 
+    const { info, tracks } = data;
+
     return (
         <>
-            <PlaylistHeader title={data.name} imageUrl={data.imageUrl}/>
-            <div className={styles.tracks}>
-                <TrackList source={data.tracks || []}/>
-            </div>
+            <PlaylistHeader info={info} />
+            <TrackList source={tracks || []} />
         </>
     );
 }

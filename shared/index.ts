@@ -1,3 +1,7 @@
+export interface IHaveRadio {
+    radioId: string;
+}
+
 export interface IArtistInfoBase {
     id: string,
     name: string;
@@ -10,10 +14,10 @@ export interface IArtistInfo extends IArtistInfoBase {
 export interface IArtist {
     info: IArtistInfo
     tracks: ITrackBase[],
-    albums: IAlbumBase[],
+    albums: IAlbumInfo[],
 }
 
-export interface ITrackBase {
+export interface ITrackBase extends IHaveRadio {
     id: string;
     title: string;
     artist: IArtistInfoBase;
@@ -21,18 +25,19 @@ export interface ITrackBase {
     duration: number;
 }
 
-export interface IPlaylistBase {
+export interface IPlaylistInfo extends IHaveRadio {
     id: string;
     name: string;
     imageUrl: string;
     tracksCount: number;
 }
 
-export interface IPlaylist extends IPlaylistBase {
+export interface IPlaylist {
+    info: IPlaylistInfo;
     tracks: ITrackBase[];
 }
 
-export interface IAlbumBase {
+export interface IAlbumInfo extends IHaveRadio {
     id: string;
     name: string;
     year: number;
@@ -40,13 +45,14 @@ export interface IAlbumBase {
     artist: IArtistInfoBase;
 }
 
-export interface IAlbum extends IAlbumBase {
+export interface IAlbum {
+    info: IAlbumInfo;
     tracks: ITrackBase[];
 }
 
 export interface ISearchResponse {
     artists: IArtistInfo[];
     tracks: ITrackBase[];
-    albums: IAlbumBase[];
-    playlists: IPlaylistBase[];
+    albums: IAlbumInfo[];
+    playlists: IPlaylistInfo[];
 }

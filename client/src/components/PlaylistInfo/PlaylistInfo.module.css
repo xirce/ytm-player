@@ -1,0 +1,6 @@
+.content {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    color: var(--text-main-color);
+}

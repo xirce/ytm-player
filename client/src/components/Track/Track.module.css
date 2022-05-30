@@ -6,7 +6,8 @@
     width: 100%;
     gap: 8px;
     box-sizing: border-box;
-    margin-bottom: 16px;;
+    margin-bottom: 16px;
+    ;
 }
 
 .container:last-of-type {
@@ -25,6 +26,8 @@
 .imageContainer {
     width: 60px;
     height: 60px;
+    min-width: 60px;
+    min-height: 60px;
     position: relative;
     cursor: pointer;
     align-content: center;
@@ -46,7 +49,8 @@
     filter: drop-shadow(0 0 3px var(--bg-darker-color));
 }
 
-.imageContainer:hover .playBtn, .title {
+.imageContainer:hover .playBtn,
+.title {
     color: var(--text-light-color);
 }
 
@@ -56,11 +60,13 @@
     text-overflow: ellipsis;
 }
 
-.artist, .duration {
+.artist,
+.duration {
     color: var(--text-main-color);
 }
 
-.title, .duration {
+.title,
+.duration {
     cursor: default;
 }
 
@@ -74,19 +80,10 @@
     flex: 2 1 0;
 }
 
-.artist:hover, .actionsBtn:hover {
+.artist:hover {
     filter: brightness(200%);
 }
 
 .duration {
     flex: 1 1 0;
-}
-
-.actionsBtn {
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    border-radius: 50%;
-    color: var(--text-main-color);
-    background-color: transparent;
 }

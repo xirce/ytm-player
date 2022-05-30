@@ -2,6 +2,7 @@ import { Router } from 'express';
 // @ts-ignore
 import ytcog from 'ytcog';
 import session from '../utils/session';
+import ytmusic from '../utils/YTMusicApiWrapper';
 
 const router = Router();
 
@@ -31,7 +32,7 @@ async function fetchTrackUrl(id: string): Promise<string> {
     return info.audioStreams[0].url;
 }
 
-router.get('/:id', async (req, res) => {
+router.get('/:id/url', async (req, res) => {
     try {
         const id = req.params.id;
         let trackUrl = trackUrls.get(id);
@@ -45,5 +46,7 @@ router.get('/:id', async (req, res) => {
         res.sendStatus(400);
     }
 });
+
+
 
 export default router;

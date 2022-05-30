@@ -1,36 +1,24 @@
 import React from 'react';
-import { ListItemIcon, MenuItem } from "@mui/material";
+import { ListItemIcon, ListItemText, MenuItem } from "@mui/material";
 import { MenuProps } from "@mui/material/Menu/Menu";
-import { PlaylistPlayRounded } from "@mui/icons-material";
+import { PlaylistPlayRounded, QueueMusicRounded, RadioRounded } from "@mui/icons-material";
 import { MenuWrapper } from "../Menu/MenuWrapper";
 import { ITrackBase } from "../../../../shared";
 import { useAppAction } from "../../store";
+import { ToRadioAction } from '../Actions/ToRadioAction';
 
 export interface ITrackActionsProps {
     info: ITrackBase;
 }
 
-export const TrackActions: React.FC<MenuProps & ITrackActionsProps> = (props) => {
-    const { appendTracks } = useAppAction();
-
-    const handleAddToQueue = () => {
-        appendTracks([props.info]);
-    }
+export const TrackActions: React.FC<MenuProps & ITrackActionsProps> = ({ info, ...rest }) => {
 
     return (
         <MenuWrapper
-            {...props}
-            id={`track-menu-${props.info.id}`}
+            {...rest}
+            id={`track-menu-${info.id}`}
         >
-            <MenuItem onClick={() => {
-                handleAddToQueue();
-                props.onClose && props.onClose({}, 'backdropClick')
-            }}>
-                <ListItemIcon>
-                    <PlaylistPlayRounded fontSize='small' />
-                </ListItemIcon>
-                Добавить в очередь
-            </MenuItem>
+            
         </MenuWrapper>
     );
 };
