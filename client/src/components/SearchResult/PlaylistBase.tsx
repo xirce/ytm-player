@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { IPlaylistInfo, IAlbumInfo } from '../../../../shared';
 import { ActionsControl } from '../Actions/ActionsControl';
-import { ToRadioAction } from '../Actions/ToRadioAction';
+import { PlayRadioAction } from '../Actions/PlayRadioAction';
 import { PlaylistInfo } from '../PlaylistInfo/PlaylistInfo';
 import styles from './SearchResult.module.css';
 
@@ -27,7 +27,7 @@ export const PlaylistBase: React.FC<IPlaylistBaseProps> = React.memo(({ info, li
             </Link>
             <div className={styles.menuBtn}>
                 <ActionsControl>
-                    <ToRadioAction source={info} />
+                    <PlayRadioAction source={info} />
                 </ActionsControl>
             </div>
         </div>

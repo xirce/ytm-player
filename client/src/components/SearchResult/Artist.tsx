@@ -16,7 +16,7 @@ export const Artist: React.FC<IArtistProps> = React.memo(({ info }) => {
                         <img className={styles.image} src={info.imageUrl} />
                     </div>
                     <div className={styles.infoContainer}>
-                        <span>{info.name}</span>
+                        <span className={styles.name}>{info.name}</span>
                     </div>
                 </div>
             </div>

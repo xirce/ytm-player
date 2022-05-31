@@ -6,9 +6,7 @@ import { SearchPage } from './pages/Search/SearchPage';
 import { ProgressBar } from "./components/ProgressBar/ProgressBar";
 import { AlbumPage } from './pages/Album/AlbumPage';
 import { ArtistPage } from './pages/Artist/ArtistPage';
-import { RadioPage } from './pages/Radio/RadioPage';
 import { QueuePage } from "./pages/Queue/QueuePage";
-import { FilteredSearch } from './pages/SearchRes/FilteredSearch';
 import { Layout } from "./layouts/Layout";
 import { store } from "./store";
 import './App.css';
@@ -23,11 +21,11 @@ export const App: React.FC = () => {
                         <Route path="playlist/:id" element={<PlaylistPage />} />
                         <Route path="album/:id" element={<AlbumPage />} />
                         <Route path="artist/:id" element={<ArtistPage />} />
-                        <Route path="radio/:id" element={<RadioPage />} />
-                        <Route path="search" element={<SearchPage />} />
-                        <Route path="search/:type" element={<FilteredSearch />} />
+                        <Route path="search" element={<SearchPage />}>
+                            <Route path=":id" element={<SearchPage />} />
+                        </Route>
                         <Route path="queue" element={<QueuePage />} />
-                        <Route path='*' element={<Navigate to="/queue" replace />} />
+                        <Route path='*' element={<Navigate to="queue" replace />} />
                     </Route>
                 </Routes>
             </Provider>

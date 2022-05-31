@@ -1,13 +1,26 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { BaseQueryFn } from "@reduxjs/toolkit/query";
 import { createApi } from "@reduxjs/toolkit/dist/query/react";
-import { IAlbum, IArtist, IPlaylist, ISearchResponse, IArtistInfo, IPlaylistInfo, ITrackBase, IAlbumInfo } from "../../shared";
+import {
+    IAlbum,
+    IArtist,
+    IPlaylist,
+    ISearchResponse,
+    IArtistInfo,
+    IPlaylistInfo,
+    ITrackBase,
+    IAlbumInfo
+} from "../../shared";
 
 export const instance = axios.create({
     headers: {
         "Content-type": "application/json"
     }
 })
+
+export const getRadio = (id: string) => {
+    return instance.get<ITrackBase[]>(`http://localhost:3001/api/radios/${id}`);
+}
 
 export const axiosBaseQuery = ({ baseUrl }: { baseUrl: string } = { baseUrl: '' }): BaseQueryFn<{
     url: string
@@ -34,7 +47,6 @@ export interface ISearchRequest {
     type?: string;
 }
 
-
 const api = createApi({
     reducerPath: 'api',
     baseQuery: axiosBaseQuery({ baseUrl: 'http://localhost:3001/api' }),
@@ -47,13 +59,13 @@ const api = createApi({
             query: (query: string) => ({ url: `/search?q=${query}/suggestions`, method: 'GET' })
         }),
         search: build.query<ISearchResponse | IArtistInfo[] | IPlaylistInfo[] | ITrackBase[] | IAlbumInfo[], ISearchRequest>({
-            query: (request: ISearchRequest) => ({ url: `/search${request.type ? `/${request.type}` : ''}?q=${request.query}`, method: 'GET' })
+            query: (request: ISearchRequest) => ({
+                url: `/search${request.type ? `/${request.type}` : ''}?q=${request.query}`,
+                method: 'GET'
+            })
         }),
         getArtist: build.query<IArtist, string>({
             query: (id: string) => ({ url: `/artists/${id}`, method: 'GET' })
-        }),
-        getRadio: build.query<any, string>({
-            query: (id: string) => ({ url: `/radios/${id}`, method: 'GET' })
         }),
         getAlbum: build.query<IAlbum, string>({
             query: (id: string) => ({ url: `/albums/${id}`, method: 'GET' })
@@ -67,7 +79,6 @@ const api = createApi({
 export const {
     useGetTrackUrlQuery,
     useSearchQuery,
-    useGetRadioQuery,
     useGetArtistQuery,
     useGetAlbumQuery,
     useGetPlaylistQuery,

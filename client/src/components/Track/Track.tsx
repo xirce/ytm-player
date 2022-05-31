@@ -1,9 +1,15 @@
 import React from 'react';
 import { ListItemIcon, ListItemText, MenuItem } from '@mui/material';
-import { PauseRounded, PlayArrowRounded, PlaylistPlayRounded, QueueMusicRounded } from '@mui/icons-material';
+import {
+    ErrorOutlineRounded,
+    PauseRounded,
+    PlayArrowRounded,
+    PlaylistPlayRounded,
+    QueueMusicRounded
+} from '@mui/icons-material';
 import { ArtistLink } from '../ArtistLink/ArtistLink';
 import { ActionsControl } from '../Actions/ActionsControl';
-import { ToRadioAction } from '../Actions/ToRadioAction';
+import { PlayRadioAction } from '../Actions/PlayRadioAction';
 import { formatSeconds } from '../../utils/formatting';
 import { ITrackBase } from '../../../../shared';
 import { useAppAction, } from "../../store";
@@ -35,15 +41,18 @@ export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlayi
 
     return (
         <div className={isCurrent ? styles.playingContainer : styles.container}>
-            <div className={styles.imageContainer} onClick={togglePlay}>
+            <div className={styles.imageContainer} onClick={() => info.id && togglePlay()}>
                 <img className={styles.image} src={info.imageUrl} />
-                {isPlaying
-                    ? <PauseRounded className={styles.playBtn} fontSize='large' />
-                    : <PlayArrowRounded className={styles.playBtn} fontSize='large' />}
+                {info.id
+                    ? isPlaying
+                        ? <PauseRounded className={styles.playBtn} fontSize='large' />
+                        : <PlayArrowRounded className={styles.playBtn} fontSize='large' />
+                    : <ErrorOutlineRounded className={styles.playBtn} fontSize='large' />}
             </div>
             <div className={styles.title}>{info.title}</div>
-            {info.artist &&
-                <span className={styles.artist}><ArtistLink info={info.artist} /></span>}
+            {info.artist.id
+                ? <ArtistLink className={styles.artist} info={info.artist} />
+                : <span className={styles.artist}>info.artist.name</span>}
             {info.duration && <span className={styles.duration}>{formatSeconds(info.duration)}</span>}
             <ActionsControl>
                 <MenuItem onClick={handlePlayNext}>
@@ -62,7 +71,7 @@ export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlayi
                         Добавить в очередь
                     </ListItemText>
                 </MenuItem>
-                <ToRadioAction source={info} />
+                <PlayRadioAction source={info} />
             </ActionsControl>
         </div>
     );

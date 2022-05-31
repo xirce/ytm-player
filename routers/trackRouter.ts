@@ -2,7 +2,6 @@ import { Router } from 'express';
 // @ts-ignore
 import ytcog from 'ytcog';
 import session from '../utils/session';
-import ytmusic from '../utils/YTMusicApiWrapper';
 
 const router = Router();
 

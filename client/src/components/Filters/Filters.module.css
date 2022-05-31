@@ -1,0 +1,17 @@
+.container {
+    display: flex;
+    gap: 1em;
+    justify-content: center;
+}
+
+.item {
+    border: 1px solid #424141;
+    background-color: #333131;
+    padding: 5px 7px 7px 7px;
+    border-radius: 2px;
+}
+
+.item:hover {
+    cursor: pointer;
+    background-color: var(--bg-light-color);
+}

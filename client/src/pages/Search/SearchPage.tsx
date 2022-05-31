@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams } from "react-router-dom";
 import Stack from "@mui/material/Stack";
 import { skipToken } from '@reduxjs/toolkit/dist/query';
 import { List } from '../../components/List/List';
@@ -10,12 +10,18 @@ import { TrackList } from "../../components/TrackList/TrackList";
 import { useSearchQuery } from '../../apiClient';
 import styles from './Search.module.css';
 import { ISearchResponse } from '../../../../shared';
-
+import { ISearchRequest } from '../../apiClient';
+import { Filters } from '../../components/Filters/Filters';
 
 export const SearchPage: React.FC = () => {
     const [params, _] = useSearchParams();
+    const { type } = useParams();
     const query = params.get('q') as string;
-    let { data, error, isLoading } = useSearchQuery(query ? { query } : skipToken);
+    const request: ISearchRequest = {
+        type: type as string,
+        query
+    }
+    let { data, error, isLoading } = useSearchQuery(request ? request : skipToken);
     data = data as ISearchResponse;
 
     if (isLoading) {
@@ -27,11 +33,14 @@ export const SearchPage: React.FC = () => {
     }
 
     return (
-        <Stack className={styles.container} justifyContent='left' alignItems='stretch' direction='column'>
-            <List title='Артисты' source={data?.artists} renderItem={artist => <Artist info={artist} />} />
-            <TrackList title='Треки' source={data?.tracks || []} />
-            <List title='Плейлисты' source={data?.playlists || []} renderItem={pl => <Playlist info={pl} />} />
-            <List title='Альбомы' source={data?.albums || []} renderItem={album => <Album info={album} />} />
-        </Stack>
+        <>
+            <Filters />
+            <Stack className={styles.container} justifyContent='left' alignItems='stretch' direction='column'>
+                <List title='Артисты' source={data?.artists} renderItem={artist => <Artist info={artist} />} />
+                <TrackList title='Треки' source={data?.tracks || []} />
+                <List title='Плейлисты' source={data?.playlists || []} renderItem={pl => <Playlist info={pl} />} />
+                <List title='Альбомы' source={data?.albums || []} renderItem={album => <Album info={album} />} />
+            </Stack>
+        </>
     );
 }

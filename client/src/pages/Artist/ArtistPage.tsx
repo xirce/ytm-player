@@ -20,17 +20,15 @@ export const ArtistPage: React.FC = () => {
 
     return (
         <>
-            <div className={styles.container}>
-                <ArtistHeader info={data.info} />
-                <div className={styles.tracks}>
-                    <TrackList title='Треки' source={data.tracks} />
-                </div>
-                <h2>Альбомы</h2>
-                <div className={styles.list}>
-                    {data.albums.map(album => (
-                        <PlaylistItem info={album} key={album.id} />
-                    ))}
-                </div>
+            <ArtistHeader info={data.info} />
+            <div className={styles.tracks}>
+                <TrackList title='Треки' source={data.tracks} />
+            </div>
+            <h2>Альбомы</h2>
+            <div className={styles.albums}>
+                {data.albums.map(album => (
+                    <PlaylistItem info={album} key={album.id} />
+                ))}
             </div>
         </>
     );

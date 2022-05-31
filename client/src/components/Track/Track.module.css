@@ -4,10 +4,8 @@
     color: var(--text-light-color);
     border-bottom: 1px solid var(--bg-main-color);
     width: 100%;
-    gap: 8px;
     box-sizing: border-box;
     margin-bottom: 16px;
-    ;
 }
 
 .container:last-of-type {

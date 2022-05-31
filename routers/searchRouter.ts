@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { AlbumDetailed, ArtistDetailed, PlaylistFull, SongDetailed } from "ytmusic-api";
 import ytmusic from "../utils/YTMusicApiWrapper";
-import { mapToAlbumBase, mapToArtistInfo, mapToPlaylistBase, mapToTrack } from "../mappings/ytmusic-api";
+import { mapToAlbumInfo, mapToArtistInfo, mapToPlaylistInfo, mapToTrack } from "../mappings/ytmusic-api";
 import { ISearchResponse } from "../shared";
 
 const router = Router();
@@ -33,8 +33,8 @@ async function searchAll(query: string): Promise<ISearchResponse> {
     return {
         artists: artists.map(mapToArtistInfo),
         tracks: songs.map(mapToTrack),
-        albums: albums.map(mapToAlbumBase),
-        playlists: playlists.map(mapToPlaylistBase)
+        albums: albums.map(mapToAlbumInfo),
+        playlists: playlists.map(mapToPlaylistInfo)
     };
 }
 
@@ -77,7 +77,7 @@ router.get('/albums', async (req, res) => {
     try {
         const query = req.query.q;
         const albums = await ytmusic.searchAlbums(query as string);
-        const mappedAlbums = albums.map(mapToAlbumBase);
+        const mappedAlbums = albums.map(mapToAlbumInfo);
         res.json(mappedAlbums);
     } catch (error) {
         console.log(error);
@@ -89,7 +89,7 @@ router.get('/playlists', async (req, res) => {
     try {
         const query = req.query.q;
         const playlists = await ytmusic.searchPlaylists(query as string);
-        const mappedPlaylists = playlists.map(mapToPlaylistBase);
+        const mappedPlaylists = playlists.map(mapToPlaylistInfo);
         res.json(mappedPlaylists);
     } catch (error) {
         console.log(error);

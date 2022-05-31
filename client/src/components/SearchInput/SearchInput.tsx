@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import InputBase, { InputBaseProps } from "@mui/material/InputBase/InputBase";
+import InputBase from "@mui/material/InputBase/InputBase";
 import styles from './SearchInput.module.css';
 
 export interface SearchInputProps {

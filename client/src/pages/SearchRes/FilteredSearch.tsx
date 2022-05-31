@@ -9,6 +9,7 @@ import { TrackList } from "../../components/TrackList/TrackList";
 import { List } from '../../components/List/List';
 import { IArtistInfo, IPlaylistInfo, ITrackBase, IAlbumInfo } from '../../../../shared';
 import styles from './FilteredSearch.module.css';
+import { Filters } from '../../components/Filters/Filters';
 
 export const FilteredSearch: React.FC = () => {
     const [params, _] = useSearchParams();

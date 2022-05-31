@@ -6,9 +6,9 @@ export interface IArtistLinkProps {
     info: IArtistInfoBase;
 }
 
-export const ArtistLink: React.FC<IArtistLinkProps> = ({ info }) => {
+export const ArtistLink: React.FC<Omit<LinkProps, 'to'> & IArtistLinkProps> = ({ info, ...rest }) => {
     return (
-        <Link to={`/artist/${info?.id}`}>
+        <Link {...rest} to={`/artist/${info?.id}`}>
             {info?.name}
         </Link>
     )
