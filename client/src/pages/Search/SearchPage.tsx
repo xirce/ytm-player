@@ -17,11 +17,7 @@ export const SearchPage: React.FC = () => {
     const [params, _] = useSearchParams();
     const { type } = useParams();
     const query = params.get('q') as string;
-    const request: ISearchRequest = {
-        type: type as string,
-        query
-    }
-    let { data, error, isLoading } = useSearchQuery(request ? request : skipToken);
+    let { data, error, isLoading } = useSearchQuery(query ? { query } : skipToken);
     data = data as ISearchResponse;
 
     if (isLoading) {

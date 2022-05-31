@@ -10,6 +10,7 @@ import { QueuePage } from "./pages/Queue/QueuePage";
 import { Layout } from "./layouts/Layout";
 import { store } from "./store";
 import './App.css';
+import { FilteredSearch } from './pages/SearchRes/FilteredSearch';
 
 export const App: React.FC = () => {
     return (
@@ -21,9 +22,8 @@ export const App: React.FC = () => {
                         <Route path="playlist/:id" element={<PlaylistPage />} />
                         <Route path="album/:id" element={<AlbumPage />} />
                         <Route path="artist/:id" element={<ArtistPage />} />
-                        <Route path="search" element={<SearchPage />}>
-                            <Route path=":id" element={<SearchPage />} />
-                        </Route>
+                        <Route path="search" element={<SearchPage />} />
+                        <Route path="search/:type" element={<FilteredSearch />} />
                         <Route path="queue" element={<QueuePage />} />
                         <Route path='*' element={<Navigate to="queue" replace />} />
                     </Route>

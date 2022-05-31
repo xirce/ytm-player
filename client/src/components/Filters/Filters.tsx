@@ -17,5 +17,6 @@ export const Filters: React.FC = () => {
             <div className={styles.item} onClick={() => find('albums')}>Альбомы</div>
             <div className={styles.item} onClick={() => find('artists')}>Артисты</div>
             <div className={styles.item} onClick={() => find('playlists')}>Плейлисты</div>
-        </div>)
+        </div>
+    )
 } 
