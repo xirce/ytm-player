@@ -59,7 +59,9 @@
 }
 
 .artist,
-.duration {
+.duration,
+.actionsBtn {
+    margin-left: 8px;
     color: var(--text-main-color);
 }
 
@@ -76,12 +78,4 @@
 .artist {
     composes: hidden-overflow;
     flex: 2 1 0;
-}
-
-.artist:hover {
-    filter: brightness(200%);
-}
-
-.duration {
-    flex: 1 1 0;
 }

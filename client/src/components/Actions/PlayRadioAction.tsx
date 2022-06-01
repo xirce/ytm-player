@@ -1,7 +1,7 @@
 import React from 'react';
 import { RadioRounded } from '@mui/icons-material';
 import { ListItemIcon, ListItemText, MenuItem } from '@mui/material';
-import { getRadio } from '../../apiClient';
+import { useLazyGetRadioQuery } from '../../apiClient';
 import { useAppAction } from '../../store';
 import { IHaveRadio } from '../../../../shared';
 
@@ -11,11 +11,16 @@ export interface IToRadioActionProps {
 
 export const PlayRadioAction: React.FC<IToRadioActionProps> = React.memo(({ source }) => {
     const { setTracks, setTrackIndex } = useAppAction();
+    const [getRadio] = useLazyGetRadioQuery();
 
     const handleClick = async () => {
-        const { data: tracks } = await getRadio(source.radioId);
-        setTracks(tracks);
-        setTrackIndex(0);
+        try {
+            const data = await getRadio(source.radioId).unwrap();
+            setTracks(data);
+            setTrackIndex(0);
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     return (

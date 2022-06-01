@@ -8,7 +8,7 @@
     margin-bottom: 16px;
 }
 
-a:last-of-type>.container, .container:last-of-type {
+a:last-of-type>.container, :not(a)>.container:last-of-type {
     margin-bottom: 0;
 }
 

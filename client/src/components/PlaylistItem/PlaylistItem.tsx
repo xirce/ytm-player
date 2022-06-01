@@ -17,7 +17,7 @@ export const PlaylistItem: React.FC<IPlaylistItemProps> = ({ info }: IPlaylistIt
                     <img src={info.imageUrl} className={styles.image} />
                 </div>
                 <span className={styles.name}>{info.name}</span>
-                <span className={styles.year}>{info.year}</span>
+                <span className={styles.year}>Альбом • {info.year}</span>
             </div>
         </Link>
     );

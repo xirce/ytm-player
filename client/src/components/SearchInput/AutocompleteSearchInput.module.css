@@ -1,0 +1,24 @@
+.inputRoot {
+    padding: 0;
+    background: var(--bg-main-color);
+    border: none;
+}
+
+.inputRoot input {
+    color: var(--text-light-color);
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.inputRoot fieldset {
+    border: none;
+}
+
+.clearIndicator {
+    color: var(--text-main-color) !important;
+}
+
+.paper {
+    color: var(--text-main-color) !important;
+    background-color: var(--bg-main-color) !important;
+}

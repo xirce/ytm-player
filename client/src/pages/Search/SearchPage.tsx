@@ -10,12 +10,9 @@ import { TrackList } from "../../components/TrackList/TrackList";
 import { useSearchQuery } from '../../apiClient';
 import styles from './Search.module.css';
 import { ISearchResponse } from '../../../../shared';
-import { ISearchRequest } from '../../apiClient';
-import { Filters } from '../../components/Filters/Filters';
 
 export const SearchPage: React.FC = () => {
     const [params, _] = useSearchParams();
-    const { type } = useParams();
     const query = params.get('q') as string;
     let { data, error, isLoading } = useSearchQuery(query ? { query } : skipToken);
     data = data as ISearchResponse;
@@ -29,14 +26,11 @@ export const SearchPage: React.FC = () => {
     }
 
     return (
-        <>
-            <Filters />
-            <Stack className={styles.container} justifyContent='left' alignItems='stretch' direction='column'>
-                <List title='Артисты' source={data?.artists} renderItem={artist => <Artist info={artist} />} />
-                <TrackList title='Треки' source={data?.tracks || []} />
-                <List title='Плейлисты' source={data?.playlists || []} renderItem={pl => <Playlist info={pl} />} />
-                <List title='Альбомы' source={data?.albums || []} renderItem={album => <Album info={album} />} />
-            </Stack>
-        </>
+        <Stack className={styles.container} justifyContent='left' alignItems='stretch' direction='column'>
+            <List title='Артисты' source={data?.artists} renderItem={artist => <Artist info={artist} />} />
+            <TrackList title='Треки' source={data?.tracks || []} />
+            <List title='Плейлисты' source={data?.playlists || []} renderItem={pl => <Playlist info={pl} />} />
+            <List title='Альбомы' source={data?.albums || []} renderItem={album => <Album info={album} />} />
+        </Stack>
     );
 }

@@ -18,10 +18,6 @@ export const instance = axios.create({
     }
 })
 
-export const getRadio = (id: string) => {
-    return instance.get<ITrackBase[]>(`http://localhost:3001/api/radios/${id}`);
-}
-
 export const axiosBaseQuery = ({ baseUrl }: { baseUrl: string } = { baseUrl: '' }): BaseQueryFn<{
     url: string
     method: AxiosRequestConfig['method']
@@ -56,13 +52,16 @@ const api = createApi({
             query: (id: string) => ({ url: `/tracks/${id}/url`, method: 'GET' })
         }),
         getSearchSuggestions: build.query<string[], string>({
-            query: (query: string) => ({ url: `/search?q=${query}/suggestions`, method: 'GET' })
+            query: (query: string) => ({ url: `/search/suggestions?q=${query}`, method: 'GET' })
         }),
         search: build.query<ISearchResponse | IArtistInfo[] | IPlaylistInfo[] | ITrackBase[] | IAlbumInfo[], ISearchRequest>({
             query: (request: ISearchRequest) => ({
                 url: `/search${request.type ? `/${request.type}` : ''}?q=${request.query}`,
                 method: 'GET'
             })
+        }),
+        getRadio: build.query<ITrackBase[], string>({
+            query: (id: string) => ({ url: `/radios/${id}`, method: 'GET' })
         }),
         getArtist: build.query<IArtist, string>({
             query: (id: string) => ({ url: `/artists/${id}`, method: 'GET' })
@@ -79,6 +78,8 @@ const api = createApi({
 export const {
     useGetTrackUrlQuery,
     useSearchQuery,
+    useGetSearchSuggestionsQuery,
+    useLazyGetRadioQuery,
     useGetArtistQuery,
     useGetAlbumQuery,
     useGetPlaylistQuery,

@@ -22,7 +22,7 @@ export interface ITrackProps {
     isPlaying?: boolean;
 }
 
-export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlaying, isCurrent }) => {
+export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlaying, isCurrent, children }) => {
     const { setTracks, setTrackIndex, setIsPlaying, appendLeftTracks, appendTracks } = useAppAction();
     const info = source[index];
 
@@ -50,29 +50,32 @@ export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlayi
                     : <ErrorOutlineRounded className={styles.playBtn} fontSize='large' />}
             </div>
             <div className={styles.title}>{info.title}</div>
-            {info.artist.id
-                ? <ArtistLink className={styles.artist} info={info.artist} />
-                : <span className={styles.artist}>info.artist.name</span>}
+            {info.artist?.id
+                ? <span className={styles.artist}><ArtistLink info={info.artist} /></span>
+                : info.artist && <span className={styles.artist}>info.artist.name</span>}
             {info.duration && <span className={styles.duration}>{formatSeconds(info.duration)}</span>}
-            <ActionsControl>
-                <MenuItem onClick={handlePlayNext}>
-                    <ListItemIcon>
-                        <PlaylistPlayRounded fontSize='small' />
-                    </ListItemIcon>
-                    <ListItemText>
-                        Включить следующим
-                    </ListItemText>
-                </MenuItem>
-                <MenuItem onClick={handleEnqueue}>
-                    <ListItemIcon>
-                        <QueueMusicRounded fontSize='small' />
-                    </ListItemIcon>
-                    <ListItemText>
-                        Добавить в очередь
-                    </ListItemText>
-                </MenuItem>
-                <PlayRadioAction source={info} />
-            </ActionsControl>
+            <div className={styles.actionsBtn}>
+                <ActionsControl>
+                    <PlayRadioAction source={info} />
+                    <MenuItem onClick={handlePlayNext}>
+                        <ListItemIcon>
+                            <PlaylistPlayRounded fontSize='small' />
+                        </ListItemIcon>
+                        <ListItemText>
+                            Включить следующим
+                        </ListItemText>
+                    </MenuItem>
+                    <MenuItem onClick={handleEnqueue}>
+                        <ListItemIcon>
+                            <QueueMusicRounded fontSize='small' />
+                        </ListItemIcon>
+                        <ListItemText>
+                            Добавить в очередь
+                        </ListItemText>
+                    </MenuItem>
+                    {children}
+                </ActionsControl>
+            </div>
         </div>
     );
 });

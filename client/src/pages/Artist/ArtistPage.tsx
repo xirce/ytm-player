@@ -5,6 +5,7 @@ import { TrackList } from '../../components/TrackList/TrackList';
 import { PlaylistItem } from "../../components/PlaylistItem/PlaylistItem";
 import { ArtistHeader } from "../../components/ArtistHeader/ArtistHeader";
 import styles from './Artist.module.css';
+import { Link, useNavigate } from 'react-router-dom';
 
 export const ArtistPage: React.FC = () => {
     const { id } = useParams();
@@ -18,11 +19,16 @@ export const ArtistPage: React.FC = () => {
         return <h1>Что-то пошло не так</h1>
     }
 
+    const to = `/search/tracks?q=${data.info.name}`;
+
     return (
         <>
             <ArtistHeader info={data.info} />
             <div className={styles.tracks}>
                 <TrackList title='Треки' source={data.tracks} />
+                <div>
+                    <Link to={to}>Показать всё</Link>
+                </div>
             </div>
             <h2>Альбомы</h2>
             <div className={styles.albums}>

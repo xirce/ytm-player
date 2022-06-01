@@ -1,7 +1,8 @@
-import { ITrackBase } from "../../../shared";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { ITrackProps } from "../components/Track/Track";
 import { RootState } from "./index";
 import { shuffle } from "../utils/array-extensions";
+import { ITrackBase } from "../../../shared";
 
 export interface IPlayerState {
     isPlaying: boolean;
@@ -33,6 +34,12 @@ export const playerSlice = createSlice({
         appendLeftTracks(state, action: PayloadAction<ITrackBase[]>) {
             state.tracks.splice(state.trackIndex, 0, ...action.payload);
         },
+        removeTrack(state, action: PayloadAction<number>) {
+            state.tracks.splice(action.payload, 1);
+            if (action.payload >= state.trackIndex) {
+                state.trackIndex = Math.max(0, state.trackIndex);
+            }
+        },
         setTrackIndex(state, action: PayloadAction<number>) {
             state.trackIndex = action.payload;
         },
@@ -61,4 +68,16 @@ export const getIsPlaying = (state: RootState) => state.player.isPlaying;
 export const getTrackIndex = (state: RootState) => state.player.trackIndex;
 export const getCurrentTrack = (state: RootState) => state.player.tracks[state.player.trackIndex];
 export const getTracks = (state: RootState) => state.player.tracks;
+export const getTrackListItems = (state: RootState): ITrackProps[] =>
+    state.player.tracks.map((track, index) => {
+        const currentTrack = state.player.tracks[state.player.trackIndex];
+        const isCurrent = currentTrack && currentTrack.id === track.id && index === state.player.trackIndex;
+
+        return {
+            source: state.player.tracks,
+            index: index,
+            isCurrent: isCurrent,
+            isPlaying: isCurrent && state.player.isPlaying
+        }
+    });
 export const getRepeat = (state: RootState) => state.player.repeat;

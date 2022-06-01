@@ -2,11 +2,6 @@
     display: flex;
     flex-direction: column;
     padding: 8px;
-    background-color: var(--bg-dark-color);
-}
-
-.container:hover {
-    background-color: var(--bg-main-color);
 }
 
 .imageContainer {
@@ -30,5 +25,4 @@
 .year {
     color: var(--text-main-color);
     justify-self: end;
-    align-self: flex-end;
 }

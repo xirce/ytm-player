@@ -14,11 +14,13 @@ export const PlayerControls: React.FC = React.memo(() => {
     const currentTrack = useAppSelector(getCurrentTrack);
 
     return (
-        <Grid container
+        <Grid
+            container
             className={styles.container}
             justifyContent='center'
             alignItems='center'
             direction='row'
+            visibility={currentTrack ? 'visible' : 'hidden'}
         >
             <Grid item xs>
                 <TrackInfo source={currentTrack} />

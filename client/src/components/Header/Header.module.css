@@ -1,7 +1,5 @@
 .container {
-    height: 70px;
-    padding: 0 16px;
-    gap: 24px;
+    padding: 8px 16px;
     background-color: var(--bg-dark-color);
     border-bottom: 1px solid var(--bg-main-color);
 }
