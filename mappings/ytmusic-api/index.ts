@@ -1,5 +1,5 @@
 import { IAlbumInfo, IArtistInfoBase, IArtistInfo, IPlaylistInfo, ITrackBase } from "../../shared";
-import { AlbumDetailed, ArtistDetailed, PlaylistFull, ArtistBasic } from "ytmusic-api";
+import { AlbumDetailed, ArtistDetailed, ArtistBasic, PlaylistDetailed } from "ytmusic-api";
 
 export const mapToArtistInfoBase = (source: ArtistBasic): IArtistInfoBase => ({
     id: source.artistId,
@@ -21,18 +21,17 @@ export const mapToTrack = (source: any): ITrackBase => ({
     radioId: 'RDAMVM' + source.videoId
 });
 
-export const mapToPlaylistInfo = (source: PlaylistFull): IPlaylistInfo => ({
+export const mapToPlaylistInfo = (source: PlaylistDetailed): IPlaylistInfo => ({
     id: source.playlistId,
     name: source.name,
     imageUrl: source.thumbnails.at(-1)?.url as string,
-    tracksCount: source.videoCount,
     radioId: 'RDAMPL' + source.playlistId
 });
 
 export const mapToAlbumInfo = (source: AlbumDetailed): IAlbumInfo => ({
     id: source.albumId,
     name: source.name,
-    artist: source.artists[0] && mapToArtistInfoBase(source.artists[0]),
+    artist: source.artist && mapToArtistInfoBase(source.artist),
     imageUrl: source.thumbnails.at(-1)?.url as string,
     year: source.year,
     radioId: 'RDAMPL' + source.playlistId

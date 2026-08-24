@@ -3,7 +3,7 @@ export interface IHaveRadio {
 }
 
 export interface IArtistInfoBase {
-    id: string,
+    id: string | null,
     name: string;
 }
 
@@ -22,14 +22,13 @@ export interface ITrackBase extends IHaveRadio {
     title: string;
     artist: IArtistInfoBase;
     imageUrl: string;
-    duration: number;
+    duration: number | null;
 }
 
 export interface IPlaylistInfo extends IHaveRadio {
     id: string;
     name: string;
     imageUrl: string;
-    tracksCount: number;
 }
 
 export interface IPlaylist {
@@ -40,7 +39,7 @@ export interface IPlaylist {
 export interface IAlbumInfo extends IHaveRadio {
     id: string;
     name: string;
-    year: number;
+    year: number | null;
     imageUrl: string;
     artist: IArtistInfoBase;
 }

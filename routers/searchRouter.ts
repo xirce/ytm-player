@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { AlbumDetailed, ArtistDetailed, PlaylistFull, SongDetailed } from "ytmusic-api";
+import { AlbumDetailed, ArtistDetailed, PlaylistDetailed, SongDetailed } from "ytmusic-api";
 import ytmusic from "../utils/YTMusicApiWrapper";
 import { mapToAlbumInfo, mapToArtistInfo, mapToPlaylistInfo, mapToTrack } from "../mappings/ytmusic-api";
 import { ISearchResponse } from "../shared";
@@ -12,7 +12,7 @@ async function searchAll(query: string): Promise<ISearchResponse> {
     const songs: SongDetailed[] = [];
     const artists: ArtistDetailed[] = [];
     const albums: AlbumDetailed[] = [];
-    const playlists: PlaylistFull[] = [];
+    const playlists: PlaylistDetailed[] = [];
 
     searchAll.forEach(item => {
         switch (item.type) {

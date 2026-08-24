@@ -23,7 +23,7 @@ export const PlaylistInfo: React.FC<IPlaylistInfoProps> = React.memo(({ source }
 
     return (
         <div className={styles.content}>
-            <span>{playlistInfo.tracksCount + ' ' + getCountDeclination(playlistInfo.tracksCount, ['трек', 'трека', 'треков'])}</span>
+            <span>{'n треков'}</span>
         </div >
     );
 });

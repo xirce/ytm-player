@@ -1,5 +1,4 @@
 import YTMusic, { PlaylistFull, VideoDetailed } from "ytmusic-api";
-import PlaylistParser from 'ytmusic-api/dist/parsers/PlaylistParser';
 import { mapToPlaylistInfo } from "../mappings/ytmusic-api";
 import { ITrackBase, IPlaylist } from '../shared';
 import { parseNextTrack, parsePlaylistTrack } from "./parsers";
@@ -21,25 +20,10 @@ export class YTMusicApiWrapper extends YTMusic {
 
     public async getPlaylistWithVideos(playlistId: string): Promise<IPlaylist> {
         const validPlaylistId = YTMusicApiWrapper.getValidPlaylistId(playlistId);
-        const data = await this._constructRequest('browse', { browseId: validPlaylistId });
-        const playlistInfo = mapToPlaylistInfo(PlaylistParser.parse(data, validPlaylistId));
-        const tracks: ITrackBase[] = [];
-
-        const container = data.contents?.singleColumnBrowseResultsRenderer
-            .tabs[0].tabRenderer.content.sectionListRenderer;
-        let tracksContents = container.contents[0].musicPlaylistShelfRenderer.contents;
-        let continuationKey = container.continuations?.at(0)?.nextContinuationData.continuation;
-
-        while (tracksContents) {
-            tracks.push(...tracksContents.map((content: any) => parsePlaylistTrack(content.musicResponsiveListItemRenderer)));
-
-            if (!continuationKey) break;
-
-            const continationData = await this.getContinuation(continuationKey);
-
-            tracksContents = continationData?.continuationContents?.musicPlaylistShelfContinuation;
-            continuationKey = tracksContents?.continuations?.at(0)?.nextContinuationData.continuation;
-        }
+        const playlist = await this.getPlaylist(validPlaylistId);
+        const videos = await this.getPlaylistVideos(validPlaylistId);
+        const playlistInfo = mapToPlaylistInfo(playlist);
+        const tracks: ITrackBase[] = videos.map(parsePlaylistTrack);
 
         return {
             info: playlistInfo,
