@@ -1,17 +1,18 @@
-import React, { MouseEventHandler, MutableRefObject, useState, useEffect, useMemo } from 'react';
+import React, { MouseEventHandler, useState, useEffect, useMemo } from 'react';
 import Grid from '@mui/material/Grid';
+import { MediaPlayer, MediaPlayerClass } from 'dashjs';
 import { useReferredState } from '../../hooks/useReferredState';
 import { formatSeconds } from '../../utils/formatting';
 import { SliderWrapper } from '../Slider/SliderWrapper';
 
 export interface ITimeProgressBarProps {
-    audio: MutableRefObject<HTMLAudioElement>;
+    player: MediaPlayerClass;
 }
 
-export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({ audio }) => {
-    const [currentTimeRef, setCurrentTimeRef] = useReferredState(audio.current.currentTime || 0);
+export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({ player }) => {
+    const [currentTimeRef, setCurrentTimeRef] = useReferredState(0);
     const [isChangingTimeRef, setIsChangingTimeRef] = useReferredState(false);
-    const [duration, setDuration] = useState(audio.current.duration || 0);
+    const [duration, setDuration] = useState(0);
 
     const formattedCurrentTime = useMemo(() => {
         return formatSeconds(currentTimeRef.current as number);
@@ -27,44 +28,51 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({ au
     }, [currentTimeRef.current, duration]);
 
     useEffect(() => {
-        const handleLoadedMetadata = async (event: Event) => {
-            const audioElement = event.target as HTMLAudioElement;
-            const duration = audioElement?.duration ?? 0;
-            setDuration(duration);
-        }
-
-        const handleTimeUpdate = (event: Event) => {
+        const onTimeUpdate = () => {
             if (isChangingTimeRef.current) return;
+            const time = player.time() || 0;
+            setCurrentTimeRef(time);
+            // Обновляем duration при первом получении
+            if (duration === 0) {
+                const dur = player.duration() || 0;
+                setDuration(dur);
+            }
+        };
 
-            const audioElement = event.target as HTMLAudioElement;
-            setCurrentTimeRef(audioElement?.currentTime);
-        }
+        const onMetadataLoaded = () => {
+            const dur = player.duration() || 0;
+            setDuration(dur);
+        };
 
-        const handleMouseUp = () => {
-            if (!isChangingTimeRef.current) return;
-
-            setIsChangingTimeRef(false);
-            audio.current.currentTime = currentTimeRef.current as number;
-        }
-
-        audio.current.addEventListener('loadedmetadata', handleLoadedMetadata);
-        audio.current.addEventListener('timeupdate', handleTimeUpdate);
-        document.addEventListener('mouseup', handleMouseUp);
+        player.on(MediaPlayer.events.PLAYBACK_TIME_UPDATED, onTimeUpdate);
+        player.on(MediaPlayer.events.PLAYBACK_METADATA_LOADED, onMetadataLoaded);
 
         return () => {
-            audio.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
-            audio.current.removeEventListener('timeupdate', handleTimeUpdate);
+            player.off(MediaPlayer.events.PLAYBACK_TIME_UPDATED, onTimeUpdate);
+            player.off(MediaPlayer.events.PLAYBACK_METADATA_LOADED, onMetadataLoaded);
+        };
+    }, [player]);
+
+    useEffect(() => {
+        const handleMouseUp = () => {
+            if (!isChangingTimeRef.current) return;
+            setIsChangingTimeRef(false);
+            player.seek(currentTimeRef.current as number);
+        };
+
+        document.addEventListener('mouseup', handleMouseUp);
+        return () => {
             document.removeEventListener('mouseup', handleMouseUp);
-        }
-    }, []);
+        };
+    }, [isChangingTimeRef, player, currentTimeRef]);
 
     const changeCurrentTime = (event: Event, value: number) => {
         setCurrentTimeRef(value * duration);
-    }
+    };
 
-    const handleMouseDown: MouseEventHandler = _ => {
+    const handleMouseDown: MouseEventHandler = () => {
         setIsChangingTimeRef(true);
-    }
+    };
 
     return (
         <Grid container

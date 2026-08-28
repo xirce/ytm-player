@@ -1,67 +1,55 @@
-import YTMusic, { PlaylistFull, VideoDetailed } from "ytmusic-api";
-import { mapToPlaylistInfo } from "../mappings/ytmusic-api";
-import { ITrackBase, IPlaylist } from '../shared';
-import { parseNextTrack, parsePlaylistTrack } from "./parsers";
+import { Innertube, Platform, Types } from "youtubei.js";
+import { IPlaylist } from '../shared';
+import { Artist, Playlist, Search } from "youtubei.js/dist/src/parser/ytmusic";
+import { VideoDetailed } from "ytmusic-api";
+import { MusicResponsiveListItem } from "youtubei.js/dist/src/parser/nodes";
 
-export class YTMusicApiWrapper extends YTMusic {
-    private readonly _constructRequest = this['constructRequest'].bind(this);
+export class YTMusicApiWrapper {
+    private innertube!: Innertube;
 
-    public override async getPlaylist(playlistId: string): Promise<PlaylistFull> {
-        const validPlaylistId = YTMusicApiWrapper.getValidPlaylistId(playlistId);
-
-        return super.getPlaylist(validPlaylistId);
+    public async initialize() {
+        Platform.shim.eval = async (data: Types.BuildScriptResult) => {
+            return new Function(data.output)();;
+        };
+        this.innertube ??= await Innertube.create();
     }
 
-    public override async getPlaylistVideos(playlistId: string): Promise<Omit<VideoDetailed, "views">[]> {
-        const validPlaylistId = YTMusicApiWrapper.getValidPlaylistId(playlistId);
+    public async search(query: string): Promise<Search> {
+        return this.innertube.music.search(query);
+    }
 
-        return super.getPlaylistVideos(validPlaylistId);
+    public async searchSongs(query: string): Promise<MusicResponsiveListItem[]> {
+        const result = await this.innertube.music.search(query, {
+            type: "song"
+        });
+
+        return result.songs?.contents ?? [];
+    }
+
+    public async getTrackUrl(id: string, urlTransformer?: (url: URL) => URL): Promise<string | undefined> {
+        const musicInfo = await this.innertube.music.getInfo(id);
+
+        const url = await musicInfo.toDash({
+            url_transformer: urlTransformer,
+            format_filter: () => false
+        });
+        return url;
+    }
+
+    public async getArtist(id: string): Promise<Artist> {
+        return this.innertube.music.getArtist(id);
+    }
+
+    public async getPlaylist(playlistId: string): Promise<Playlist> {
+        return this.innertube.music.getPlaylist(playlistId);
+    }
+
+    public async getPlaylistVideos(playlistId: string): Promise<Omit<VideoDetailed, "views">[]> {
+        return [];
     }
 
     public async getPlaylistWithVideos(playlistId: string): Promise<IPlaylist> {
-        const validPlaylistId = YTMusicApiWrapper.getValidPlaylistId(playlistId);
-        const playlist = await this.getPlaylist(validPlaylistId);
-        const videos = await this.getPlaylistVideos(validPlaylistId);
-        const playlistInfo = mapToPlaylistInfo(playlist);
-        const tracks: ITrackBase[] = videos.map(parsePlaylistTrack);
-
-        return {
-            info: playlistInfo,
-            tracks: tracks
-        };
-    }
-
-    public async getRadio(id: string): Promise<ITrackBase[]> {
-        const request = YTMusicApiWrapper.getRadioRequest(id);
-        const data = await this._constructRequest('next', request);
-        const contents = data.contents
-            .singleColumnMusicWatchNextResultsRenderer
-            .tabbedRenderer.watchNextTabbedResultsRenderer.tabs[0]
-            .tabRenderer.content.musicQueueRenderer.content.playlistPanelRenderer.contents;
-
-        return contents.map((content: any) => parseNextTrack(content.playlistPanelVideoRenderer));
-    }
-
-    private static getRadioRequest(id: string): object {
-        const request: any = { playlistId: id };
-
-        if (id.startsWith('RDAMVM')) {
-            request.videoId = id.slice(6);
-        }
-
-        return request;
-    }
-
-    private async getContinuation(continuationKey: string): Promise<any> {
-        return await this._constructRequest('browse', {}, { continuation: continuationKey });
-    }
-
-    private static getValidPlaylistId(playlistId: string): string {
-        if (playlistId.startsWith('RDC') || playlistId.startsWith('PL')) {
-            playlistId = 'VL' + playlistId;
-        }
-
-        return playlistId;
+        return null!;
     }
 }
 

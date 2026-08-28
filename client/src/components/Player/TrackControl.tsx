@@ -1,129 +1,141 @@
-import React, { MutableRefObject, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Stack from "@mui/material/Stack";
 import Grid from "@mui/material/Grid";
 import { skipToken } from "@reduxjs/toolkit/query";
-import { PauseRounded, PlayArrowRounded, RepeatOneRounded, RepeatRounded, Shuffle, ShuffleRounded, SkipNextRounded, SkipPreviousRounded } from "@mui/icons-material";
+import { PauseRounded, PlayArrowRounded, RepeatOneRounded, RepeatRounded, ShuffleRounded, SkipNextRounded, SkipPreviousRounded } from "@mui/icons-material";
+import type { MediaPlayerClass } from 'dashjs';
 import { TimeProgressBar } from './TimeProgressBar';
 import { useAppAction, useAppSelector } from "../../store";
-import {
-    getCurrentTrack,
-    getIsPlaying, getTracks, getRepeat
-} from '../../store/player';
-import { useGetTrackUrlQuery } from '../../apiClient';
+import { getCurrentTrack, getIsPlaying, getTracks, getRepeat } from '../../store/player';
 import { useDependentRef } from "../../hooks/useDependentRef";
 import styles from "./PlayerControls.module.css";
+import { useGetTrackUrlQuery } from '../../apiClient';
 
 export interface TrackControlProps {
-    audio: MutableRefObject<HTMLAudioElement>;
+    player: MediaPlayerClass;
 }
 
-export const TrackControl: React.FC<TrackControlProps> = React.memo(({ audio }) => {
+export const TrackControl: React.FC<TrackControlProps> = React.memo(({ player }) => {
     const { setIsPlaying, skipNext, skipPrev, setRepeat, shuffle } = useAppAction();
     const tracksRef = useDependentRef(useAppSelector(getTracks));
     const isPlaying = useAppSelector(getIsPlaying);
+    const isPlayingRef = useDependentRef(isPlaying);
     const currentTrack = useAppSelector(getCurrentTrack);
     const repeat = useAppSelector(getRepeat);
     const repeatRef = useDependentRef(repeat);
+    const isStreamInitializedRef = useRef(false);
     const { data: trackUrl, isFetching } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
 
+
+    // Обновление источника при получении манифеста
     useEffect(() => {
-        const handlePlay = () => {
-            setIsPlaying(true);
+        if (trackUrl) {
+            isStreamInitializedRef.current = false;
+            player.attachSource(trackUrl);
         }
+    }, [trackUrl, player]);
 
-        const handlePause = () => {
-            setIsPlaying(false);
+    // Очистка источника во время загрузки
+    useEffect(() => {
+        if (isFetching) {
+            isStreamInitializedRef.current = false;
+            player.attachSource('');
         }
+    }, [isFetching, player]);
 
-        const handleEnd = () => {
+    // Синхронизация внешнего isPlaying с плеером
+    useEffect(() => {
+        if (isPlaying) {
+            if (isStreamInitializedRef.current) player.play();
+        } else if (isStreamInitializedRef.current) {
+            player.pause();
+        }
+    }, [isPlaying, player]);
+
+    // Подписка на события плеера
+    useEffect(() => {
+        const onPlaying = () => setIsPlaying(true);
+        const onPaused = () => setIsPlaying(false);
+        const onStreamInitialized = () => {
+            isStreamInitializedRef.current = true;
+            if (isPlayingRef.current) player.play();
+        };
+        const onEnded = () => {
             if (repeatRef.current) {
-                audio.current.currentTime = 0;
-                handlePlay();
+                player.seek(0);
+                player.play();
             } else if ((tracksRef.current?.length || 0) > 1) {
                 skipNext();
             } else {
                 setIsPlaying(false);
-                audio.current.currentTime = 0;
+                player.seek(0);
             }
-        }
+        };
 
-        audio.current.autoplay = true;
-        audio.current.addEventListener('play', handlePlay);
-        audio.current.addEventListener('pause', handlePause);
-        audio.current.addEventListener('ended', handleEnd);
+        // Используем строковые имена событий, без импорта констант
+        player.on('streamInitialized', onStreamInitialized);
+        player.on('playbackPlaying', onPlaying);
+        player.on('playbackPaused', onPaused);
+        player.on('playbackEnded', onEnded);
+
         return () => {
-            audio.current.pause();
-            audio.current.removeEventListener('play', handlePlay);
-            audio.current.removeEventListener('pause', handlePause);
-            audio.current.removeEventListener('ended', handleEnd);
-        }
-    }, [audio]);
+            player.off('streamInitialized', onStreamInitialized);
+            player.off('playbackPlaying', onPlaying);
+            player.off('playbackPaused', onPaused);
+            player.off('playbackEnded', onEnded);
+        };
+    }, [player, repeatRef, tracksRef, isPlayingRef, skipNext, setIsPlaying]);
 
     useEffect(() => {
-        if (trackUrl) {
-            audio.current.src = trackUrl;
-        }
         document.title = currentTrack?.title ?? 'UNISON';
-    }, [trackUrl]);
+    }, [currentTrack]);
 
-    useEffect(() => {
-        if (isFetching) {
-            audio.current.src = '';
+    const handlePlaying = () => {
+        if (isPlaying) {
+            if (isStreamInitializedRef.current) player.pause();
+        } else {
+            setIsPlaying(true);
+            if (isStreamInitializedRef.current) player.play();
         }
-    }, [isFetching]);
-
-    useEffect(() => {
-        isPlaying ? audio.current.play() : audio.current.pause();
-    }, [isPlaying]);
-
-    const handlePlaying = async () => {
-        isPlaying ? audio.current.pause() : await audio.current.play();
-    }
+    };
 
     const handleSkipPrev = () => {
-        audio.current.currentTime > 2 ? audio.current.currentTime = 0 : skipPrev();
-    }
+        const currentTime = player.time() || 0;
+        if (currentTime > 2) {
+            player.seek(0);
+        } else {
+            skipPrev();
+        }
+    };
 
     const handleSkipNext = () => {
         skipNext();
-        if (!isPlaying) {
-            setIsPlaying(true);
-        }
-    }
+        if (!isPlaying) setIsPlaying(true);
+    };
 
-    const handleToggleRepeat = () => {
-        setRepeat(!repeat);
-    }
-
-    const handleShuffle = () => {
-        shuffle();
-    }
+    const handleToggleRepeat = () => setRepeat(!repeat);
+    const handleShuffle = () => shuffle();
 
     return (
         <Stack>
-            <Grid container justifyContent='center' alignItems='center' gap={2} marginBottom={1}>
-                <button className={styles.iconBtn}
-                    onClick={handleShuffle}>
+            <Grid container justifyContent="center" alignItems="center" gap={2} marginBottom={1}>
+                <button className={styles.iconBtn} onClick={handleShuffle}>
                     <ShuffleRounded />
                 </button>
-                <button className={styles.iconBtn}
-                    onClick={handleSkipPrev}>
-                    <SkipPreviousRounded fontSize='large' />
+                <button className={styles.iconBtn} onClick={handleSkipPrev}>
+                    <SkipPreviousRounded fontSize="large" />
                 </button>
-                <button className={styles.iconBtn}
-                    onClick={handlePlaying}>
-                    {isPlaying ? <PauseRounded fontSize='large' /> : <PlayArrowRounded fontSize='large' />}
+                <button className={styles.iconBtn} onClick={handlePlaying}>
+                    {isPlaying ? <PauseRounded fontSize="large" /> : <PlayArrowRounded fontSize="large" />}
                 </button>
-                <button className={styles.iconBtn}
-                    onClick={handleSkipNext}>
-                    <SkipNextRounded fontSize='large' />
+                <button className={styles.iconBtn} onClick={handleSkipNext}>
+                    <SkipNextRounded fontSize="large" />
                 </button>
-                <button className={styles.iconBtn}
-                    onClick={handleToggleRepeat}>
+                <button className={styles.iconBtn} onClick={handleToggleRepeat}>
                     {repeat ? <RepeatOneRounded /> : <RepeatRounded />}
                 </button>
             </Grid>
-            <TimeProgressBar audio={audio} />
+            <TimeProgressBar player={player} />
         </Stack>
     );
 });

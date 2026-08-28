@@ -9,13 +9,12 @@ router.get('/:id', async (req, res) => {
     try {
         const id = req.params.id;
         const artistInfo = await ytmusic.getArtist(id);
-        const tracks = artistInfo.topSongs.map(mapToTrack);
-        const albums = artistInfo.topAlbums.map(mapToAlbumInfo);
         const mappedArtistInfo = mapToArtistInfo(artistInfo);
+        mappedArtistInfo.id = id;
         const artist: IArtist = {
             info: mappedArtistInfo,
-            tracks: tracks,
-            albums: albums
+            tracks: [],
+            albums: []
         }
         res.json(artist);
     } catch (error) {

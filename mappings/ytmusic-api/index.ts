@@ -1,38 +1,49 @@
+import { MusicResponsiveListItem } from "youtubei.js/dist/src/parser/nodes";
 import { IAlbumInfo, IArtistInfoBase, IArtistInfo, IPlaylistInfo, ITrackBase } from "../../shared";
-import { AlbumDetailed, ArtistDetailed, ArtistBasic, PlaylistDetailed } from "ytmusic-api";
+import { Artist } from "youtubei.js/dist/src/parser/ytmusic";
+import { YTNodes } from "youtubei.js/agnostic";
 
-export const mapToArtistInfoBase = (source: ArtistBasic): IArtistInfoBase => ({
-    id: source.artistId,
+export const mapToArtistInfoBase = (source: {
+        name: string;
+        channel_id?: string;
+    }): IArtistInfoBase => ({
+    id: source.channel_id!,
     name: source.name
 });
 
-export const mapToArtistInfo = (source: ArtistDetailed): IArtistInfo => ({
-    id: source.artistId,
-    name: source.name,
+export const mapToArtistInfoListItem = (source: MusicResponsiveListItem): IArtistInfo => ({
+    id: source.artists!.at(0)!.channel_id!,
+    name: source.artists!.at(0)!.name,
     imageUrl: source.thumbnails.at(-1)?.url as string
 });
 
-export const mapToTrack = (source: any): ITrackBase => ({
-    id: source.videoId,
-    title: source.name,
-    artist: source.artists[0] && mapToArtistInfoBase(source.artists[0]),
+export const mapToArtistInfo = (source: Artist): IArtistInfo => ({
+    id: null!,
+    name: source.header!.as(YTNodes.MusicVisualHeader).title.text!,
+    imageUrl: source.header!.as(YTNodes.MusicVisualHeader).thumbnail!.at(-1)?.url as string,
+});
+
+export const mapToTrack = (source: MusicResponsiveListItem): ITrackBase => ({
+    id: source.id!,
+    title: source.title!,
+    artist: source.artists!.at(0)! && mapToArtistInfoBase(source.artists!.at(0)!),
     imageUrl: source.thumbnails[0].url,
-    duration: source.duration,
-    radioId: 'RDAMVM' + source.videoId
+    duration: source.duration!.seconds!,
+    radioId: 'RDAMVM' + source.id
 });
 
-export const mapToPlaylistInfo = (source: PlaylistDetailed): IPlaylistInfo => ({
-    id: source.playlistId,
-    name: source.name,
+export const mapToPlaylistInfo = (source: MusicResponsiveListItem): IPlaylistInfo => ({
+    id: source.id!,
+    name: source.title!,
     imageUrl: source.thumbnails.at(-1)?.url as string,
-    radioId: 'RDAMPL' + source.playlistId
+    radioId: 'RDAMPL' + source.id!
 });
 
-export const mapToAlbumInfo = (source: AlbumDetailed): IAlbumInfo => ({
-    id: source.albumId,
-    name: source.name,
-    artist: source.artist && mapToArtistInfoBase(source.artist),
+export const mapToAlbumInfo = (source: MusicResponsiveListItem): IAlbumInfo => ({
+    id: source.album!.id!,
+    name: source.album!.name!,
+    artist: source.artists!.at(0)! && mapToArtistInfoBase(source.artists?.at(0)!),
     imageUrl: source.thumbnails.at(-1)?.url as string,
-    year: source.year,
-    radioId: 'RDAMPL' + source.playlistId
+    year: Number.parseInt(source.year!),
+    radioId: 'RDAMPL' + source.album!.id!
 });

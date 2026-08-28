@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import { setGlobalDispatcher, ProxyAgent } from 'undici';
 import ytmusic from "./utils/YTMusicApiWrapper";
 import session from './utils/session';
 import trackRouter from "./routers/trackRouter";
@@ -25,6 +26,20 @@ app.use('/api/radios', radioRouter);
 
 
 const PORT = process.env.PORT || 3001;
+
+// Создаём прокси-агент для Fiddler (порт 8888)
+const proxyAgent = new ProxyAgent({
+  uri: 'http://127.0.0.1:8888',
+  // Для HTTPS запросов через прокси:
+  // Если Fiddler перехватывает HTTPS, нужно отключить проверку сертификата
+  // (для отладки, не используйте в продакшене)
+  requestTls: {
+    rejectUnauthorized: false,
+  },
+});
+
+// Устанавливаем глобальный диспетчер для всех fetch-запросов
+// setGlobalDispatcher(proxyAgent);
 
 async function start() {
     try {

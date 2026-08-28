@@ -1,40 +1,19 @@
 import { Router } from 'express';
-import { AlbumDetailed, ArtistDetailed, PlaylistDetailed, SongDetailed } from "ytmusic-api";
 import ytmusic from "../utils/YTMusicApiWrapper";
-import { mapToAlbumInfo, mapToArtistInfo, mapToPlaylistInfo, mapToTrack } from "../mappings/ytmusic-api";
+import { mapToAlbumInfo, mapToArtistInfoListItem, mapToPlaylistInfo, mapToTrack } from "../mappings/ytmusic-api";
 import { ISearchResponse } from "../shared";
+import { MusicResponsiveListItem } from 'youtubei.js/dist/src/parser/nodes';
 
 const router = Router();
 
 async function searchAll(query: string): Promise<ISearchResponse> {
-    const searchAll = await ytmusic.search(query as string);
-
-    const songs: SongDetailed[] = [];
-    const artists: ArtistDetailed[] = [];
-    const albums: AlbumDetailed[] = [];
-    const playlists: PlaylistDetailed[] = [];
-
-    searchAll.forEach(item => {
-        switch (item.type) {
-            case 'SONG':
-                songs.push(item);
-                break;
-            case 'PLAYLIST':
-                playlists.push(item);
-                break;
-            case 'ALBUM':
-                albums.push(item);
-                break;
-            case 'ARTIST':
-                artists.push(item);
-        }
-    });
+    const searchResult = await ytmusic.search(query as string);
 
     return {
-        artists: artists.map(mapToArtistInfo),
-        tracks: songs.map(mapToTrack),
-        albums: albums.map(mapToAlbumInfo),
-        playlists: playlists.map(mapToPlaylistInfo)
+        artists: searchResult.artists?.contents.map(mapToArtistInfoListItem) ?? [],
+        tracks: searchResult.songs?.contents.map(mapToTrack) ?? [],
+        albums: searchResult.albums?.contents.map(mapToAlbumInfo) ?? [],
+        playlists: searchResult.playlists?.contents.map(mapToPlaylistInfo) ?? []
     };
 }
 
