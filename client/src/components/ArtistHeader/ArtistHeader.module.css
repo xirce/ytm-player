@@ -2,6 +2,8 @@
     position: relative;
     overflow: hidden;
     margin: -32px -160px 16px;
+    min-height: 360px;
+    background: #181818;
 }
 
 .imageContainer {

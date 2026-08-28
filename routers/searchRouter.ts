@@ -9,10 +9,10 @@ const router = Router();
 router.get('', asyncHandler(async (req, res) => {
     const result = await ytmusic.search(getRequiredQuery(req, 'q'));
     res.json({
-        artists: result.artists?.contents.map(mapToArtistInfoListItem) ?? [],
-        tracks: result.songs?.contents.map(mapToTrack) ?? [],
-        albums: result.albums?.contents.map(mapToAlbumInfo) ?? [],
-        playlists: result.playlists?.contents.map(mapToPlaylistInfo) ?? []
+        artists: result.artists.map(mapToArtistInfoListItem),
+        tracks: result.songs.map(item => mapToTrack(item)),
+        albums: result.albums.map(item => mapToAlbumInfo(item)),
+        playlists: result.playlists.map(mapToPlaylistInfo)
     });
 }));
 
@@ -23,12 +23,12 @@ router.get('/artists', asyncHandler(async (req, res) => {
 
 router.get('/tracks', asyncHandler(async (req, res) => {
     const tracks = await ytmusic.searchSongs(getRequiredQuery(req, 'q'));
-    res.json(tracks.map(mapToTrack));
+    res.json(tracks.map(item => mapToTrack(item)));
 }));
 
 router.get('/albums', asyncHandler(async (req, res) => {
     const albums = await ytmusic.searchAlbums(getRequiredQuery(req, 'q'));
-    res.json(albums.map(mapToAlbumInfo));
+    res.json(albums.map(item => mapToAlbumInfo(item)));
 }));
 
 router.get('/playlists', asyncHandler(async (req, res) => {

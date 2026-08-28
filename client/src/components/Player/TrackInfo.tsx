@@ -13,7 +13,14 @@ export const TrackInfo: React.FC<ITrackInfoProps> = React.memo(({ source }) => {
     return (
         <Grid container item xs justifyContent='left' alignItems='center' wrap='nowrap' gap={2} direction='row'>
             <Grid item width='60px' height='60px'>
-                {source?.imageUrl && <img className={styles.image} src={source?.imageUrl} />}
+                {source?.imageUrl && (
+                    <img
+                        className={styles.image}
+                        src={source.imageUrl}
+                        alt={source.title}
+                        referrerPolicy="no-referrer"
+                    />
+                )}
             </Grid>
             <Grid item>
                 <Stack direction='column' alignItems='start'>

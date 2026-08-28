@@ -12,7 +12,7 @@ export const PlaylistHeader: React.FC<IPlaylistHeaderProps> = React.memo(({ info
     return (
         <Stack className={styles.container} direction='row'>
             <div className={styles.imageContainer}>
-                <img className={styles.image} src={info.imageUrl} />
+                <img className={styles.image} src={info.imageUrl} alt={info.name} referrerPolicy="no-referrer" />
             </div>
             <div>
                 <h2>{info.name}</h2>

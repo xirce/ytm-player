@@ -13,8 +13,11 @@ export interface IArtistInfo extends IArtistInfoBase {
 
 export interface IArtist {
     info: IArtistInfo
+    topSongs: ITrackBase[];
+    /** @deprecated Use topSongs. */
     tracks: ITrackBase[],
     albums: IAlbumInfo[],
+    singles: IAlbumInfo[],
 }
 
 export interface ITrackBase extends IHaveRadio {

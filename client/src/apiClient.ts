@@ -52,12 +52,17 @@ const api = createApi({
             query: (id: string) => ({ url: `/tracks/${id}/url`, method: 'GET' })
         }),
         getSearchSuggestions: build.query<string[], string>({
-            query: (query: string) => ({ url: `/search/suggestions?q=${query}`, method: 'GET' })
+            query: (query: string) => ({
+                url: '/search/suggestions',
+                method: 'GET',
+                params: { q: query }
+            })
         }),
         search: build.query<ISearchResponse | IArtistInfo[] | IPlaylistInfo[] | ITrackBase[] | IAlbumInfo[], ISearchRequest>({
             query: (request: ISearchRequest) => ({
-                url: `/search${request.type ? `/${request.type}` : ''}?q=${request.query}`,
-                method: 'GET'
+                url: `/search${request.type ? `/${request.type}` : ''}`,
+                method: 'GET',
+                params: { q: request.query }
             })
         }),
         getRadio: build.query<ITrackBase[], string>({

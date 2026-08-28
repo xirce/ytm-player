@@ -13,7 +13,7 @@ export const Artist: React.FC<IArtistProps> = React.memo(({ info }) => {
             <div className={styles.container}>
                 <div className={styles.content}>
                     <div className={styles.imageContainer}>
-                        <img className={styles.image} src={info.imageUrl} />
+                        <img className={styles.image} src={info.imageUrl} alt={info.name} referrerPolicy="no-referrer" />
                     </div>
                     <div className={styles.infoContainer}>
                         <span className={styles.name}>{info.name}</span>

@@ -11,7 +11,12 @@ export const ArtistHeader: React.FC<IArtistHeaderProps> = React.memo(({ info }) 
     return (
         <div className={styles.container}>
             <div className={styles.imageContainer}>
-                <img className={styles.image} src={info.imageUrl} />
+                <img
+                    className={styles.image}
+                    src={info.imageUrl}
+                    alt={info.name}
+                    referrerPolicy="no-referrer"
+                />
             </div>
             <div className={styles.info}>
                 <h1 className={styles.name}>{info.name}</h1>

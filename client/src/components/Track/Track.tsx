@@ -42,7 +42,7 @@ export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlayi
     return (
         <div className={isCurrent ? styles.playingContainer : styles.container}>
             <div className={styles.imageContainer} onClick={() => info.id && togglePlay()}>
-                <img className={styles.image} src={info.imageUrl} />
+                <img className={styles.image} src={info.imageUrl} alt={info.title} referrerPolicy="no-referrer" />
                 {info.id
                     ? isPlaying
                         ? <PauseRounded className={styles.playBtn} fontSize='large' />

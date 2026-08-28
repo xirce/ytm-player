@@ -25,7 +25,7 @@ export const ArtistPage: React.FC = () => {
         <>
             <ArtistHeader info={data.info} />
             <div className={styles.tracks}>
-                <TrackList title='Треки' source={data.tracks} />
+                <TrackList title='Треки' source={data.topSongs ?? data.tracks} />
                 <div>
                     <Link to={to}>Показать всё</Link>
                 </div>
@@ -36,6 +36,16 @@ export const ArtistPage: React.FC = () => {
                     <PlaylistItem info={album} key={album.id} />
                 ))}
             </div>
+            {data.singles.length > 0 && (
+                <>
+                    <h2>Синглы и EP</h2>
+                    <div className={styles.albums}>
+                        {data.singles.map(single => (
+                            <PlaylistItem info={single} key={single.id} />
+                        ))}
+                    </div>
+                </>
+            )}
         </>
     );
 }

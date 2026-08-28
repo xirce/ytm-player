@@ -1,7 +1,6 @@
 import { Innertube, Platform, Types, YTMusic, YTNodes } from 'youtubei.js';
 import { IPlaylist } from '../shared';
-import { VideoDetailed } from "ytmusic-api";
-import { mapToPlaylistInfo, mapToTrack } from '../mappings/ytmusic-api';
+import { getThumbnailUrl, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 
 export class YTMusicApiWrapper {
@@ -22,8 +21,14 @@ export class YTMusicApiWrapper {
         console.log(`YouTube PO token provider: ${tokenProviderUrl}`);
     }
 
-    public async search(query: string): Promise<YTMusic.Search> {
-        return this.innertube.music.search(query);
+    public async search(query: string) {
+        const [songs, artists, albums, playlists] = await Promise.all([
+            this.searchSongs(query),
+            this.searchArtists(query),
+            this.searchAlbums(query),
+            this.searchPlaylists(query)
+        ]);
+        return { songs, artists, albums, playlists };
     }
 
     public async searchSongs(query: string): Promise<YTNodes.MusicResponsiveListItem[]> {
@@ -86,31 +91,38 @@ export class YTMusicApiWrapper {
         return this.innertube.music.getPlaylist(playlistId);
     }
 
-    public async getPlaylistVideos(playlistId: string): Promise<Omit<VideoDetailed, "views">[]> {
-        return [];
-    }
-
     public async getPlaylistWithVideos(playlistId: string): Promise<IPlaylist> {
-        const playlist = await this.getPlaylist(playlistId);
-        const tracks = playlist.items
-            .filter((item: unknown) => item instanceof YTNodes.MusicResponsiveListItem)
-            .map((item: unknown) => mapToTrack(item as YTNodes.MusicResponsiveListItem));
-        const firstTrack = playlist.items.find((item: unknown) => item instanceof YTNodes.MusicResponsiveListItem);
-
-        if (!firstTrack) {
-            throw new Error(`Playlist has no tracks: ${playlistId}`);
+        let page = await this.getPlaylist(playlistId);
+        const header = page.header;
+        const items: YTNodes.MusicResponsiveListItem[] = [];
+        for (let pageNumber = 0; pageNumber < 20; pageNumber += 1) {
+            items.push(...page.items.filter(
+                (item): item is YTNodes.MusicResponsiveListItem =>
+                    item instanceof YTNodes.MusicResponsiveListItem
+            ));
+            if (!page.has_continuation) break;
+            page = await page.getContinuation();
         }
+
+        const thumbnail = header && 'thumbnail' in header
+            ? header.thumbnail?.contents
+            : header && 'thumbnails' in header
+                ? header.thumbnails
+                : undefined;
+        const imageUrl = getThumbnailUrl(thumbnail) || getThumbnailUrl(items[0]?.thumbnails);
 
         return {
             info: {
-                ...mapToPlaylistInfo(firstTrack as YTNodes.MusicResponsiveListItem),
                 id: playlistId,
-                name: playlist.header && 'title' in playlist.header
-                    ? playlist.header.title.toString()
-                    : (firstTrack as YTNodes.MusicResponsiveListItem).title!,
-                radioId: `RDAMPL${playlistId}`
+                name: header && 'title' in header
+                    ? header.title.toString()
+                    : '',
+                imageUrl,
+                radioId: `RDAMPL${playlistId.replace(/^VL/, '')}`
             },
-            tracks
+            tracks: items
+                .filter(item => item.id)
+                .map(item => mapToTrack(item, { imageUrl }))
         };
     }
 }
