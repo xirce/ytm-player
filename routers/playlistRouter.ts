@@ -1,17 +1,12 @@
 import { Router } from 'express';
-import ytmusic from "../utils/YTMusicApiWrapper";
+import ytmusic from '../utils/YTMusicApiWrapper';
+import { asyncHandler } from '../middleware/errors';
+import { getRequiredParam } from '../middleware/validation';
 
 const router = Router();
 
-router.get('/:id', async (req, res) => {
-    try {
-        const id = req.params.id;
-        const playlist = await ytmusic.getPlaylistWithVideos(id);
-        res.json(playlist);
-    } catch (error: any) {
-        console.log(error.response);
-        res.sendStatus(400);
-    }
-});
+router.get('/:id', asyncHandler(async (req, res) => {
+    res.json(await ytmusic.getPlaylistWithVideos(getRequiredParam(req, 'id')));
+}));
 
 export default router;
