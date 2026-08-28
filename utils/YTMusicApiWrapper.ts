@@ -2,15 +2,24 @@ import { Innertube, Platform, Types, YTMusic, YTNodes } from 'youtubei.js';
 import { IPlaylist } from '../shared';
 import { VideoDetailed } from "ytmusic-api";
 import { mapToPlaylistInfo, mapToTrack } from '../mappings/ytmusic-api';
+import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 
 export class YTMusicApiWrapper {
     private innertube!: Innertube;
+    private tokenProvider!: TokenProvider;
 
     public async initialize() {
         Platform.shim.eval = async (data: Types.BuildScriptResult) => {
             return new Function(data.output)();;
         };
+
+        const tokenProviderUrl = process.env.YOUTUBE_PO_TOKEN_PROVIDER_URL?.trim()
+            || 'http://127.0.0.1:4416';
+
+        this.tokenProvider ??= new HttpTokenProvider(tokenProviderUrl);
         this.innertube ??= await Innertube.create();
+
+        console.log(`YouTube PO token provider: ${tokenProviderUrl}`);
     }
 
     public async search(query: string): Promise<YTMusic.Search> {
@@ -52,10 +61,14 @@ export class YTMusicApiWrapper {
     }
 
     public async getTrackUrl(id: string, urlTransformer?: (url: URL) => URL): Promise<string | undefined> {
-        const musicInfo = await this.innertube.music.getInfo(id);
+        const poToken = await this.tokenProvider.getToken(id);
+        const musicInfo = await this.innertube.music.getInfo(id, { po_token: poToken });
 
         const url = await musicInfo.toDash({
-            url_transformer: urlTransformer,
+            url_transformer: mediaUrl => {
+                mediaUrl.searchParams.set('pot', poToken);
+                return urlTransformer?.(mediaUrl) ?? mediaUrl;
+            },
             format_filter: () => false
         });
         return url;
