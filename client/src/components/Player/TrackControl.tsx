@@ -21,7 +21,6 @@ export interface TrackControlProps {
     swapPlayers: () => void;
     progressPlayer: MediaPlayerClass;
     canReadProgressImmediately: boolean;
-    setIsCrossfading: (value: boolean) => void;
 }
 
 export const TrackControl: React.FC<TrackControlProps> = React.memo(({
@@ -29,8 +28,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     standbyPlayer,
     swapPlayers,
     progressPlayer,
-    canReadProgressImmediately,
-    setIsCrossfading
+    canReadProgressImmediately
 }) => {
     const { setIsPlaying, skipNext, skipPrev, setRepeat, shuffle, setDisplayTrackIndex } = useAppAction();
     const tracksRef = useDependentRef(useAppSelector(getTracks));
@@ -145,7 +143,6 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             // the track before React swaps the players (or vice versa), and the
             // preloading effect attaches a new source to the already playing player.
             batch(() => {
-                setIsCrossfading(false);
                 swapPlayers();
                 skipNext();
             });
@@ -179,7 +176,6 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                 const currentIndex = trackIndexRef.current;
                 const trackCount = tracksRef.current.length;
                 setDisplayTrackIndex(currentIndex === trackCount - 1 ? 0 : currentIndex + 1);
-                setIsCrossfading(true);
             }
 
             const progress = Math.min(1, Math.max(0, (CROSSFADE_SECONDS - timeToEnd) / CROSSFADE_SECONDS));
@@ -199,7 +195,6 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                     standbyPlayer.setMute(player.isMuted());
                     standbyPlayer.play();
                     batch(() => {
-                        setIsCrossfading(false);
                         swapPlayers();
                         skipNext();
                     });
@@ -222,7 +217,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             player.off('playbackEnded', onEnded);
             player.off('playbackTimeUpdated', onTimeUpdated);
         };
-    }, [player, standbyPlayer, repeatRef, tracksRef, trackIndexRef, isPlayingRef, skipNext, setIsPlaying, swapPlayers, setIsCrossfading, setDisplayTrackIndex, addTrackToHistory]);
+    }, [player, standbyPlayer, repeatRef, tracksRef, trackIndexRef, isPlayingRef, skipNext, setIsPlaying, swapPlayers, setDisplayTrackIndex, addTrackToHistory]);
 
     useEffect(() => {
         // Плеер снова стал активным с новым треком — старый маркер ended ему больше не нужен.
@@ -243,7 +238,6 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         if (!crossfadeRef.current.active) return;
         crossfadeRef.current.active = false;
         setDisplayTrackIndex(null);
-        setIsCrossfading(false);
         player.setVolume(crossfadeRef.current.masterVolume);
         standbyPlayer.pause();
         standbyPlayer.seek(0);

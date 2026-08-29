@@ -7,7 +7,7 @@ import { VolumeControl } from './VolumeControl';
 import { TrackControl } from "./TrackControl";
 import { TrackInfo } from "./TrackInfo";
 import { useAppSelector } from '../../store';
-import { getCurrentTrack, getTrackIndex, getTracks } from '../../store/player';
+import { getCurrentTrack, getDisplayedTrack } from '../../store/player';
 import styles from './PlayerControls.module.css';
 
 export const PlayerControls: React.FC = React.memo(() => {
@@ -15,10 +15,9 @@ export const PlayerControls: React.FC = React.memo(() => {
     const secondAudioRef = useRef<HTMLAudioElement>(null);
     const [players, setPlayers] = useState<MediaPlayerClass[]>([]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
-    const [isCrossfading, setIsCrossfading] = useState(false);
     const currentTrack = useAppSelector(getCurrentTrack);
-    const tracks = useAppSelector(getTracks);
-    const trackIndex = useAppSelector(getTrackIndex);
+    const displayTrackIndex = useAppSelector(state => state.player.displayTrackIndex);
+    const displayedTrack = useAppSelector(getDisplayedTrack);
 
     useEffect(() => {
         if (!firstAudioRef.current || !secondAudioRef.current) return;
@@ -37,10 +36,7 @@ export const PlayerControls: React.FC = React.memo(() => {
     const player = players[activePlayerIndex];
     const standbyPlayer = players[1 - activePlayerIndex];
     const swapPlayers = useCallback(() => setActivePlayerIndex(index => 1 - index), []);
-    const nextTrack = tracks.length > 1
-        ? tracks[trackIndex === tracks.length - 1 ? 0 : trackIndex + 1]
-        : undefined;
-    const displayedTrack = isCrossfading && nextTrack ? nextTrack : currentTrack;
+    const isCrossfading = displayTrackIndex !== null;
     const displayedPlayer = isCrossfading ? standbyPlayer : player;
 
     return (
@@ -66,7 +62,6 @@ export const PlayerControls: React.FC = React.memo(() => {
                         swapPlayers={swapPlayers}
                         progressPlayer={displayedPlayer}
                         canReadProgressImmediately={isCrossfading}
-                        setIsCrossfading={setIsCrossfading}
                     />
                 )}
             </Grid>
