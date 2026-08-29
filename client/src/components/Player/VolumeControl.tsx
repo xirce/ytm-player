@@ -16,9 +16,10 @@ export const VolumeControl: React.FC<VolumeControlsProps> = React.memo(({
     player,
     ignorePlayerVolumeChanges = false
 }) => {
-    const [isMuted, setIsMuted] = useState(false);
-    const [volume, setVolume] = useState(1);
-    const [prevVolume, setPrevVolume] = useState(1);
+    const initialVolume = loadPlayerVolume();
+    const [isMuted, setIsMuted] = useState(initialVolume?.muted ?? false);
+    const [volume, setVolume] = useState(initialVolume?.volume ?? 1);
+    const [prevVolume, setPrevVolume] = useState(initialVolume?.volume ?? 1);
 
     useEffect(() => {
         if (!ignorePlayerVolumeChanges) {

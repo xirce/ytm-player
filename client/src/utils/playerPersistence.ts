@@ -13,6 +13,7 @@ export interface PersistedPlayerState {
 export interface PersistedPlayerProgress {
     trackId: string;
     position: number;
+    duration?: number;
 }
 
 export interface PersistedPlayerVolume {

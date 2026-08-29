@@ -155,7 +155,11 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             const now = Date.now();
             if (playingTrackId && now - lastProgressSaveRef.current >= 1000) {
                 lastProgressSaveRef.current = now;
-                savePlayerProgress({ trackId: playingTrackId, position: playedTime });
+                savePlayerProgress({
+                    trackId: playingTrackId,
+                    position: playedTime,
+                    duration: player.duration() || undefined
+                });
             }
             if (playedTime >= 10 && playingTrackId && !historyRecordedPlayersRef.current.has(player)) {
                 historyRecordedPlayersRef.current.add(player);
@@ -233,6 +237,24 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     useEffect(() => {
         document.title = currentTrack?.title ?? 'UNISON';
     }, [currentTrack]);
+
+    useEffect(() => {
+        const saveFinalProgress = () => {
+            const trackId = playerTrackIdsRef.current.get(progressPlayer);
+            if (!trackId) return;
+            try {
+                savePlayerProgress({
+                    trackId,
+                    position: progressPlayer.time() || 0,
+                    duration: progressPlayer.duration() || undefined
+                });
+            } catch {
+                // dash.js may already be tearing down during page unload.
+            }
+        };
+        window.addEventListener('pagehide', saveFinalProgress);
+        return () => window.removeEventListener('pagehide', saveFinalProgress);
+    }, [progressPlayer]);
 
     const cancelCrossfade = () => {
         if (!crossfadeRef.current.active) return;
@@ -396,6 +418,8 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             <TimeProgressBar
                 player={progressPlayer}
                 canReadImmediately={canReadProgressImmediately}
+                trackId={displayedTrack?.id}
+                fallbackDuration={displayedTrack?.duration}
             />
         </Stack>
     );

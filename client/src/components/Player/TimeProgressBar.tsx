@@ -4,16 +4,30 @@ import { MediaPlayer, MediaPlayerClass } from 'dashjs';
 import { useReferredState } from '../../hooks/useReferredState';
 import { formatSeconds } from '../../utils/formatting';
 import { SliderWrapper } from '../Slider/SliderWrapper';
+import { loadPlayerProgress } from '../../utils/playerPersistence';
 
 export interface ITimeProgressBarProps {
     player: MediaPlayerClass;
     canReadImmediately?: boolean;
+    trackId?: string;
+    fallbackDuration?: number | null;
 }
 
-export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({ player, canReadImmediately = false }) => {
-    const [currentTimeRef, setCurrentTimeRef] = useReferredState(0);
+export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({
+    player,
+    canReadImmediately = false,
+    trackId,
+    fallbackDuration
+}) => {
+    const cachedProgress = loadPlayerProgress();
+    const cachedForInitialTrack = cachedProgress?.trackId === trackId ? cachedProgress : undefined;
+    const initialPosition = cachedForInitialTrack?.position ?? 0;
+    const initialDuration = cachedForInitialTrack
+        ? cachedForInitialTrack.duration ?? fallbackDuration ?? 0
+        : fallbackDuration ?? 0;
+    const [currentTimeRef, setCurrentTimeRef] = useReferredState(initialPosition);
     const [isChangingTimeRef, setIsChangingTimeRef] = useReferredState(false);
-    const [duration, setDuration] = useState(0);
+    const [duration, setDuration] = useState(initialDuration);
 
     const formattedCurrentTime = useMemo(() => {
         return formatSeconds(currentTimeRef.current as number);
@@ -80,11 +94,17 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({ pl
         // but still be between source attachment and stream initialization.
         // Reading time/duration in that window throws; player events fill these
         // values as soon as the stream is ready.
-        setCurrentTimeRef(canReadImmediately ? player.time() || 0 : 0);
-        setDuration(canReadImmediately ? player.duration() || 0 : 0);
+        const cached = loadPlayerProgress();
+        const cachedForTrack = cached?.trackId === trackId ? cached : undefined;
+        setCurrentTimeRef(canReadImmediately
+            ? player.time() || cachedForTrack?.position || 0
+            : cachedForTrack?.position || 0);
+        setDuration(canReadImmediately
+            ? player.duration() || cachedForTrack?.duration || fallbackDuration || 0
+            : cachedForTrack?.duration || fallbackDuration || 0);
         // Finishing a crossfade changes canReadImmediately, but keeps the same
         // player. Resetting on that flag change would erase the known duration.
-    }, [player]);
+    }, [player, trackId]);
 
     return (
         <Grid container
