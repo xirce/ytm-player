@@ -14,7 +14,8 @@ import { ActionsControl } from '../Actions/ActionsControl';
 import { PlayRadioAction } from '../Actions/PlayRadioAction';
 import { formatPlayCount, formatSeconds } from '../../utils/formatting';
 import { ITrackBase } from '../../../../shared';
-import { useAppAction, } from "../../store";
+import { useAppAction, useAppSelector } from "../../store";
+import { getDisplayedTrack, getIsPlaying } from '../../store/player';
 import styles from "./Track.module.css";
 
 export interface ITrackProps {
@@ -30,10 +31,14 @@ export const Track: React.FC<ITrackProps> = React.memo(({
 }) => {
     const { setTracks, setTrackIndex, setIsPlaying, appendLeftTracks, appendTracks } = useAppAction();
     const info = source[index];
+    const displayedTrack = useAppSelector(getDisplayedTrack);
+    const playerIsPlaying = useAppSelector(getIsPlaying);
+    const resolvedIsCurrent = isCurrent ?? displayedTrack?.id === info.id;
+    const resolvedIsPlaying = resolvedIsCurrent && (isPlaying ?? playerIsPlaying);
 
     const togglePlay = async () => {
-        if (isCurrent) {
-            setIsPlaying(!isPlaying);
+        if (resolvedIsCurrent) {
+            setIsPlaying(!resolvedIsPlaying);
         } else {
             setTracks(source);
             setTrackIndex(index);
@@ -45,15 +50,15 @@ export const Track: React.FC<ITrackProps> = React.memo(({
     const handleEnqueue = () => appendTracks([info]);
 
     return (
-        <div className={isCurrent ? styles.playingContainer : styles.container}>
+        <div className={resolvedIsCurrent ? styles.playingContainer : styles.container}>
             <div className={styles.imageContainer} onClick={() => info.id && togglePlay()}>
                 <img className={styles.image} src={info.imageUrl} alt={info.title} referrerPolicy="no-referrer" />
-                {isPlaying && <VolumeUpRounded className={styles.nowPlayingIcon} fontSize='large' />}
+                {resolvedIsPlaying && <VolumeUpRounded className={styles.nowPlayingIcon} fontSize='large' />}
                 {info.id
-                    ? isPlaying
+                    ? resolvedIsPlaying
                         ? <PauseRounded className={styles.playBtn} fontSize='large' />
                         : <PlayArrowRounded
-                            className={`${styles.playBtn} ${isCurrent ? styles.pausedCurrentIcon : ''}`}
+                            className={`${styles.playBtn} ${resolvedIsCurrent ? styles.pausedCurrentIcon : ''}`}
                             fontSize='large'
                         />
                     : <ErrorOutlineRounded className={styles.playBtn} fontSize='large' />}
