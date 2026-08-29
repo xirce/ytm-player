@@ -5,6 +5,7 @@ import {
     IAlbum,
     IArtist,
     IPlaylist,
+    IPlaylistPage,
     ISearchResponse,
     IArtistInfo,
     IPlaylistInfo,
@@ -50,6 +51,11 @@ export interface IPlaylistRequest {
     params?: string;
 }
 
+export interface IPlaylistContinuationRequest {
+    id: string;
+    continuation: string;
+}
+
 const api = createApi({
     reducerPath: 'api',
     baseQuery: axiosBaseQuery({ baseUrl: 'http://localhost:3001/api' }),
@@ -89,6 +95,13 @@ const api = createApi({
                 params: request.params ? { params: request.params } : undefined
             })
         }),
+        getPlaylistContinuation: build.query<IPlaylistPage, IPlaylistContinuationRequest>({
+            query: request => ({
+                url: `/playlists/${request.id}/continuation`,
+                method: 'GET',
+                params: { continuation: request.continuation }
+            })
+        }),
         getHome: build.query<IHomeFeed, void>({
             query: () => ({ url: '/home', method: 'GET' }),
             providesTags: ['Home']
@@ -115,6 +128,7 @@ export const {
     useGetArtistQuery,
     useGetAlbumQuery,
     useGetPlaylistQuery,
+    useLazyGetPlaylistContinuationQuery,
     useGetHomeQuery,
     useGetYouTubeAuthStatusQuery,
     useStartYouTubeAuthenticationMutation,

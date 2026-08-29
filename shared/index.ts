@@ -40,6 +40,12 @@ export interface IPlaylistInfo extends IHaveRadio {
 export interface IPlaylist {
     info: IPlaylistInfo;
     tracks: ITrackBase[];
+    continuation: string | null;
+}
+
+export interface IPlaylistPage {
+    tracks: ITrackBase[];
+    continuation: string | null;
 }
 
 export interface IAlbumInfo extends IHaveRadio {

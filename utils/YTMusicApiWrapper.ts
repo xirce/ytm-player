@@ -1,5 +1,5 @@
 import { Innertube, Platform, Types, UniversalCache, YTMusic, YTNodes } from 'youtubei.js';
-import { IPlaylist, YouTubeAuthState } from '../shared';
+import { IPlaylist, IPlaylistPage, YouTubeAuthState } from '../shared';
 import { getThumbnailUrl, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 
@@ -247,12 +247,17 @@ export class YTMusicApiWrapper {
         return this.innertube.music.getAlbum(id);
     }
 
-    public async getPlaylist(playlistId: string, browseParams?: string): Promise<YTMusic.Playlist> {
+    private getPlaylistInnertube(playlistId: string): Innertube {
         const normalizedId = playlistId.startsWith('VL') ? playlistId : `VL${playlistId}`;
         const isPersonalizedMix = /^VLRDTMAK/.test(normalizedId);
-        const innertube = isPersonalizedMix && this.musicAuthenticationInnertube
+        return isPersonalizedMix && this.musicAuthenticationInnertube
             ? this.musicAuthenticationInnertube
             : this.innertube;
+    }
+
+    public async getPlaylist(playlistId: string, browseParams?: string): Promise<YTMusic.Playlist> {
+        const normalizedId = playlistId.startsWith('VL') ? playlistId : `VL${playlistId}`;
+        const innertube = this.getPlaylistInnertube(normalizedId);
 
         if (browseParams) {
             const response = await innertube.actions.execute('/browse', {
@@ -265,19 +270,40 @@ export class YTMusicApiWrapper {
         return innertube.music.getPlaylist(normalizedId);
     }
 
+    private mapPlaylistPage(page: YTMusic.Playlist, fallbackImageUrl = ''): IPlaylistPage {
+        const items = page.items.filter(
+            (item): item is YTNodes.MusicResponsiveListItem =>
+                item instanceof YTNodes.MusicResponsiveListItem
+        );
+        const continuation = page.items.find(
+            (item): item is YTNodes.ContinuationItem => item instanceof YTNodes.ContinuationItem
+        );
+        return {
+            tracks: items
+                .filter(item => item.id)
+                .map(item => mapToTrack(item, { imageUrl: fallbackImageUrl })),
+            continuation: typeof continuation?.endpoint.payload.token === 'string'
+                ? continuation.endpoint.payload.token
+                : null
+        };
+    }
+
+    public async getPlaylistContinuation(playlistId: string, continuation: string): Promise<IPlaylistPage> {
+        const innertube = this.getPlaylistInnertube(playlistId);
+        const response = await innertube.actions.execute('/browse', {
+            continuation,
+            client: 'YTMUSIC'
+        });
+        return this.mapPlaylistPage(new YTMusic.Playlist(response, innertube.actions));
+    }
+
     public async getPlaylistWithVideos(playlistId: string, browseParams?: string): Promise<IPlaylist> {
-        let page = await this.getPlaylist(playlistId, browseParams);
+        const page = await this.getPlaylist(playlistId, browseParams);
         const header = page.header;
-        const items: YTNodes.MusicResponsiveListItem[] = [];
-        const pageLimit = /^VLRDTMAK/.test(playlistId) ? 3 : 20;
-        for (let pageNumber = 0; pageNumber < pageLimit; pageNumber += 1) {
-            items.push(...page.items.filter(
-                (item): item is YTNodes.MusicResponsiveListItem =>
-                    item instanceof YTNodes.MusicResponsiveListItem
-            ));
-            if (!page.has_continuation || pageNumber === pageLimit - 1) break;
-            page = await page.getContinuation();
-        }
+        const items = page.items.filter(
+            (item): item is YTNodes.MusicResponsiveListItem =>
+                item instanceof YTNodes.MusicResponsiveListItem
+        );
 
         const thumbnail = header && 'thumbnail' in header
             ? header.thumbnail?.contents
@@ -285,6 +311,7 @@ export class YTMusicApiWrapper {
                 ? header.thumbnails
                 : undefined;
         const imageUrl = getThumbnailUrl(thumbnail) || getThumbnailUrl(items[0]?.thumbnails);
+        const playlistPage = this.mapPlaylistPage(page, imageUrl);
 
         return {
             info: {
@@ -293,13 +320,11 @@ export class YTMusicApiWrapper {
                     ? header.title.toString()
                     : '',
                 imageUrl,
-                trackCount: items.length,
+                trackCount: playlistPage.continuation ? null : playlistPage.tracks.length,
                 browseParams,
                 radioId: `RDAMPL${playlistId.replace(/^VL/, '')}`
             },
-            tracks: items
-                .filter(item => item.id)
-                .map(item => mapToTrack(item, { imageUrl }))
+            ...playlistPage
         };
     }
 }
