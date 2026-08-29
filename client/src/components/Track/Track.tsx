@@ -52,7 +52,7 @@ export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlayi
             <div className={styles.title}>{info.title}</div>
             {info.artist?.id
                 ? <span className={styles.artist}><ArtistLink info={info.artist} /></span>
-                : info.artist && <span className={styles.artist}>info.artist.name</span>}
+                : info.artist && <span className={styles.artist}>{info.artist.name}</span>}
             {info.duration && <span className={styles.duration}>{formatSeconds(info.duration)}</span>}
             <div className={styles.actionsBtn}>
                 <ActionsControl>
