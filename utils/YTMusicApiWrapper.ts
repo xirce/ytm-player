@@ -3,9 +3,33 @@ import { IPlaylist, YouTubeAuthState } from '../shared';
 import { getThumbnailUrl, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 
+const validateMusicCookie = (cookie: string): string => {
+    const invalidIndex = Array.from(cookie).findIndex(character => {
+        const code = character.codePointAt(0) ?? 0;
+        return code < 0x20 || code > 0x7e;
+    });
+    if (invalidIndex !== -1) {
+        const character = Array.from(cookie)[invalidIndex];
+        const hint = character === '…'
+            ? ' The value was truncated by DevTools; copy the complete Cookie header using "Copy as cURL".'
+            : '';
+        throw new Error(`YOUTUBE_MUSIC_COOKIE contains an invalid character at index ${invalidIndex}.${hint}`);
+    }
+    return cookie.replace(/^cookie:\s*/i, '');
+};
+
+const getMusicAccountIndex = (): number => {
+    const value = process.env.YOUTUBE_MUSIC_AUTHUSER?.trim() || '0';
+    if (!/^\d+$/.test(value)) {
+        throw new Error('YOUTUBE_MUSIC_AUTHUSER must be a non-negative integer');
+    }
+    return Number.parseInt(value, 10);
+};
+
 export class YTMusicApiWrapper {
     private innertube!: Innertube;
     private authenticationInnertube!: Innertube;
+    private musicAuthenticationInnertube?: Innertube;
     private tokenProvider!: TokenProvider;
     private authState: YouTubeAuthState = { status: 'anonymous' };
     private authenticationPromise?: Promise<void>;
@@ -31,17 +55,38 @@ export class YTMusicApiWrapper {
             cache,
             retrieve_player: false
         });
+        const configuredMusicCookie = process.env.YOUTUBE_MUSIC_COOKIE?.trim();
+        const musicCookie = configuredMusicCookie
+            ? validateMusicCookie(configuredMusicCookie)
+            : undefined;
+        if (musicCookie) {
+            this.musicAuthenticationInnertube ??= await Innertube.create({
+                cache,
+                cookie: musicCookie,
+                account_index: getMusicAccountIndex(),
+                on_behalf_of_user: process.env.YOUTUBE_MUSIC_PAGE_ID?.trim() || undefined,
+                enable_session_cache: false,
+                lang: process.env.YOUTUBE_MUSIC_LANGUAGE?.trim() || 'ru',
+                retrieve_player: false
+            });
+        }
         this.registerAuthenticationEvents();
         if (await cache.get('youtubei_oauth_credentials')) {
             this.authState = { status: 'restoring' };
             this.authenticationPromise = this.authenticationInnertube.session.signIn()
                 .catch(error => {
-                    this.authState = { status: 'error', error: (error as Error).message };
+                    if (this.musicAuthenticationInnertube) {
+                        this.setAuthenticatedState(false);
+                    } else {
+                        this.authState = { status: 'error', error: (error as Error).message };
+                    }
                 })
                 .finally(() => {
                     this.authenticationPromise = undefined;
                 });
             await this.authenticationPromise;
+        } else if (this.musicAuthenticationInnertube) {
+            this.setAuthenticatedState(false);
         }
 
         console.log(`YouTube PO token provider: ${tokenProviderUrl}`);
@@ -49,6 +94,17 @@ export class YTMusicApiWrapper {
 
     public getAuthenticationState(): YouTubeAuthState {
         return { ...this.authState };
+    }
+
+    public hasPersonalizedMusicAccess(): boolean {
+        return Boolean(this.musicAuthenticationInnertube?.session.logged_in);
+    }
+
+    public async getHomeFeed(): Promise<YTMusic.HomeFeed> {
+        if (!this.musicAuthenticationInnertube) {
+            throw new Error('YouTube Music cookie authentication is not configured');
+        }
+        return this.musicAuthenticationInnertube.music.getHomeFeed();
     }
 
     public async startAuthentication(): Promise<YouTubeAuthState> {
@@ -88,7 +144,20 @@ export class YTMusicApiWrapper {
         } else {
             await this.authenticationInnertube.session.oauth.removeCache();
         }
-        this.authState = { status: 'anonymous' };
+        if (this.musicAuthenticationInnertube) {
+            this.setAuthenticatedState(false);
+        } else {
+            this.authState = { status: 'anonymous' };
+        }
+    }
+
+    private setAuthenticatedState(hasOAuth: boolean): void {
+        const hasCookie = this.hasPersonalizedMusicAccess();
+        this.authState = {
+            status: 'authenticated',
+            method: hasOAuth && hasCookie ? 'oauth+cookie' : hasCookie ? 'cookie' : 'oauth',
+            musicRecommendationsAvailable: hasCookie
+        };
     }
 
     private registerAuthenticationEvents(): void {
@@ -101,7 +170,7 @@ export class YTMusicApiWrapper {
             };
         });
         this.authenticationInnertube.session.on('auth', () => {
-            this.authState = { status: 'authenticated' };
+            this.setAuthenticatedState(true);
             void this.authenticationInnertube.session.oauth.cacheCredentials();
         });
         this.authenticationInnertube.session.on('update-credentials', () => {

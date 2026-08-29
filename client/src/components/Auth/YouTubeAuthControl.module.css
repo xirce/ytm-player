@@ -34,3 +34,6 @@
     color: #ff8a80;
     font-size: 12px;
 }
+.cookie {
+    color: var(--text-main-color);
+}

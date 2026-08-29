@@ -1,5 +1,5 @@
 import { YTMusic, YTNodes } from 'youtubei.js';
-import { IAlbumInfo, IArtistInfoBase, IArtistInfo, IPlaylistInfo, ITrackBase } from '../../shared';
+import { IAlbumInfo, IArtistInfoBase, IArtistInfo, IHomeItem, IHomeSection, IPlaylistInfo, ITrackBase } from '../../shared';
 
 type MusicListItem = YTNodes.MusicResponsiveListItem | YTNodes.MusicTwoRowItem;
 
@@ -103,5 +103,51 @@ export const mapToAlbumInfo = (
         imageUrl: lastThumbnail(source),
         year: source.year ? Number.parseInt(source.year, 10) || null : null,
         radioId: `RDAMPL${id}`
+    };
+};
+
+const mapToHomeItem = (source: YTNodes.MusicCarouselShelf['contents'][number]): IHomeItem | undefined => {
+    if (source instanceof YTNodes.MusicResponsiveListItem) {
+        switch (source.item_type) {
+            case 'song':
+            case 'video':
+            case 'non_music_track':
+                return source.id ? { type: 'track', data: mapToTrack(source) } : undefined;
+            case 'album':
+                return source.id ? { type: 'album', data: mapToAlbumInfo(source) } : undefined;
+            case 'playlist':
+                return source.id ? { type: 'playlist', data: mapToPlaylistInfo(source) } : undefined;
+            case 'artist':
+                return source.id ? { type: 'artist', data: mapToArtistInfoListItem(source) } : undefined;
+            default:
+                return undefined;
+        }
+    }
+
+    if (source instanceof YTNodes.MusicTwoRowItem && source.id) {
+        switch (source.item_type) {
+            case 'album':
+                return { type: 'album', data: mapToAlbumInfo(source) };
+            case 'playlist':
+                return { type: 'playlist', data: mapToPlaylistInfo(source) };
+            case 'artist':
+                return { type: 'artist', data: mapToArtistInfoListItem(source) };
+            default:
+                return undefined;
+        }
+    }
+
+    return undefined;
+};
+
+export const mapToHomeSection = (source: YTNodes.MusicCarouselShelf): IHomeSection | undefined => {
+    const items = source.contents
+        .map(mapToHomeItem)
+        .filter((item): item is IHomeItem => Boolean(item));
+
+    if (!items.length) return undefined;
+    return {
+        title: source.header?.title.toString() ?? '',
+        items
     };
 };

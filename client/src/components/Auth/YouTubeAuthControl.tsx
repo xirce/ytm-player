@@ -22,6 +22,9 @@ export const YouTubeAuthControl: React.FC = () => {
     };
 
     if (data?.status === 'authenticated') {
+        if (data.method === 'cookie') {
+            return <span className={styles.cookie}>YouTube Music подключён</span>;
+        }
         return (
             <button className={styles.button} onClick={logout} disabled={signOutState.isLoading}>
                 Выйти из YouTube

@@ -8,6 +8,7 @@ import { AlbumPage } from './pages/Album/AlbumPage';
 import { ArtistPage } from './pages/Artist/ArtistPage';
 import { QueuePage } from "./pages/Queue/QueuePage";
 import { FilteredSearchPage } from './pages/SearchRes/FilteredSearchPage';
+import { HomePage } from './pages/Home/HomePage';
 import { Layout } from "./layouts/Default/Layout";
 import { FiltersLayout } from "./layouts/Filters/FiltersLayout";
 import { store } from "./store";
@@ -20,6 +21,7 @@ export const App: React.FC = () => {
                 <ProgressBar />
                 <Routes>
                     <Route path="/" element={<Layout />}>
+                        <Route index element={<HomePage />} />
                         <Route path="search" element={<FiltersLayout />}>
                             <Route index element={<SearchPage />} />
                             <Route path=":type" element={<FilteredSearchPage />} />
@@ -28,7 +30,7 @@ export const App: React.FC = () => {
                         <Route path="album/:id" element={<AlbumPage />} />
                         <Route path="artist/:id" element={<ArtistPage />} />
                         <Route path="queue" element={<QueuePage />} />
-                        <Route path='*' element={<Navigate to="queue" replace />} />
+                        <Route path='*' element={<Navigate to="/" replace />} />
                     </Route>
                 </Routes>
             </Provider>

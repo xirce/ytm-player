@@ -3,3 +3,14 @@
     background-color: var(--bg-dark-color);
     border-bottom: 1px solid var(--bg-main-color);
 }
+
+.home {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.auth {
+    display: flex;
+    justify-content: flex-end;
+}

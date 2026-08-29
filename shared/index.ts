@@ -60,8 +60,28 @@ export interface ISearchResponse {
     playlists: IPlaylistInfo[];
 }
 
+export type IHomeItem =
+    | { type: 'track'; data: ITrackBase }
+    | { type: 'album'; data: IAlbumInfo }
+    | { type: 'playlist'; data: IPlaylistInfo }
+    | { type: 'artist'; data: IArtistInfo };
+
+export interface IHomeSection {
+    title: string;
+    items: IHomeItem[];
+}
+
+export interface IHomeFeed {
+    sections: IHomeSection[];
+}
+
 export type YouTubeAuthState =
-    | { status: 'anonymous' | 'starting' | 'restoring' | 'authenticated' }
+    | { status: 'anonymous' | 'starting' | 'restoring' }
+    | {
+        status: 'authenticated';
+        method: 'oauth' | 'cookie' | 'oauth+cookie';
+        musicRecommendationsAvailable: boolean;
+    }
     | {
         status: 'pending';
         verificationUrl: string;

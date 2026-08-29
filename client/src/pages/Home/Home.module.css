@@ -1,0 +1,25 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.section h2 {
+    margin: 0 0 16px;
+}
+
+.items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.message {
+    max-width: 640px;
+    margin: 15vh auto 0;
+    text-align: center;
+}
+
+.message p {
+    color: var(--text-main-color);
+}

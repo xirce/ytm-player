@@ -10,6 +10,7 @@ import {
     IPlaylistInfo,
     ITrackBase,
     IAlbumInfo,
+    IHomeFeed,
     YouTubeAuthState
 } from "../../shared";
 
@@ -48,6 +49,7 @@ const api = createApi({
     reducerPath: 'api',
     baseQuery: axiosBaseQuery({ baseUrl: 'http://localhost:3001/api' }),
     keepUnusedDataFor: 30,
+    tagTypes: ['Home'],
     endpoints: (build) => ({
         getTrackUrl: build.query<string, string>({
             query: (id: string) => ({ url: `/tracks/${id}/url`, method: 'GET' })
@@ -78,14 +80,20 @@ const api = createApi({
         getPlaylist: build.query<IPlaylist, string>({
             query: (id: string) => ({ url: `/playlists/${id}`, method: 'GET' })
         }),
+        getHome: build.query<IHomeFeed, void>({
+            query: () => ({ url: '/home', method: 'GET' }),
+            providesTags: ['Home']
+        }),
         getYouTubeAuthStatus: build.query<YouTubeAuthState, void>({
             query: () => ({ url: '/auth/status', method: 'GET' })
         }),
         startYouTubeAuthentication: build.mutation<YouTubeAuthState, void>({
-            query: () => ({ url: '/auth/device', method: 'POST' })
+            query: () => ({ url: '/auth/device', method: 'POST' }),
+            invalidatesTags: ['Home']
         }),
         signOutYouTube: build.mutation<void, void>({
-            query: () => ({ url: '/auth/session', method: 'DELETE' })
+            query: () => ({ url: '/auth/session', method: 'DELETE' }),
+            invalidatesTags: ['Home']
         }),
     })
 });
@@ -98,6 +106,7 @@ export const {
     useGetArtistQuery,
     useGetAlbumQuery,
     useGetPlaylistQuery,
+    useGetHomeQuery,
     useGetYouTubeAuthStatusQuery,
     useStartYouTubeAuthenticationMutation,
     useSignOutYouTubeMutation,

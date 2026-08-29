@@ -8,6 +8,7 @@ import albumRouter from './routers/albumRouter';
 import artistRouter from './routers/artistRouter';
 import radioRouter from './routers/radioRouter';
 import authRouter from './routers/authRouter';
+import homeRouter from './routers/homeRouter';
 import { errorHandler } from './middleware/errors';
 
 const app = express();
@@ -23,6 +24,7 @@ app.use('/api/albums', albumRouter);
 app.use('/api/artists', artistRouter);
 app.use('/api/radios', radioRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/home', homeRouter);
 
 app.use(errorHandler);
 
