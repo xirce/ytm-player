@@ -55,7 +55,7 @@ export const ArtistTracksPage: React.FC = React.memo(() => {
     return (
         <main>
             <ArtistHeader info={artist.data.info} />
-            <TrackList title="Все треки" source={tracks} />
+            <TrackList title="Все треки" source={tracks} showPlayCount />
             <div ref={loadMoreRef} className={styles.loadMore}>
                 {continuationState.isFetching && 'Загружаем ещё треки...'}
                 {continuationState.isError && 'Не удалось загрузить следующие треки'}

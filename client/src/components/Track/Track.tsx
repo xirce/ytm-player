@@ -22,9 +22,12 @@ export interface ITrackProps {
     index: number;
     isCurrent?: boolean;
     isPlaying?: boolean;
+    showPlayCount?: boolean;
 }
 
-export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlaying, isCurrent, children }) => {
+export const Track: React.FC<ITrackProps> = React.memo(({
+    source, index, isPlaying, isCurrent, showPlayCount = false, children
+}) => {
     const { setTracks, setTrackIndex, setIsPlaying, appendLeftTracks, appendTracks } = useAppAction();
     const info = source[index];
 
@@ -69,12 +72,11 @@ export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlayi
                         : info.artist?.name ?? ''}
                 </span>
             </span>
-            <span
-                className={styles.playCount}
-                title={info.playCount != null ? formatPlayCount(info.playCount) : undefined}
-            >
-                {info.playCount != null ? formatPlayCount(info.playCount) : ''}
-            </span>
+            {showPlayCount && info.playCount != null && (
+                <span className={styles.playCount} title={formatPlayCount(info.playCount)}>
+                    {formatPlayCount(info.playCount)}
+                </span>
+            )}
             <span className={styles.duration}>
                 {info.duration != null ? formatSeconds(info.duration) : '—:——'}
             </span>

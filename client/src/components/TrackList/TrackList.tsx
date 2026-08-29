@@ -8,9 +8,10 @@ import { getDisplayedTrack, getDisplayTrackIndex, getIsPlaying } from "../../sto
 export interface ITrackListProps {
     title?: string;
     source: ITrackBase[];
+    showPlayCount?: boolean;
 }
 
-export const TrackList: React.FC<ITrackListProps> = React.memo(({ title, source }) => {
+export const TrackList: React.FC<ITrackListProps> = React.memo(({ title, source, showPlayCount = false }) => {
     const trackIndex = useAppSelector(getDisplayTrackIndex);
     const currentTrack = useAppSelector(getDisplayedTrack);
     const isPlaying = useAppSelector(getIsPlaying);
@@ -27,6 +28,7 @@ export const TrackList: React.FC<ITrackListProps> = React.memo(({ title, source 
                     index={index}
                     isCurrent={isCurrent}
                     isPlaying={isCurrent && isPlaying}
+                    showPlayCount={showPlayCount}
                 />
             }
             }

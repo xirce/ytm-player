@@ -27,7 +27,7 @@ export const ArtistPage: React.FC = () => {
         <>
             <ArtistHeader info={data.info} />
             <div className={styles.tracks}>
-                <TrackList title='Треки' source={topSongs} />
+                <TrackList title='Треки' source={topSongs} showPlayCount />
                 <div>
                     <Link to={to}>Показать всё</Link>
                 </div>

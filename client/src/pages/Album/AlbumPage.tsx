@@ -23,7 +23,7 @@ export const AlbumPage: React.FC = () => {
     return (
         <>
             <PlaylistHeader info={info} />
-            <TrackList source={tracks || []} />
+            <TrackList source={tracks || []} showPlayCount />
         </>
     );
 }
