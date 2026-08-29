@@ -14,3 +14,23 @@
     height: 100%;
     object-fit: cover;
 }
+
+@media (max-width: 700px) {
+    .container {
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .imageContainer {
+        width: 112px;
+        height: 112px;
+        min-width: 112px;
+        margin-right: 12px;
+    }
+
+    .container h2 {
+        margin: 0 0 8px;
+        font-size: 1.25rem;
+        overflow-wrap: anywhere;
+    }
+}

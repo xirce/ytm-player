@@ -122,7 +122,19 @@ router.get('/proxy', asyncHandler(async (req, res) => {
 
 router.get('/:id/url', asyncHandler(async (req, res) => {
     const id = getRequiredParam(req, 'id');
-    const proxyBaseUrl = `${req.protocol}://${req.get('host')}`;
+    let proxyBaseUrl = `${req.protocol}://${req.get('host')}`;
+    if (typeof req.query.origin === 'string') {
+        let clientOrigin: URL;
+        try {
+            clientOrigin = new URL(req.query.origin);
+        } catch {
+            throw new HttpError(400, 'Query parameter "origin" must be a valid URL');
+        }
+        if (clientOrigin.protocol !== 'http:' && clientOrigin.protocol !== 'https:') {
+            throw new HttpError(400, 'Query parameter "origin" must use HTTP or HTTPS');
+        }
+        proxyBaseUrl = clientOrigin.origin;
+    }
     res.json(await fetchTrackUrl(id, proxyBaseUrl));
 }));
 

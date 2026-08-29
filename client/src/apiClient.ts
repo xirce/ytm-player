@@ -63,7 +63,11 @@ const api = createApi({
     tagTypes: ['Home', 'History'],
     endpoints: (build) => ({
         getTrackUrl: build.query<string, string>({
-            query: (id: string) => ({ url: `/tracks/${id}/url`, method: 'GET' })
+            query: (id: string) => ({
+                url: `/tracks/${id}/url`,
+                method: 'GET',
+                params: { origin: window.location.origin }
+            })
         }),
         addTrackToHistory: build.mutation<void, string>({
             query: (id: string) => ({ url: `/tracks/${id}/history`, method: 'POST' }),

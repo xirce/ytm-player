@@ -462,9 +462,9 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     }, [progressPlayer]);
 
     return (
-        <Stack>
-            <Grid container justifyContent="center" alignItems="center" gap={2} marginBottom={1}>
-                <button className={styles.iconBtn} onClick={handleShuffle}>
+        <Stack className={styles.trackControlStack}>
+            <Grid className={styles.transportControls} container justifyContent="center" alignItems="center" gap={2} marginBottom={1}>
+                <button className={`${styles.iconBtn} ${styles.mobileSecondaryControl}`} onClick={handleShuffle}>
                     <ShuffleRounded />
                 </button>
                 <button className={styles.iconBtn} onClick={handleSkipPrev}>
@@ -476,7 +476,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                 <button className={styles.iconBtn} onClick={handleSkipNext}>
                     <SkipNextRounded fontSize="large" />
                 </button>
-                <button className={styles.iconBtn} onClick={handleToggleRepeat}>
+                <button className={`${styles.iconBtn} ${styles.mobileSecondaryControl}`} onClick={handleToggleRepeat}>
                     {repeat ? <RepeatOneRounded /> : <RepeatRounded />}
                 </button>
             </Grid>

@@ -51,10 +51,10 @@ export const PlayerControls: React.FC = React.memo(() => {
             <audio ref={firstAudioRef} style={{ display: 'none' }} />
             <audio ref={secondAudioRef} style={{ display: 'none' }} />
 
-            <Grid item xs>
+            <Grid item xs className={styles.trackInfoColumn}>
                 <TrackInfo source={displayedTrack} />
             </Grid>
-            <Grid item xs={4}>
+            <Grid item xs={4} className={styles.trackControlColumn}>
                 {player && standbyPlayer && (
                     <TrackControl
                         player={player}
@@ -65,7 +65,7 @@ export const PlayerControls: React.FC = React.memo(() => {
                     />
                 )}
             </Grid>
-            <Grid container item xs justifyContent='center'>
+            <Grid container item xs justifyContent='center' className={styles.volumeColumn}>
                 <Grid item xs={8}>
                     {displayedPlayer && (
                         <VolumeControl
@@ -74,7 +74,7 @@ export const PlayerControls: React.FC = React.memo(() => {
                         />
                     )}
                 </Grid>
-                <Grid item>
+                <Grid item className={styles.queueButton}>
                     <Link to='/queue'>
                         <button className={styles.iconBtn} title='Очередь'>
                             <QueueMusicRoundedIcon />

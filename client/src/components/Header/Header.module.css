@@ -33,3 +33,60 @@
     display: flex;
     justify-content: flex-end;
 }
+
+.mobileMenu,
+.mobileAuth {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    .container {
+        padding: 8px 12px;
+    }
+
+    .container > div {
+        flex-wrap: nowrap;
+        gap: 10px;
+    }
+
+    .navigationColumn {
+        flex: 0 0 auto !important;
+        max-width: none !important;
+    }
+
+    .navigation {
+        gap: 0;
+    }
+
+    .navigation .library,
+    .auth {
+        display: none;
+    }
+
+    .home {
+        font-size: 17px;
+    }
+
+    .search {
+        flex: 1 1 auto !important;
+        min-width: 0;
+        max-width: none !important;
+    }
+
+    .mobileMenu {
+        display: block;
+        flex: 0 0 auto;
+    }
+
+    .mobileMenuButton {
+        color: var(--text-light-color);
+        background: transparent;
+        cursor: pointer;
+    }
+
+    .mobileAuth {
+        display: block;
+        min-width: 220px;
+        padding: 10px 16px;
+    }
+}

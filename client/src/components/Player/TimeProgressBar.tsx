@@ -113,9 +113,11 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({
             direction='row'
             gap={1}
             fontSize='small'
+            width='100%'
+            minWidth={0}
         >
             <Grid item><span>{formattedCurrentTime}</span></Grid>
-            <Grid container item xs>
+            <Grid container item xs minWidth={0}>
                 <SliderWrapper
                     value={sliderValue}
                     onChange={changeCurrentTime}
