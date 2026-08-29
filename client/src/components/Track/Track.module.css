@@ -74,9 +74,15 @@
 .title {
     composes: hidden-overflow;
     flex: 3 1 0;
+    text-align: left;
 }
 
 .artist {
     composes: hidden-overflow;
     flex: 2 1 0;
+}
+
+.duration {
+    flex: 0 0 48px;
+    text-align: right;
 }

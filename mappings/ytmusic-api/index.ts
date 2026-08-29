@@ -119,6 +119,19 @@ export const mapToAlbumInfo = (
     };
 };
 
+export const mapPlaylistPanelVideoToTrack = (source: YTNodes.PlaylistPanelVideo): ITrackBase => ({
+    id: source.video_id,
+    title: source.title.toString(),
+    artist: {
+        id: source.artists?.[0]?.channel_id ?? null,
+        name: source.artists?.[0]?.name ?? source.author ?? ''
+    },
+    album: source.album?.id ? { id: source.album.id, name: source.album.name } : undefined,
+    imageUrl: getThumbnailUrl(source.thumbnail),
+    duration: source.duration?.seconds ?? null,
+    radioId: `RDAMVM${source.video_id}`
+});
+
 const mapToHomeItem = (source: YTNodes.MusicCarouselShelf['contents'][number]): IHomeItem | undefined => {
     if (source instanceof YTNodes.MusicResponsiveListItem) {
         switch (source.item_type) {

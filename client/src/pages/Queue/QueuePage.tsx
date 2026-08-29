@@ -1,13 +1,16 @@
 import React, { createRef } from 'react';
+import { FormControlLabel, Switch } from '@mui/material';
 import { useAppAction, useAppSelector } from "../../store";
-import { getCurrentTrack, getTrackIndex, getTrackListItems } from "../../store/player";
+import { getAutoplay, getAutoplaySource, getTrackListItems } from "../../store/player";
 import DraggableList from "react-draggable-list";
 import { QueueTrack } from "../../components/Track/QueueTrack";
 import { ITrackProps } from "../../components/Track/Track";
 
 export const QueuePage: React.FC = React.memo(() => {
-    const { setTracks } = useAppAction();
+    const { setTracks, setAutoplay } = useAppAction();
     const trackListItems = useAppSelector(getTrackListItems);
+    const autoplay = useAppSelector(getAutoplay);
+    const autoplaySource = useAppSelector(getAutoplaySource);
     const containerRef = createRef<HTMLDivElement>();
 
     if (!trackListItems?.length) {
@@ -29,6 +32,13 @@ export const QueuePage: React.FC = React.memo(() => {
     return (
         <>
             <h2>Очередь</h2>
+            <FormControlLabel
+                control={<Switch checked={autoplay} onChange={(_, value) => setAutoplay(value)} />}
+                label="Автовоспроизведение"
+            />
+            {autoplay && autoplaySource && (
+                <p>Радио построено на основе трека «{autoplaySource.title}»</p>
+            )}
             <div ref={containerRef}>
                 <DraggableList<ITrackProps, void, QueueTrack>
                     unsetZIndex={true}

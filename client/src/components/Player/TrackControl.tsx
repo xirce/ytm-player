@@ -7,10 +7,10 @@ import { PauseRounded, PlayArrowRounded, RepeatOneRounded, RepeatRounded, Shuffl
 import type { MediaPlayerClass } from 'dashjs';
 import { TimeProgressBar } from './TimeProgressBar';
 import { useAppAction, useAppSelector } from "../../store";
-import { getCurrentTrack, getDisplayedTrack, getIsPlaying, getTracks, getRepeat, getTrackIndex } from '../../store/player';
+import { getAutoplay, getCurrentTrack, getDisplayedTrack, getIsPlaying, getTracks, getRepeat, getTrackIndex } from '../../store/player';
 import { useDependentRef } from "../../hooks/useDependentRef";
 import styles from "./PlayerControls.module.css";
-import { useAddTrackToHistoryMutation, useGetTrackUrlQuery } from '../../apiClient';
+import { useAddTrackToHistoryMutation, useGetTrackUrlQuery, useLazyGetRadioQuery } from '../../apiClient';
 import { loadPlayerProgress, savePlayerProgress } from '../../utils/playerPersistence';
 
 const CROSSFADE_SECONDS = 3;
@@ -30,7 +30,10 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     progressPlayer,
     canReadProgressImmediately
 }) => {
-    const { setIsPlaying, skipNext, skipPrev, setRepeat, shuffle, setDisplayTrackIndex } = useAppAction();
+    const {
+        setIsPlaying, skipNext, skipPrev, setRepeat, shuffle, setDisplayTrackIndex,
+        appendTracks, setAutoplaySource, updateTrackDuration
+    } = useAppAction();
     const tracksRef = useDependentRef(useAppSelector(getTracks));
     const isPlaying = useAppSelector(getIsPlaying);
     const isPlayingRef = useDependentRef(isPlaying);
@@ -39,9 +42,9 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     const tracks = useAppSelector(getTracks);
     const trackIndex = useAppSelector(getTrackIndex);
     const trackIndexRef = useDependentRef(trackIndex);
-    const nextTrack = tracks.length > 1
-        ? tracks[trackIndex === tracks.length - 1 ? 0 : trackIndex + 1]
-        : undefined;
+    const nextTrack = tracks[trackIndex + 1];
+    const autoplay = useAppSelector(getAutoplay);
+    const autoplayRef = useDependentRef(autoplay);
     const repeat = useAppSelector(getRepeat);
     const repeatRef = useDependentRef(repeat);
     const initializedPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
@@ -50,6 +53,8 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     const historyRecordedPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
     const restoredProgressPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
     const lastProgressSaveRef = useRef(0);
+    const requestedRadioSeedsRef = useRef(new Set<string>());
+    const autoplayWaitingRef = useRef(false);
     const crossfadeRef = useRef<{ active: boolean; masterVolume: number }>({
         active: false,
         masterVolume: 1
@@ -60,6 +65,40 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     const { currentData: trackUrl, isFetching } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
     const { currentData: nextTrackUrl } = useGetTrackUrlQuery(nextTrack?.id ?? skipToken);
     const [addTrackToHistory] = useAddTrackToHistoryMutation();
+    const [loadRadio] = useLazyGetRadioQuery();
+
+    useEffect(() => {
+        if (!autoplay) {
+            requestedRadioSeedsRef.current.clear();
+            return;
+        }
+        if (!isPlaying || !tracks.length || tracks.length - trackIndex > 2) return;
+
+        const seed = tracks[tracks.length - 1];
+        if (!seed?.radioId || requestedRadioSeedsRef.current.has(seed.id)) return;
+        requestedRadioSeedsRef.current.add(seed.id);
+
+        void loadRadio(seed.radioId)
+            .unwrap()
+            .then(radioTracks => {
+                if (!autoplayRef.current) {
+                    autoplayWaitingRef.current = false;
+                    return;
+                }
+                const knownIds = new Set(tracksRef.current.map(track => track.id));
+                const newTracks = radioTracks.filter(track => track.id && !knownIds.has(track.id));
+                if (!newTracks.length) return;
+                batch(() => {
+                    appendTracks(newTracks);
+                    setAutoplaySource({ id: seed.id, title: seed.title });
+                    if (autoplayWaitingRef.current) {
+                        autoplayWaitingRef.current = false;
+                        skipNext();
+                    }
+                });
+            })
+            .catch(() => requestedRadioSeedsRef.current.delete(seed.id));
+    }, [autoplay, isPlaying, tracks, trackIndex, loadRadio, appendTracks, setAutoplaySource, tracksRef, skipNext]);
 
 
     // Обновление источника при получении манифеста
@@ -108,8 +147,16 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
 
     // Подписка на события плеера
     useEffect(() => {
+        const syncDuration = (targetPlayer: MediaPlayerClass) => {
+            const id = playerTrackIdsRef.current.get(targetPlayer);
+            const duration = targetPlayer.duration();
+            if (id && Number.isFinite(duration) && duration > 0) {
+                updateTrackDuration({ id, duration });
+            }
+        };
         const onStreamInitialized = () => {
             initializedPlayersRef.current.add(player);
+            syncDuration(player);
             const playerTrackId = playerTrackIdsRef.current.get(player);
             const savedProgress = loadPlayerProgress();
             if (!restoredProgressPlayersRef.current.has(player)
@@ -121,10 +168,11 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             }
             if (isPlayingRef.current) player.play();
         };
+        const onMetadataLoaded = () => syncDuration(player);
         const getFollowingTrack = () => {
             const currentTracks = tracksRef.current;
             const currentIndex = trackIndexRef.current;
-            return currentTracks[currentIndex === currentTracks.length - 1 ? 0 : currentIndex + 1];
+            return currentTracks[currentIndex + 1];
         };
         const isFollowingTrackPrepared = () => {
             const followingTrack = getFollowingTrack();
@@ -193,6 +241,10 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             if (repeatRef.current) {
                 player.seek(0);
                 player.play();
+            } else if (trackIndexRef.current >= (tracksRef.current?.length || 0) - 1) {
+                autoplayWaitingRef.current = autoplayRef.current;
+                setIsPlaying(false);
+                player.seek(0);
             } else if ((tracksRef.current?.length || 0) > 1) {
                 if (isFollowingTrackPrepared()) {
                     standbyPlayer.setVolume(player.getVolume());
@@ -213,15 +265,17 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
 
         // Используем строковые имена событий, без импорта констант
         player.on('streamInitialized', onStreamInitialized);
+        player.on('playbackMetadataLoaded', onMetadataLoaded);
         player.on('playbackEnded', onEnded);
         player.on('playbackTimeUpdated', onTimeUpdated);
 
         return () => {
             player.off('streamInitialized', onStreamInitialized);
+            player.off('playbackMetadataLoaded', onMetadataLoaded);
             player.off('playbackEnded', onEnded);
             player.off('playbackTimeUpdated', onTimeUpdated);
         };
-    }, [player, standbyPlayer, repeatRef, tracksRef, trackIndexRef, isPlayingRef, skipNext, setIsPlaying, swapPlayers, setDisplayTrackIndex, addTrackToHistory]);
+    }, [player, standbyPlayer, repeatRef, tracksRef, trackIndexRef, isPlayingRef, autoplayRef, skipNext, setIsPlaying, swapPlayers, setDisplayTrackIndex, addTrackToHistory, updateTrackDuration]);
 
     useEffect(() => {
         // Плеер снова стал активным с новым треком — старый маркер ended ему больше не нужен.
@@ -229,10 +283,21 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     }, [player]);
 
     useEffect(() => {
-        const onStandbyInitialized = () => initializedPlayersRef.current.add(standbyPlayer);
+        const onStandbyInitialized = () => {
+            initializedPlayersRef.current.add(standbyPlayer);
+            const id = playerTrackIdsRef.current.get(standbyPlayer);
+            const duration = standbyPlayer.duration();
+            if (id && Number.isFinite(duration) && duration > 0) {
+                updateTrackDuration({ id, duration });
+            }
+        };
         standbyPlayer.on('streamInitialized', onStandbyInitialized);
-        return () => standbyPlayer.off('streamInitialized', onStandbyInitialized);
-    }, [standbyPlayer]);
+        standbyPlayer.on('playbackMetadataLoaded', onStandbyInitialized);
+        return () => {
+            standbyPlayer.off('streamInitialized', onStandbyInitialized);
+            standbyPlayer.off('playbackMetadataLoaded', onStandbyInitialized);
+        };
+    }, [standbyPlayer, updateTrackDuration]);
 
     useEffect(() => {
         document.title = currentTrack?.title ?? 'UNISON';

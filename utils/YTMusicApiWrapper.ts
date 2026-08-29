@@ -1,6 +1,6 @@
 import { Innertube, MusicPlaylistShelfContinuation, Platform, Types, UniversalCache, YTMusic, YTNodes } from 'youtubei.js';
 import { IPlaylist, IPlaylistPage, ITrackBase, YouTubeAuthState } from '../shared';
-import { getThumbnailUrl, mapToArtistInfo, mapToTrack } from '../mappings/ytmusic-api';
+import { getThumbnailUrl, mapPlaylistPanelVideoToTrack, mapToArtistInfo, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 
 const validateMusicCookie = (cookie: string): string => {
@@ -271,6 +271,20 @@ export class YTMusicApiWrapper {
 
     public async getArtist(id: string): Promise<YTMusic.Artist> {
         return this.innertube.music.getArtist(id);
+    }
+
+    public async getRadio(radioId: string): Promise<ITrackBase[]> {
+        if (radioId.startsWith('RDAMVM')) {
+            const videoId = radioId.slice('RDAMVM'.length);
+            const panel = await this.innertube.music.getUpNext(videoId, true);
+            return panel.contents
+                .filter((item): item is YTNodes.PlaylistPanelVideo =>
+                    item instanceof YTNodes.PlaylistPanelVideo && Boolean(item.video_id)
+                )
+                .map(mapPlaylistPanelVideoToTrack);
+        }
+
+        return (await this.getPlaylistWithVideos(radioId)).tracks;
     }
 
     public async getArtistTracks(id: string): Promise<IPlaylistPage> {

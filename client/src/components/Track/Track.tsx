@@ -55,10 +55,14 @@ export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlayi
                     ? <AlbumLink info={info.album}>{info.title}</AlbumLink>
                     : info.title}
             </div>
-            {info.artist?.id
-                ? <span className={styles.artist}><ArtistLink info={info.artist} /></span>
-                : info.artist && <span className={styles.artist}>{info.artist.name}</span>}
-            {info.duration && <span className={styles.duration}>{formatSeconds(info.duration)}</span>}
+            <span className={styles.artist}>
+                {info.artist?.id
+                    ? <ArtistLink info={info.artist} />
+                    : info.artist?.name ?? ''}
+            </span>
+            <span className={styles.duration}>
+                {info.duration != null ? formatSeconds(info.duration) : '—:——'}
+            </span>
             <div className={styles.actionsBtn}>
                 <ActionsControl>
                     <PlayRadioAction source={info} />

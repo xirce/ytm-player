@@ -3,7 +3,7 @@ import { ITrackProps } from "../components/Track/Track";
 import { RootState } from "./index";
 import { shuffle } from "../utils/array-extensions";
 import { ITrackBase } from "../../../shared";
-import { loadPlayerState } from "../utils/playerPersistence";
+import { loadPlayerProgress, loadPlayerState } from "../utils/playerPersistence";
 
 export interface IPlayerState {
     isPlaying: boolean;
@@ -11,11 +11,19 @@ export interface IPlayerState {
     displayTrackIndex: number | null;
     tracks: ITrackBase[];
     repeat: boolean;
+    autoplay: boolean;
+    autoplaySource: { id: string; title: string } | null;
 }
 
 const persistedPlayerState = loadPlayerState();
 const persistedTracks = persistedPlayerState?.tracks;
 const restoredTracks = Array.isArray(persistedTracks) ? persistedTracks : [];
+const restoredProgress = loadPlayerProgress();
+if (restoredProgress?.duration && restoredProgress.duration > 0) {
+    restoredTracks.forEach(track => {
+        if (track.id === restoredProgress.trackId) track.duration = restoredProgress.duration!;
+    });
+}
 const restoredTrackIndex = Math.min(
     Math.max(0, persistedPlayerState?.trackIndex ?? 0),
     Math.max(0, restoredTracks.length - 1)
@@ -26,7 +34,9 @@ const initialPlayerState: IPlayerState = {
     trackIndex: restoredTrackIndex,
     displayTrackIndex: null,
     tracks: restoredTracks,
-    repeat: persistedPlayerState?.repeat ?? false
+    repeat: persistedPlayerState?.repeat ?? false,
+    autoplay: persistedPlayerState?.autoplay ?? true,
+    autoplaySource: persistedPlayerState?.autoplaySource ?? null
 }
 
 export const playerSlice = createSlice({
@@ -39,6 +49,7 @@ export const playerSlice = createSlice({
         setTracks(state, action: PayloadAction<ITrackBase[]>) {
             state.tracks = action.payload;
             state.displayTrackIndex = null;
+            state.autoplaySource = null;
         },
         appendTracks(state, action: PayloadAction<ITrackBase[]>) {
             state.tracks.push(...action.payload);
@@ -59,6 +70,12 @@ export const playerSlice = createSlice({
         setDisplayTrackIndex(state, action: PayloadAction<number | null>) {
             state.displayTrackIndex = action.payload;
         },
+        updateTrackDuration(state, action: PayloadAction<{ id: string; duration: number }>) {
+            if (!Number.isFinite(action.payload.duration) || action.payload.duration <= 0) return;
+            state.tracks.forEach(track => {
+                if (track.id === action.payload.id) track.duration = action.payload.duration;
+            });
+        },
         skipNext(state) {
             state.trackIndex = state.trackIndex === state.tracks.length - 1 ? 0 : state.trackIndex + 1;
             state.displayTrackIndex = null;
@@ -71,6 +88,13 @@ export const playerSlice = createSlice({
         },
         setRepeat(state, action: PayloadAction<boolean>) {
             state.repeat = action.payload;
+        },
+        setAutoplay(state, action: PayloadAction<boolean>) {
+            state.autoplay = action.payload;
+            if (!action.payload) state.autoplaySource = null;
+        },
+        setAutoplaySource(state, action: PayloadAction<{ id: string; title: string } | null>) {
+            state.autoplaySource = action.payload;
         },
         shuffle(state) {
             if (!state.tracks?.length) return;
@@ -102,3 +126,5 @@ export const getTrackListItems = (state: RootState): ITrackProps[] =>
         }
     });
 export const getRepeat = (state: RootState) => state.player.repeat;
+export const getAutoplay = (state: RootState) => state.player.autoplay;
+export const getAutoplaySource = (state: RootState) => state.player.autoplaySource;

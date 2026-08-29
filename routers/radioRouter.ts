@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { asyncHandler, HttpError } from '../middleware/errors';
+import { asyncHandler } from '../middleware/errors';
 import { getRequiredParam } from '../middleware/validation';
+import ytmusic from '../utils/YTMusicApiWrapper';
 
 const router = Router();
 
-router.get('/:id', asyncHandler(async (req, _res) => {
-    getRequiredParam(req, 'id');
-    throw new HttpError(501, 'Radio endpoint is not implemented');
+router.get('/:id', asyncHandler(async (req, res) => {
+    res.json(await ytmusic.getRadio(getRequiredParam(req, 'id')));
 }));
 
 export default router;

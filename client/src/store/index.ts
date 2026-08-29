@@ -19,8 +19,8 @@ export const store = configureStore({
 });
 
 store.subscribe(() => {
-    const { tracks, trackIndex, repeat } = store.getState().player;
-    savePlayerState({ tracks, trackIndex, repeat });
+    const { tracks, trackIndex, repeat, autoplay, autoplaySource } = store.getState().player;
+    savePlayerState({ tracks, trackIndex, repeat, autoplay, autoplaySource });
 });
 
 export const useAppAction = () => {

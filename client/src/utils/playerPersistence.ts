@@ -8,6 +8,8 @@ export interface PersistedPlayerState {
     tracks: ITrackBase[];
     trackIndex: number;
     repeat: boolean;
+    autoplay: boolean;
+    autoplaySource: { id: string; title: string } | null;
 }
 
 export interface PersistedPlayerProgress {
