@@ -33,6 +33,7 @@ export interface IPlaylistInfo extends IHaveRadio {
     id: string;
     name: string;
     imageUrl: string;
+    trackCount: number | null;
 }
 
 export interface IPlaylist {
@@ -46,6 +47,7 @@ export interface IAlbumInfo extends IHaveRadio {
     year: number | null;
     imageUrl: string;
     artist: IArtistInfoBase;
+    trackCount: number | null;
 }
 
 export interface IAlbum {

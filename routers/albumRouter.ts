@@ -40,6 +40,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
             artist,
             imageUrl,
             year,
+            trackCount: albumInfo.contents.filter(track => track.id).length,
             radioId: `RDAMPL${id}`
         },
         tracks: albumInfo.contents

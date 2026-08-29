@@ -278,6 +278,7 @@ export class YTMusicApiWrapper {
                     ? header.title.toString()
                     : '',
                 imageUrl,
+                trackCount: items.length,
                 radioId: `RDAMPL${playlistId.replace(/^VL/, '')}`
             },
             tracks: items

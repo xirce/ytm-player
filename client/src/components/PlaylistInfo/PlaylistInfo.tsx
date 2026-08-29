@@ -9,21 +9,24 @@ export interface IPlaylistInfoProps {
 }
 
 export const PlaylistInfo: React.FC<IPlaylistInfoProps> = React.memo(({ source }) => {
-    if ((source as IAlbumInfo).year) {
+    const count = source.trackCount === null
+        ? null
+        : `${source.trackCount} ${getCountDeclination(source.trackCount, ['трек', 'трека', 'треков'])}`;
+
+    if ('artist' in source) {
         const albumInfo = source as IAlbumInfo;
         return (
             <div className={styles.content}>
                 <ArtistLink info={albumInfo.artist} />
-                <span>{albumInfo.year}</span>
+                {albumInfo.year !== null && <span>{albumInfo.year}</span>}
+                {count && <span>{count}</span>}
             </div>
         )
     }
 
-    const playlistInfo = source as IPlaylistInfo;
-
     return (
         <div className={styles.content}>
-            <span>{'n треков'}</span>
+            {count && <span>{count}</span>}
         </div >
     );
 });

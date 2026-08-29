@@ -28,6 +28,16 @@ const lastThumbnail = (source: MusicListItem): string => {
 
 const normalizePlaylistId = (id: string): string => id.replace(/^VL/, '');
 
+const getTrackCount = (source: MusicListItem): number | null => {
+    const text = source instanceof YTNodes.MusicResponsiveListItem
+        ? [source.item_count, source.subtitle?.toString(), ...source.flex_columns.map(column => column.title.toString())].join(' ')
+        : [source.item_count, source.subtitle.toString()].join(' ');
+    const value = text.match(/(\d[\d\s.,]*)\s*(?:songs?|tracks?|трек(?:а|ов)?|пес(?:ня|ни|ен)|композиц(?:ия|ии|ий))/i)?.[1];
+    if (!value) return null;
+    const count = Number.parseInt(value.replace(/\D/g, ''), 10);
+    return Number.isFinite(count) ? count : null;
+};
+
 export const mapToArtistInfoBase = (source?: {
     name?: string;
     channel_id?: string;
@@ -82,6 +92,7 @@ export const mapToPlaylistInfo = (source: MusicListItem): IPlaylistInfo => {
             ? source.title ?? source.name ?? ''
             : source.title.toString(),
         imageUrl: lastThumbnail(source),
+        trackCount: getTrackCount(source),
         radioId: `RDAMPL${normalizePlaylistId(id)}`
     };
 };
@@ -102,6 +113,7 @@ export const mapToAlbumInfo = (
         artist: artist ? mapToArtistInfoBase(artist) : fallbackArtist ?? { id: null, name: '' },
         imageUrl: lastThumbnail(source),
         year: source.year ? Number.parseInt(source.year, 10) || null : null,
+        trackCount: getTrackCount(source),
         radioId: `RDAMPL${id}`
     };
 };
