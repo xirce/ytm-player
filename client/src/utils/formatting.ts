@@ -12,3 +12,11 @@ export function getCountDeclination(value: number, words: string[]) {
     if (num == 1) return words[0];
     return words[2];
 }
+
+export function formatPlayCount(value: number) {
+    const count = new Intl.NumberFormat('ru-RU', {
+        notation: 'compact',
+        maximumFractionDigits: 1
+    }).format(value);
+    return `${count} прослушиваний`;
+}

@@ -27,6 +27,7 @@ export interface ITrackBase extends IHaveRadio {
     album?: Pick<IAlbumInfo, 'id' | 'name'>;
     imageUrl: string;
     duration: number | null;
+    playCount?: number | null;
 }
 
 export interface IPlaylistInfo extends IHaveRadio {

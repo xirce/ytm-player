@@ -11,7 +11,7 @@ import { ArtistLink } from '../ArtistLink/ArtistLink';
 import { AlbumLink } from '../AlbumLink/AlbumLink';
 import { ActionsControl } from '../Actions/ActionsControl';
 import { PlayRadioAction } from '../Actions/PlayRadioAction';
-import { formatSeconds } from '../../utils/formatting';
+import { formatPlayCount, formatSeconds } from '../../utils/formatting';
 import { ITrackBase } from '../../../../shared';
 import { useAppAction, } from "../../store";
 import styles from "./Track.module.css";
@@ -51,14 +51,24 @@ export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlayi
                     : <ErrorOutlineRounded className={styles.playBtn} fontSize='large' />}
             </div>
             <div className={styles.title}>
-                {info.album?.id
-                    ? <AlbumLink info={info.album}>{info.title}</AlbumLink>
-                    : info.title}
+                <span className={styles.trackTitle}>
+                    {info.album?.id
+                        ? <AlbumLink info={info.album}>{info.title}</AlbumLink>
+                        : info.title}
+                </span>
             </div>
             <span className={styles.artist}>
-                {info.artist?.id
-                    ? <ArtistLink info={info.artist} />
-                    : info.artist?.name ?? ''}
+                <span className={styles.artistName}>
+                    {info.artist?.id
+                        ? <ArtistLink info={info.artist} />
+                        : info.artist?.name ?? ''}
+                </span>
+            </span>
+            <span
+                className={styles.playCount}
+                title={info.playCount != null ? formatPlayCount(info.playCount) : undefined}
+            >
+                {info.playCount != null ? formatPlayCount(info.playCount) : ''}
             </span>
             <span className={styles.duration}>
                 {info.duration != null ? formatSeconds(info.duration) : '—:——'}

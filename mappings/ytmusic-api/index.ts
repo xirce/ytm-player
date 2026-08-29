@@ -28,6 +28,34 @@ const lastThumbnail = (source: MusicListItem): string => {
 
 const normalizePlaylistId = (id: string): string => id.replace(/^VL/, '');
 
+const parseCompactCount = (value: string): number | null => {
+    const match = value.replace(/\u00a0/g, ' ').match(
+        /(\d[\d\s]*(?:[.,]\d+)?)\s*(тыс(?:\.|яч[аи]?)?|млн|миллион(?:а|ов)?|млрд|миллиард(?:а|ов)?|[kmb])?\s*(?:прослушиван(?:ие|ия|ий)|прослушиваний|plays?|views?)/i
+    );
+    if (!match) return null;
+
+    const numericValue = Number.parseFloat(match[1].replace(/\s/g, '').replace(',', '.'));
+    if (!Number.isFinite(numericValue)) return null;
+    const suffix = (match[2] ?? '').toLowerCase();
+    const multiplier = /^(?:тыс|k)/.test(suffix)
+        ? 1_000
+        : /^(?:млн|миллион|m$)/.test(suffix)
+            ? 1_000_000
+            : /^(?:млрд|миллиард|b$)/.test(suffix)
+                ? 1_000_000_000
+                : 1;
+    return Math.round(numericValue * multiplier);
+};
+
+const getPlayCount = (source: YTNodes.MusicResponsiveListItem): number | null => {
+    const text = [
+        source.views,
+        ...source.flex_columns.map(column => column.title.toString()),
+        ...source.fixed_columns.map(column => column.title.toString())
+    ].filter(Boolean).join(' ');
+    return parseCompactCount(text);
+};
+
 const getTrackCount = (source: MusicListItem): number | null => {
     const text = source instanceof YTNodes.MusicResponsiveListItem
         ? [source.item_count, source.subtitle?.toString(), ...source.flex_columns.map(column => column.title.toString())].join(' ')
@@ -80,6 +108,7 @@ export const mapToTrack = (
             : fallback.album,
         imageUrl: getThumbnailUrl(source.thumbnails) || fallback.imageUrl || '',
         duration: source.duration?.seconds ?? null,
+        playCount: getPlayCount(source),
         radioId: `RDAMVM${source.id ?? ''}`
     };
 };
@@ -129,6 +158,7 @@ export const mapPlaylistPanelVideoToTrack = (source: YTNodes.PlaylistPanelVideo)
     album: source.album?.id ? { id: source.album.id, name: source.album.name } : undefined,
     imageUrl: getThumbnailUrl(source.thumbnail),
     duration: source.duration?.seconds ?? null,
+    playCount: null,
     radioId: `RDAMVM${source.video_id}`
 });
 
