@@ -10,11 +10,14 @@ try {
 }
 
 const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST?.trim() || '0.0.0.0';
 
 async function start() {
     try {
         await Promise.all([ytmusic.initialize(), session.fetch()]);
-        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+        app.listen(Number(PORT), HOST, () => {
+            console.log(`Server running at http://${HOST}:${PORT}`);
+        });
     } catch (error) {
         console.error('Server error', error);
         process.exit(1);

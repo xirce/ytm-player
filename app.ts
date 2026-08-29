@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import { existsSync } from 'fs';
+import path from 'path';
 import trackRouter from './routers/trackRouter';
 import searchRouter from './routers/searchRouter';
 import playlistRouter from './routers/playlistRouter';
@@ -27,6 +29,20 @@ app.use('/api/radios', radioRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/home', homeRouter);
 app.use('/api/history', historyRouter);
+
+const clientBuildPath = path.resolve(__dirname, 'client', 'build');
+const clientIndexPath = path.join(clientBuildPath, 'index.html');
+
+if (existsSync(clientIndexPath)) {
+    app.use(express.static(clientBuildPath));
+    app.get(/.*/, (req, res, next) => {
+        if (req.path === '/api' || req.path.startsWith('/api/')) {
+            next();
+            return;
+        }
+        res.sendFile(clientIndexPath);
+    });
+}
 
 app.use(errorHandler);
 

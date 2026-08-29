@@ -58,7 +58,7 @@ export interface IPlaylistContinuationRequest {
 
 const api = createApi({
     reducerPath: 'api',
-    baseQuery: axiosBaseQuery({ baseUrl: 'http://localhost:3001/api' }),
+    baseQuery: axiosBaseQuery({ baseUrl: '/api' }),
     keepUnusedDataFor: 30,
     tagTypes: ['Home', 'History'],
     endpoints: (build) => ({
