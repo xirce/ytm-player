@@ -89,6 +89,16 @@ const api = createApi({
         getArtist: build.query<IArtist, string>({
             query: (id: string) => ({ url: `/artists/${id}`, method: 'GET' })
         }),
+        getArtistTracks: build.query<IPlaylistPage, string>({
+            query: (id: string) => ({ url: `/artists/${id}/tracks`, method: 'GET' })
+        }),
+        getArtistTracksContinuation: build.query<IPlaylistPage, IPlaylistContinuationRequest>({
+            query: request => ({
+                url: `/artists/${request.id}/tracks/continuation`,
+                method: 'GET',
+                params: { continuation: request.continuation }
+            })
+        }),
         getAlbum: build.query<IAlbum, string>({
             query: (id: string) => ({ url: `/albums/${id}`, method: 'GET' })
         }),
@@ -135,6 +145,8 @@ export const {
     useGetSearchSuggestionsQuery,
     useLazyGetRadioQuery,
     useGetArtistQuery,
+    useGetArtistTracksQuery,
+    useLazyGetArtistTracksContinuationQuery,
     useGetAlbumQuery,
     useGetPlaylistQuery,
     useLazyGetPlaylistContinuationQuery,

@@ -8,6 +8,17 @@ import { getRequiredParam } from '../middleware/validation';
 
 const router = Router();
 
+router.get('/:id/tracks', asyncHandler(async (req, res) => {
+    res.json(await ytmusic.getArtistTracks(getRequiredParam(req, 'id')));
+}));
+
+router.get('/:id/tracks/continuation', asyncHandler(async (req, res) => {
+    if (typeof req.query.continuation !== 'string' || !req.query.continuation) {
+        throw new Error('Query parameter "continuation" is required');
+    }
+    res.json(await ytmusic.getArtistTracksContinuation(req.query.continuation));
+}));
+
 router.get('/:id', asyncHandler(async (req, res) => {
     const id = getRequiredParam(req, 'id');
     const artistInfo = await ytmusic.getArtist(id);

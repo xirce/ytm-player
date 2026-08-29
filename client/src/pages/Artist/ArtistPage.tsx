@@ -5,7 +5,7 @@ import { TrackList } from '../../components/TrackList/TrackList';
 import { PlaylistItem } from "../../components/PlaylistItem/PlaylistItem";
 import { ArtistHeader } from "../../components/ArtistHeader/ArtistHeader";
 import styles from './Artist.module.css';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export const ArtistPage: React.FC = () => {
     const { id } = useParams();
@@ -19,7 +19,7 @@ export const ArtistPage: React.FC = () => {
         return <h1>Что-то пошло не так</h1>
     }
 
-    const to = `/search/tracks?q=${data.info.name}`;
+    const to = `/artist/${id}/tracks`;
 
     return (
         <>

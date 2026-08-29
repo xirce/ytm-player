@@ -1,6 +1,6 @@
-import { Innertube, Platform, Types, UniversalCache, YTMusic, YTNodes } from 'youtubei.js';
+import { Innertube, MusicPlaylistShelfContinuation, Platform, Types, UniversalCache, YTMusic, YTNodes } from 'youtubei.js';
 import { IPlaylist, IPlaylistPage, ITrackBase, YouTubeAuthState } from '../shared';
-import { getThumbnailUrl, mapToTrack } from '../mappings/ytmusic-api';
+import { getThumbnailUrl, mapToArtistInfo, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 
 const validateMusicCookie = (cookie: string): string => {
@@ -271,6 +271,69 @@ export class YTMusicApiWrapper {
 
     public async getArtist(id: string): Promise<YTMusic.Artist> {
         return this.innertube.music.getArtist(id);
+    }
+
+    public async getArtistTracks(id: string): Promise<IPlaylistPage> {
+        const artist = await this.getArtist(id);
+        const info = mapToArtistInfo(artist, id);
+        const songShelf = artist.sections
+            .filter((section): section is YTNodes.MusicShelf => section instanceof YTNodes.MusicShelf)
+            .find(section => section.contents.some(item => item.item_type === 'song'));
+        if (!songShelf?.endpoint) return { tracks: [], continuation: null };
+
+        const response = await songShelf.endpoint.call(this.innertube.actions, {
+            client: 'YTMUSIC',
+            parse: true
+        });
+        const shelf = response.contents_memo?.getType(YTNodes.MusicPlaylistShelf)?.[0];
+        if (!shelf) return { tracks: [], continuation: null };
+        const continuationItem = shelf.contents.find(
+            (item): item is YTNodes.ContinuationItem => item instanceof YTNodes.ContinuationItem
+        );
+
+        return {
+            tracks: shelf.contents
+                .filter((item): item is YTNodes.MusicResponsiveListItem =>
+                    item instanceof YTNodes.MusicResponsiveListItem && Boolean(item.id)
+                )
+                .map(item => mapToTrack(item, {
+                    artist: { id, name: info.name },
+                    imageUrl: info.imageUrl
+                })),
+            continuation: shelf.continuation
+                ?? (typeof continuationItem?.endpoint.payload.token === 'string'
+                    ? continuationItem.endpoint.payload.token
+                    : null)
+        };
+    }
+
+    public async getArtistTracksContinuation(continuation: string): Promise<IPlaylistPage> {
+        const response = await this.innertube.actions.execute('/browse', {
+            continuation,
+            client: 'YTMUSIC',
+            parse: true
+        });
+        const continuationShelf = response.continuation_contents?.is(MusicPlaylistShelfContinuation)
+            ? response.continuation_contents.as(MusicPlaylistShelfContinuation)
+            : undefined;
+        const appendedItems = response.on_response_received_actions
+            ?.firstOfType(YTNodes.AppendContinuationItemsAction);
+        const contents = continuationShelf?.contents ?? appendedItems?.contents ?? [];
+        const items = contents.filter(
+            (item): item is YTNodes.MusicResponsiveListItem => item instanceof YTNodes.MusicResponsiveListItem
+        );
+        const continuationItem = contents.find(
+            (item): item is YTNodes.ContinuationItem => item instanceof YTNodes.ContinuationItem
+        );
+        return {
+            tracks: items
+                .filter(item => Boolean(item.id))
+                .map(item => mapToTrack(item)),
+            continuation: continuationShelf?.continuation
+                ?? (typeof continuationItem?.endpoint.payload.token === 'string'
+                    ? continuationItem.endpoint.payload.token
+                    : null)
+        };
     }
 
     public async getAlbum(id: string) {
