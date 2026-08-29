@@ -3,6 +3,7 @@ import { ITrackProps } from "../components/Track/Track";
 import { RootState } from "./index";
 import { shuffle } from "../utils/array-extensions";
 import { ITrackBase } from "../../../shared";
+import { loadPlayerState } from "../utils/playerPersistence";
 
 export interface IPlayerState {
     isPlaying: boolean;
@@ -12,12 +13,20 @@ export interface IPlayerState {
     repeat: boolean;
 }
 
+const persistedPlayerState = loadPlayerState();
+const persistedTracks = persistedPlayerState?.tracks;
+const restoredTracks = Array.isArray(persistedTracks) ? persistedTracks : [];
+const restoredTrackIndex = Math.min(
+    Math.max(0, persistedPlayerState?.trackIndex ?? 0),
+    Math.max(0, restoredTracks.length - 1)
+);
+
 const initialPlayerState: IPlayerState = {
     isPlaying: false,
-    trackIndex: 0,
+    trackIndex: restoredTrackIndex,
     displayTrackIndex: null,
-    tracks: [],
-    repeat: false
+    tracks: restoredTracks,
+    repeat: persistedPlayerState?.repeat ?? false
 }
 
 export const playerSlice = createSlice({

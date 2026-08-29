@@ -11,6 +11,7 @@ import { getCurrentTrack, getDisplayedTrack, getIsPlaying, getTracks, getRepeat,
 import { useDependentRef } from "../../hooks/useDependentRef";
 import styles from "./PlayerControls.module.css";
 import { useAddTrackToHistoryMutation, useGetTrackUrlQuery } from '../../apiClient';
+import { loadPlayerProgress, savePlayerProgress } from '../../utils/playerPersistence';
 
 const CROSSFADE_SECONDS = 3;
 
@@ -49,12 +50,17 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     const playerTrackIdsRef = useRef(new WeakMap<MediaPlayerClass, string>());
     const completedTransitionPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
     const historyRecordedPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
+    const restoredProgressPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
+    const lastProgressSaveRef = useRef(0);
     const crossfadeRef = useRef<{ active: boolean; masterVolume: number }>({
         active: false,
         masterVolume: 1
     });
-    const { data: trackUrl, isFetching } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
-    const { data: nextTrackUrl } = useGetTrackUrlQuery(nextTrack?.id ?? skipToken);
+    // `data` keeps the previous argument's result while a new request is loading.
+    // Attaching it would restart the old track and incorrectly associate its URL
+    // with the newly selected track. `currentData` is scoped to the current ID.
+    const { currentData: trackUrl, isFetching } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
+    const { currentData: nextTrackUrl } = useGetTrackUrlQuery(nextTrack?.id ?? skipToken);
     const [addTrackToHistory] = useAddTrackToHistoryMutation();
 
 
@@ -64,6 +70,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             if (currentTrack?.id && playerTrackIdsRef.current.get(player) === currentTrack.id) return;
             initializedPlayersRef.current.delete(player);
             historyRecordedPlayersRef.current.delete(player);
+            restoredProgressPlayersRef.current.delete(player);
             if (currentTrack?.id) playerTrackIdsRef.current.set(player, currentTrack.id);
             player.attachSource(trackUrl);
         }
@@ -75,6 +82,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         if (playerTrackIdsRef.current.get(standbyPlayer) === nextTrack.id) return;
         initializedPlayersRef.current.delete(standbyPlayer);
         historyRecordedPlayersRef.current.delete(standbyPlayer);
+        restoredProgressPlayersRef.current.delete(standbyPlayer);
         playerTrackIdsRef.current.set(standbyPlayer, nextTrack.id);
         standbyPlayer.attachSource(nextTrackUrl);
     }, [nextTrackUrl, nextTrack?.id, standbyPlayer]);
@@ -104,6 +112,15 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     useEffect(() => {
         const onStreamInitialized = () => {
             initializedPlayersRef.current.add(player);
+            const playerTrackId = playerTrackIdsRef.current.get(player);
+            const savedProgress = loadPlayerProgress();
+            if (!restoredProgressPlayersRef.current.has(player)
+                && playerTrackId
+                && savedProgress?.trackId === playerTrackId
+                && savedProgress.position > 0) {
+                player.seek(savedProgress.position);
+                restoredProgressPlayersRef.current.add(player);
+            }
             if (isPlayingRef.current) player.play();
         };
         const getFollowingTrack = () => {
@@ -138,6 +155,11 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             if (completedTransitionPlayersRef.current.has(player)) return;
             const playedTime = player.time();
             const playingTrackId = playerTrackIdsRef.current.get(player);
+            const now = Date.now();
+            if (playingTrackId && now - lastProgressSaveRef.current >= 1000) {
+                lastProgressSaveRef.current = now;
+                savePlayerProgress({ trackId: playingTrackId, position: playedTime });
+            }
             if (playedTime >= 10 && playingTrackId && !historyRecordedPlayersRef.current.has(player)) {
                 historyRecordedPlayersRef.current.add(player);
                 void addTrackToHistory(playingTrackId).unwrap().catch(() => {

@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import type { MediaPlayerClass } from 'dashjs';
 import { SliderWrapper } from '../Slider/SliderWrapper';
 import styles from './PlayerControls.module.css';
+import { loadPlayerVolume, savePlayerVolume } from '../../utils/playerPersistence';
 
 interface VolumeControlsProps {
     player: MediaPlayerClass;
@@ -21,10 +22,14 @@ export const VolumeControl: React.FC<VolumeControlsProps> = React.memo(({
 
     useEffect(() => {
         if (!ignorePlayerVolumeChanges) {
-            const vol = player.getVolume() ?? 1;
+            const persisted = loadPlayerVolume();
+            const vol = persisted?.volume ?? player.getVolume() ?? 1;
+            const muted = persisted?.muted ?? player.isMuted() ?? false;
+            player.setVolume(vol);
+            player.setMute(muted);
             setVolume(vol);
             setPrevVolume(vol);
-            setIsMuted(player.isMuted() ?? false);
+            setIsMuted(muted);
         }
 
         const onVolumeChanged = () => {
@@ -47,6 +52,7 @@ export const VolumeControl: React.FC<VolumeControlsProps> = React.memo(({
         }
         player.setVolume(value);
         setVolume(value);
+        savePlayerVolume({ volume: value, muted: false });
     };
 
     const handleMute = () => {
@@ -55,12 +61,14 @@ export const VolumeControl: React.FC<VolumeControlsProps> = React.memo(({
             player.setMute(false);
             setIsMuted(false);
             setVolume(prevVolume);
+            savePlayerVolume({ volume: prevVolume, muted: false });
         } else {
             setPrevVolume(volume);
             player.setVolume(0);
             player.setMute(true);
             setIsMuted(true);
             setVolume(0);
+            savePlayerVolume({ volume: prevVolume, muted: true });
         }
     };
 
