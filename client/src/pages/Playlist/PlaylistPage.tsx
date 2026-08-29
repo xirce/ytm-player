@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useGetPlaylistQuery } from '../../apiClient';
 import { TrackList } from "../../components/TrackList/TrackList";
 import { PlaylistHeader } from "../../components/PlaylistHeader/PlaylistHeader";
@@ -7,7 +7,11 @@ import styles from './Playlist.module.css';
 
 export const PlaylistPage: React.FC = () => {
     const { id } = useParams();
-    const { data, isLoading } = useGetPlaylistQuery(id as string);
+    const [searchParams] = useSearchParams();
+    const { data, isLoading } = useGetPlaylistQuery({
+        id: id as string,
+        params: searchParams.get('params') ?? undefined
+    });
 
     if (isLoading) {
         return <h1>Загружаю...</h1>

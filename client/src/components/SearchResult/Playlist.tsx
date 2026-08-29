@@ -9,5 +9,8 @@ export interface IPlaylistProps {
 }
 
 export const Playlist: React.FC<IPlaylistProps> = React.memo(({ info }) => {
-    return <PlaylistBase info={info} link={`/playlist/${info.id}`} />;
+    const params = info.browseParams
+        ? `?params=${encodeURIComponent(info.browseParams)}`
+        : '';
+    return <PlaylistBase info={info} link={`/playlist/${info.id}${params}`} />;
 });

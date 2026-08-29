@@ -93,6 +93,7 @@ export const mapToPlaylistInfo = (source: MusicListItem): IPlaylistInfo => {
             : source.title.toString(),
         imageUrl: lastThumbnail(source),
         trackCount: getTrackCount(source),
+        browseParams: source.endpoint?.payload?.params,
         radioId: `RDAMPL${normalizePlaylistId(id)}`
     };
 };

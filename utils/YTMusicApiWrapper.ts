@@ -247,20 +247,35 @@ export class YTMusicApiWrapper {
         return this.innertube.music.getAlbum(id);
     }
 
-    public async getPlaylist(playlistId: string): Promise<YTMusic.Playlist> {
-        return this.innertube.music.getPlaylist(playlistId);
+    public async getPlaylist(playlistId: string, browseParams?: string): Promise<YTMusic.Playlist> {
+        const normalizedId = playlistId.startsWith('VL') ? playlistId : `VL${playlistId}`;
+        const isPersonalizedMix = /^VLRDTMAK/.test(normalizedId);
+        const innertube = isPersonalizedMix && this.musicAuthenticationInnertube
+            ? this.musicAuthenticationInnertube
+            : this.innertube;
+
+        if (browseParams) {
+            const response = await innertube.actions.execute('/browse', {
+                browseId: normalizedId,
+                params: browseParams,
+                client: 'YTMUSIC'
+            });
+            return new YTMusic.Playlist(response, innertube.actions);
+        }
+        return innertube.music.getPlaylist(normalizedId);
     }
 
-    public async getPlaylistWithVideos(playlistId: string): Promise<IPlaylist> {
-        let page = await this.getPlaylist(playlistId);
+    public async getPlaylistWithVideos(playlistId: string, browseParams?: string): Promise<IPlaylist> {
+        let page = await this.getPlaylist(playlistId, browseParams);
         const header = page.header;
         const items: YTNodes.MusicResponsiveListItem[] = [];
-        for (let pageNumber = 0; pageNumber < 20; pageNumber += 1) {
+        const pageLimit = /^VLRDTMAK/.test(playlistId) ? 3 : 20;
+        for (let pageNumber = 0; pageNumber < pageLimit; pageNumber += 1) {
             items.push(...page.items.filter(
                 (item): item is YTNodes.MusicResponsiveListItem =>
                     item instanceof YTNodes.MusicResponsiveListItem
             ));
-            if (!page.has_continuation) break;
+            if (!page.has_continuation || pageNumber === pageLimit - 1) break;
             page = await page.getContinuation();
         }
 
@@ -279,6 +294,7 @@ export class YTMusicApiWrapper {
                     : '',
                 imageUrl,
                 trackCount: items.length,
+                browseParams,
                 radioId: `RDAMPL${playlistId.replace(/^VL/, '')}`
             },
             tracks: items

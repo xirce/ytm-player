@@ -45,6 +45,11 @@ export interface ISearchRequest {
     type?: string;
 }
 
+export interface IPlaylistRequest {
+    id: string;
+    params?: string;
+}
+
 const api = createApi({
     reducerPath: 'api',
     baseQuery: axiosBaseQuery({ baseUrl: 'http://localhost:3001/api' }),
@@ -77,8 +82,12 @@ const api = createApi({
         getAlbum: build.query<IAlbum, string>({
             query: (id: string) => ({ url: `/albums/${id}`, method: 'GET' })
         }),
-        getPlaylist: build.query<IPlaylist, string>({
-            query: (id: string) => ({ url: `/playlists/${id}`, method: 'GET' })
+        getPlaylist: build.query<IPlaylist, IPlaylistRequest>({
+            query: request => ({
+                url: `/playlists/${request.id}`,
+                method: 'GET',
+                params: request.params ? { params: request.params } : undefined
+            })
         }),
         getHome: build.query<IHomeFeed, void>({
             query: () => ({ url: '/home', method: 'GET' }),

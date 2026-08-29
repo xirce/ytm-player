@@ -6,7 +6,8 @@ import { getRequiredParam } from '../middleware/validation';
 const router = Router();
 
 router.get('/:id', asyncHandler(async (req, res) => {
-    res.json(await ytmusic.getPlaylistWithVideos(getRequiredParam(req, 'id')));
+    const browseParams = typeof req.query.params === 'string' ? req.query.params : undefined;
+    res.json(await ytmusic.getPlaylistWithVideos(getRequiredParam(req, 'id'), browseParams));
 }));
 
 export default router;

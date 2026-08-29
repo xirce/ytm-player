@@ -34,6 +34,7 @@ export interface IPlaylistInfo extends IHaveRadio {
     name: string;
     imageUrl: string;
     trackCount: number | null;
+    browseParams?: string;
 }
 
 export interface IPlaylist {
