@@ -5,7 +5,8 @@ import {
     PauseRounded,
     PlayArrowRounded,
     PlaylistPlayRounded,
-    QueueMusicRounded
+    QueueMusicRounded,
+    VolumeUpRounded
 } from '@mui/icons-material';
 import { ArtistLink } from '../ArtistLink/ArtistLink';
 import { AlbumLink } from '../AlbumLink/AlbumLink';
@@ -44,10 +45,14 @@ export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlayi
         <div className={isCurrent ? styles.playingContainer : styles.container}>
             <div className={styles.imageContainer} onClick={() => info.id && togglePlay()}>
                 <img className={styles.image} src={info.imageUrl} alt={info.title} referrerPolicy="no-referrer" />
+                {isPlaying && <VolumeUpRounded className={styles.nowPlayingIcon} fontSize='large' />}
                 {info.id
                     ? isPlaying
                         ? <PauseRounded className={styles.playBtn} fontSize='large' />
-                        : <PlayArrowRounded className={styles.playBtn} fontSize='large' />
+                        : <PlayArrowRounded
+                            className={`${styles.playBtn} ${isCurrent ? styles.pausedCurrentIcon : ''}`}
+                            fontSize='large'
+                        />
                     : <ErrorOutlineRounded className={styles.playBtn} fontSize='large' />}
             </div>
             <div className={styles.title}>

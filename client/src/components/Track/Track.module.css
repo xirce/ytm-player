@@ -44,13 +44,36 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: transparent;
+    color: var(--text-light-color);
+    opacity: 0;
     filter: drop-shadow(0 0 3px var(--bg-darker-color));
+    transition: opacity 0.15s ease;
 }
 
-.imageContainer:hover .playBtn,
+.nowPlayingIcon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-light-color);
+    filter: drop-shadow(0 0 3px var(--bg-darker-color));
+    transition: opacity 0.15s ease;
+}
+
+.imageContainer:hover .playBtn {
+    opacity: 1;
+}
+
+.pausedCurrentIcon {
+    opacity: 1;
+}
+
 .title {
     color: var(--text-light-color);
+}
+
+.imageContainer:hover .nowPlayingIcon {
+    opacity: 0;
 }
 
 .hidden-overflow {
