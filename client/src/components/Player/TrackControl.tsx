@@ -7,7 +7,7 @@ import { PauseRounded, PlayArrowRounded, RepeatOneRounded, RepeatRounded, Shuffl
 import type { MediaPlayerClass } from 'dashjs';
 import { TimeProgressBar } from './TimeProgressBar';
 import { useAppAction, useAppSelector } from "../../store";
-import { getCurrentTrack, getIsPlaying, getTracks, getRepeat, getTrackIndex } from '../../store/player';
+import { getCurrentTrack, getDisplayedTrack, getIsPlaying, getTracks, getRepeat, getTrackIndex } from '../../store/player';
 import { useDependentRef } from "../../hooks/useDependentRef";
 import styles from "./PlayerControls.module.css";
 import { useGetTrackUrlQuery } from '../../apiClient';
@@ -36,6 +36,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     const isPlaying = useAppSelector(getIsPlaying);
     const isPlayingRef = useDependentRef(isPlaying);
     const currentTrack = useAppSelector(getCurrentTrack);
+    const displayedTrack = useAppSelector(getDisplayedTrack);
     const tracks = useAppSelector(getTracks);
     const trackIndex = useAppSelector(getTrackIndex);
     const trackIndexRef = useDependentRef(trackIndex);
@@ -247,6 +248,103 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         cancelCrossfade();
         shuffle();
     };
+
+    useEffect(() => {
+        if (!('mediaSession' in navigator)) return;
+
+        navigator.mediaSession.metadata = displayedTrack
+            ? new MediaMetadata({
+                title: displayedTrack.title,
+                artist: displayedTrack.artist?.name ?? '',
+                album: displayedTrack.album?.name ?? '',
+                artwork: displayedTrack.imageUrl
+                    ? [{ src: displayedTrack.imageUrl }]
+                    : []
+            })
+            : null;
+        navigator.mediaSession.playbackState = displayedTrack
+            ? (isPlaying ? 'playing' : 'paused')
+            : 'none';
+    }, [displayedTrack, isPlaying]);
+
+    useEffect(() => {
+        if (!('mediaSession' in navigator)) return;
+
+        const seekBy = (offset: number) => {
+            try {
+                const duration = progressPlayer.duration();
+                const position = progressPlayer.time();
+                progressPlayer.seek(Math.min(duration, Math.max(0, position + offset)));
+            } catch {
+                // Ignore a command received while dash.js is switching sources.
+            }
+        };
+        const handlers: Partial<Record<MediaSessionAction, MediaSessionActionHandler>> = {
+            play: () => setIsPlaying(true),
+            pause: () => setIsPlaying(false),
+            stop: () => {
+                cancelCrossfade();
+                setIsPlaying(false);
+                player.seek(0);
+            },
+            nexttrack: handleSkipNext,
+            previoustrack: handleSkipPrev,
+            seekbackward: details => seekBy(-(details.seekOffset ?? 10)),
+            seekforward: details => seekBy(details.seekOffset ?? 10),
+            seekto: details => {
+                if (typeof details.seekTime !== 'number') return;
+                try {
+                    progressPlayer.seek(details.seekTime);
+                } catch {
+                    // Ignore a command received while dash.js is switching sources.
+                }
+            }
+        };
+
+        Object.entries(handlers).forEach(([action, handler]) => {
+            try {
+                navigator.mediaSession.setActionHandler(action as MediaSessionAction, handler ?? null);
+            } catch {
+                // Some browsers expose Media Session but support only part of its actions.
+            }
+        });
+
+        return () => {
+            Object.keys(handlers).forEach(action => {
+                try {
+                    navigator.mediaSession.setActionHandler(action as MediaSessionAction, null);
+                } catch {
+                    // Ignore unsupported actions during cleanup as well.
+                }
+            });
+        };
+    }, [progressPlayer, player, isPlaying, setIsPlaying, skipNext, skipPrev]);
+
+    useEffect(() => {
+        if (!('mediaSession' in navigator) || !('setPositionState' in navigator.mediaSession)) return;
+
+        const updatePositionState = () => {
+            try {
+                const duration = progressPlayer.duration();
+                const position = progressPlayer.time();
+                if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(position)) return;
+                navigator.mediaSession.setPositionState({
+                    duration,
+                    playbackRate: 1,
+                    position: Math.min(duration, Math.max(0, position))
+                });
+            } catch {
+                // The player can briefly lose its source while tracks are switched.
+            }
+        };
+
+        progressPlayer.on('playbackTimeUpdated', updatePositionState);
+        progressPlayer.on('playbackMetadataLoaded', updatePositionState);
+        return () => {
+            progressPlayer.off('playbackTimeUpdated', updatePositionState);
+            progressPlayer.off('playbackMetadataLoaded', updatePositionState);
+        };
+    }, [progressPlayer]);
 
     return (
         <Stack>
