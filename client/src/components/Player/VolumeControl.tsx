@@ -8,20 +8,27 @@ import styles from './PlayerControls.module.css';
 
 interface VolumeControlsProps {
     player: MediaPlayerClass;
+    ignorePlayerVolumeChanges?: boolean;
 }
 
-export const VolumeControl: React.FC<VolumeControlsProps> = React.memo(({ player }) => {
+export const VolumeControl: React.FC<VolumeControlsProps> = React.memo(({
+    player,
+    ignorePlayerVolumeChanges = false
+}) => {
     const [isMuted, setIsMuted] = useState(false);
     const [volume, setVolume] = useState(1);
     const [prevVolume, setPrevVolume] = useState(1);
 
     useEffect(() => {
-        const vol = player.getVolume() ?? 1;
-        setVolume(vol);
-        setPrevVolume(vol);
-        setIsMuted(player.isMuted() ?? false);
+        if (!ignorePlayerVolumeChanges) {
+            const vol = player.getVolume() ?? 1;
+            setVolume(vol);
+            setPrevVolume(vol);
+            setIsMuted(player.isMuted() ?? false);
+        }
 
         const onVolumeChanged = () => {
+            if (ignorePlayerVolumeChanges) return;
             setVolume(player.getVolume());
             setIsMuted(player.isMuted());
         };
@@ -32,7 +39,7 @@ export const VolumeControl: React.FC<VolumeControlsProps> = React.memo(({ player
         return () => {
             player.off('playbackVolumeChanged', onVolumeChanged);
         };
-    }, [player]);
+    }, [player, ignorePlayerVolumeChanges]);
 
     const changeVolume = (event: Event, value: number) => {
         if (isMuted) {

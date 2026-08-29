@@ -3,7 +3,7 @@ import { Track } from "../Track/Track";
 import { List } from "../List/List";
 import { ITrackBase } from "../../../../shared";
 import { useAppSelector } from "../../store";
-import { getCurrentTrack, getIsPlaying, getTrackIndex } from "../../store/player";
+import { getDisplayedTrack, getDisplayTrackIndex, getIsPlaying } from "../../store/player";
 
 export interface ITrackListProps {
     title?: string;
@@ -11,8 +11,8 @@ export interface ITrackListProps {
 }
 
 export const TrackList: React.FC<ITrackListProps> = React.memo(({ title, source }) => {
-    const trackIndex = useAppSelector(getTrackIndex);
-    const currentTrack = useAppSelector(getCurrentTrack);
+    const trackIndex = useAppSelector(getDisplayTrackIndex);
+    const currentTrack = useAppSelector(getDisplayedTrack);
     const isPlaying = useAppSelector(getIsPlaying);
 
     return (

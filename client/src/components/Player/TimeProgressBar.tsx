@@ -7,9 +7,10 @@ import { SliderWrapper } from '../Slider/SliderWrapper';
 
 export interface ITimeProgressBarProps {
     player: MediaPlayerClass;
+    canReadImmediately?: boolean;
 }
 
-export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({ player }) => {
+export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({ player, canReadImmediately = false }) => {
     const [currentTimeRef, setCurrentTimeRef] = useReferredState(0);
     const [isChangingTimeRef, setIsChangingTimeRef] = useReferredState(false);
     const [duration, setDuration] = useState(0);
@@ -73,6 +74,17 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({ pl
     const handleMouseDown: MouseEventHandler = () => {
         setIsChangingTimeRef(true);
     };
+
+    useEffect(() => {
+        // A newly displayed dash.js instance may already have a source attached,
+        // but still be between source attachment and stream initialization.
+        // Reading time/duration in that window throws; player events fill these
+        // values as soon as the stream is ready.
+        setCurrentTimeRef(canReadImmediately ? player.time() || 0 : 0);
+        setDuration(canReadImmediately ? player.duration() || 0 : 0);
+        // Finishing a crossfade changes canReadImmediately, but keeps the same
+        // player. Resetting on that flag change would erase the known duration.
+    }, [player]);
 
     return (
         <Grid container

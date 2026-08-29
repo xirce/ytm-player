@@ -7,6 +7,7 @@ import { ITrackBase } from "../../../shared";
 export interface IPlayerState {
     isPlaying: boolean;
     trackIndex: number;
+    displayTrackIndex: number | null;
     tracks: ITrackBase[];
     repeat: boolean;
 }
@@ -14,6 +15,7 @@ export interface IPlayerState {
 const initialPlayerState: IPlayerState = {
     isPlaying: false,
     trackIndex: 0,
+    displayTrackIndex: null,
     tracks: [],
     repeat: false
 }
@@ -27,6 +29,7 @@ export const playerSlice = createSlice({
         },
         setTracks(state, action: PayloadAction<ITrackBase[]>) {
             state.tracks = action.payload;
+            state.displayTrackIndex = null;
         },
         appendTracks(state, action: PayloadAction<ITrackBase[]>) {
             state.tracks.push(...action.payload);
@@ -42,13 +45,19 @@ export const playerSlice = createSlice({
         },
         setTrackIndex(state, action: PayloadAction<number>) {
             state.trackIndex = action.payload;
+            state.displayTrackIndex = null;
+        },
+        setDisplayTrackIndex(state, action: PayloadAction<number | null>) {
+            state.displayTrackIndex = action.payload;
         },
         skipNext(state) {
             state.trackIndex = state.trackIndex === state.tracks.length - 1 ? 0 : state.trackIndex + 1;
+            state.displayTrackIndex = null;
             state.isPlaying = true;
         },
         skipPrev(state) {
             state.trackIndex = (state.trackIndex === 0 ? state.tracks.length - 1 : state.trackIndex - 1);
+            state.displayTrackIndex = null;
             state.isPlaying = true;
         },
         setRepeat(state, action: PayloadAction<boolean>) {
@@ -66,12 +75,15 @@ export const playerSlice = createSlice({
 
 export const getIsPlaying = (state: RootState) => state.player.isPlaying;
 export const getTrackIndex = (state: RootState) => state.player.trackIndex;
+export const getDisplayTrackIndex = (state: RootState) => state.player.displayTrackIndex ?? state.player.trackIndex;
 export const getCurrentTrack = (state: RootState) => state.player.tracks[state.player.trackIndex];
+export const getDisplayedTrack = (state: RootState) => state.player.tracks[getDisplayTrackIndex(state)];
 export const getTracks = (state: RootState) => state.player.tracks;
 export const getTrackListItems = (state: RootState): ITrackProps[] =>
     state.player.tracks.map((track, index) => {
-        const currentTrack = state.player.tracks[state.player.trackIndex];
-        const isCurrent = currentTrack && currentTrack.id === track.id && index === state.player.trackIndex;
+        const displayTrackIndex = getDisplayTrackIndex(state);
+        const currentTrack = state.player.tracks[displayTrackIndex];
+        const isCurrent = currentTrack && currentTrack.id === track.id && index === displayTrackIndex;
 
         return {
             source: state.player.tracks,
