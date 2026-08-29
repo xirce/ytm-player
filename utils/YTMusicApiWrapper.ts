@@ -247,12 +247,8 @@ export class YTMusicApiWrapper {
         return this.innertube.music.getAlbum(id);
     }
 
-    private getPlaylistInnertube(playlistId: string): Innertube {
-        const normalizedId = playlistId.startsWith('VL') ? playlistId : `VL${playlistId}`;
-        const isPersonalizedMix = /^VLRDTMAK/.test(normalizedId);
-        return isPersonalizedMix && this.musicAuthenticationInnertube
-            ? this.musicAuthenticationInnertube
-            : this.innertube;
+    private getPlaylistInnertube(_playlistId: string): Innertube {
+        return this.musicAuthenticationInnertube ?? this.innertube;
     }
 
     public async getPlaylist(playlistId: string, browseParams?: string): Promise<YTMusic.Playlist> {
