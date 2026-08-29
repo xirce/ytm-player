@@ -32,7 +32,7 @@ export const playerSlice = createSlice({
             state.tracks.push(...action.payload);
         },
         appendLeftTracks(state, action: PayloadAction<ITrackBase[]>) {
-            state.tracks.splice(state.trackIndex, 0, ...action.payload);
+            state.tracks.splice(state.trackIndex + 1, 0, ...action.payload);
         },
         removeTrack(state, action: PayloadAction<number>) {
             state.tracks.splice(action.payload, 1);
