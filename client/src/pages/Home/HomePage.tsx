@@ -9,6 +9,7 @@ import { Artist } from '../../components/SearchResult/Artist';
 import styles from './Home.module.css';
 
 const HomeSection: React.FC<{ section: IHomeSection }> = ({ section }) => {
+    const isQuickPicks = /quick\s*picks|рекомендуем|быстр(?:ый|ые)\s+(?:выбор|подборк)/i.test(section.title);
     const tracks = section.items
         .filter((item): item is Extract<typeof item, { type: 'track' }> => item.type === 'track')
         .map(item => item.data);
@@ -20,7 +21,14 @@ const HomeSection: React.FC<{ section: IHomeSection }> = ({ section }) => {
                 {section.items.map((item, index) => {
                     switch (item.type) {
                         case 'track':
-                            return <Track source={tracks} index={tracks.indexOf(item.data)} showPlayCount key={`track-${item.data.id}-${index}`} />;
+                            return <Track
+                                source={tracks}
+                                index={tracks.indexOf(item.data)}
+                                showPlayCount
+                                showDuration={!isQuickPicks}
+                                compactPlayCount={isQuickPicks}
+                                key={`track-${item.data.id}-${index}`}
+                            />;
                         case 'album':
                             return <Album info={item.data} key={`album-${item.data.id}-${index}`} />;
                         case 'playlist':

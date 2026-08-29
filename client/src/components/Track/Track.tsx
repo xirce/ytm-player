@@ -12,7 +12,7 @@ import { ArtistLink } from '../ArtistLink/ArtistLink';
 import { AlbumLink } from '../AlbumLink/AlbumLink';
 import { ActionsControl } from '../Actions/ActionsControl';
 import { PlayRadioAction } from '../Actions/PlayRadioAction';
-import { formatPlayCount, formatSeconds } from '../../utils/formatting';
+import { formatPlayCount, formatSeconds, formatShortPlayCount } from '../../utils/formatting';
 import { ITrackBase } from '../../../../shared';
 import { useAppAction, useAppSelector } from "../../store";
 import { getDisplayedTrack, getIsPlaying } from '../../store/player';
@@ -24,10 +24,13 @@ export interface ITrackProps {
     isCurrent?: boolean;
     isPlaying?: boolean;
     showPlayCount?: boolean;
+    showDuration?: boolean;
+    compactPlayCount?: boolean;
 }
 
 export const Track: React.FC<ITrackProps> = React.memo(({
-    source, index, isPlaying, isCurrent, showPlayCount = false, children
+    source, index, isPlaying, isCurrent, showPlayCount = false, showDuration = true,
+    compactPlayCount = false, children
 }) => {
     const { setTracks, setTrackIndex, setIsPlaying, appendLeftTracks, appendTracks } = useAppAction();
     const info = source[index];
@@ -50,7 +53,7 @@ export const Track: React.FC<ITrackProps> = React.memo(({
     const handleEnqueue = () => appendTracks([info]);
 
     return (
-        <div className={resolvedIsCurrent ? styles.playingContainer : styles.container}>
+        <div className={`${resolvedIsCurrent ? styles.playingContainer : styles.container} ${!showDuration ? styles.withoutDuration : ''}`}>
             <div className={styles.imageContainer} onClick={() => info.id && togglePlay()}>
                 <img className={styles.image} src={info.imageUrl} alt={info.title} referrerPolicy="no-referrer" />
                 {resolvedIsPlaying && <VolumeUpRounded className={styles.nowPlayingIcon} fontSize='large' />}
@@ -79,12 +82,16 @@ export const Track: React.FC<ITrackProps> = React.memo(({
             </span>
             {showPlayCount && info.playCount != null && (
                 <span className={styles.playCount} title={formatPlayCount(info.playCount)}>
-                    {formatPlayCount(info.playCount)}
+                    {compactPlayCount
+                        ? formatShortPlayCount(info.playCount)
+                        : formatPlayCount(info.playCount)}
                 </span>
             )}
-            <span className={styles.duration}>
-                {info.duration != null ? formatSeconds(info.duration) : '—:——'}
-            </span>
+            {showDuration && (
+                <span className={styles.duration}>
+                    {info.duration != null ? formatSeconds(info.duration) : '—:——'}
+                </span>
+            )}
             <div className={styles.actionsBtn}>
                 <ActionsControl>
                     <PlayRadioAction source={info} />

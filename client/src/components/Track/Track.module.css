@@ -115,10 +115,17 @@
 }
 
 .playCount {
-    flex: 0 1 170px;
+    flex: 0 4 140px;
     min-width: 0;
+    max-width: 140px;
     color: var(--text-main-color);
     font-size: 0.85em;
+    text-align: right;
+}
+
+.withoutDuration .playCount {
+    flex-basis: 100px;
+    margin-left: 24px;
 }
 
 .artist {
@@ -188,5 +195,13 @@
         grid-row: 1 / 3;
         align-self: center;
         margin-left: 0;
+    }
+
+    .container.withoutDuration {
+        grid-template-columns: 48px minmax(0, 1fr) 32px;
+    }
+
+    .withoutDuration .actionsBtn {
+        grid-column: 3;
     }
 }

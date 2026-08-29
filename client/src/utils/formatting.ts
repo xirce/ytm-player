@@ -20,3 +20,11 @@ export function formatPlayCount(value: number) {
     }).format(value);
     return `${count} прослушиваний`;
 }
+
+export function formatShortPlayCount(value: number) {
+    const count = new Intl.NumberFormat('ru-RU', {
+        notation: 'compact',
+        maximumFractionDigits: 1
+    }).format(value);
+    return `${count} просл.`;
+}
