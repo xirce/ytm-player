@@ -8,6 +8,7 @@ import {
     QueueMusicRounded
 } from '@mui/icons-material';
 import { ArtistLink } from '../ArtistLink/ArtistLink';
+import { AlbumLink } from '../AlbumLink/AlbumLink';
 import { ActionsControl } from '../Actions/ActionsControl';
 import { PlayRadioAction } from '../Actions/PlayRadioAction';
 import { formatSeconds } from '../../utils/formatting';
@@ -49,7 +50,11 @@ export const Track: React.FC<ITrackProps> = React.memo(({ source, index, isPlayi
                         : <PlayArrowRounded className={styles.playBtn} fontSize='large' />
                     : <ErrorOutlineRounded className={styles.playBtn} fontSize='large' />}
             </div>
-            <div className={styles.title}>{info.title}</div>
+            <div className={styles.title}>
+                {info.album?.id
+                    ? <AlbumLink info={info.album}>{info.title}</AlbumLink>
+                    : info.title}
+            </div>
             {info.artist?.id
                 ? <span className={styles.artist}><ArtistLink info={info.artist} /></span>
                 : info.artist && <span className={styles.artist}>{info.artist.name}</span>}

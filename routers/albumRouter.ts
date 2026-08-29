@@ -44,7 +44,11 @@ router.get('/:id', asyncHandler(async (req, res) => {
         },
         tracks: albumInfo.contents
             .filter(track => track.id)
-            .map(track => mapToTrack(track, { artist, imageUrl }))
+            .map(track => mapToTrack(track, {
+                artist,
+                album: { id, name: header?.title.toString() ?? '' },
+                imageUrl
+            }))
     };
     res.json(album);
 }));

@@ -58,13 +58,16 @@ export const mapToArtistInfo = (source: YTMusic.Artist, id: string): IArtistInfo
 
 export const mapToTrack = (
     source: YTNodes.MusicResponsiveListItem,
-    fallback: Partial<Pick<ITrackBase, 'artist' | 'imageUrl'>> = {}
+    fallback: Partial<Pick<ITrackBase, 'artist' | 'album' | 'imageUrl'>> = {}
 ): ITrackBase => {
     const artist = source.artists?.at(0) ?? source.authors?.at(0) ?? source.author;
     return {
         id: source.id ?? '',
         title: source.title ?? source.name ?? '',
         artist: artist ? mapToArtistInfoBase(artist) : fallback.artist ?? { id: null, name: '' },
+        album: source.album?.id
+            ? { id: source.album.id, name: source.album.name }
+            : fallback.album,
         imageUrl: getThumbnailUrl(source.thumbnails) || fallback.imageUrl || '',
         duration: source.duration?.seconds ?? null,
         radioId: `RDAMVM${source.id ?? ''}`

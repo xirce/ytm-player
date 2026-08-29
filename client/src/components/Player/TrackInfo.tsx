@@ -2,6 +2,7 @@ import React from 'react';
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import { ArtistLink } from '../ArtistLink/ArtistLink';
+import { AlbumLink } from '../AlbumLink/AlbumLink';
 import { ITrackBase } from '../../../../shared';
 import styles from "./TrackInfo.module.css";
 
@@ -25,7 +26,9 @@ export const TrackInfo: React.FC<ITrackInfoProps> = React.memo(({ source }) => {
             <Grid item>
                 <Stack direction='column' alignItems='start'>
                     <span className={styles.title} title={source?.title ?? ''}>
-                        {source?.title ?? 'Название трека'}
+                        {source?.album?.id
+                            ? <AlbumLink info={source.album}>{source.title}</AlbumLink>
+                            : source?.title ?? 'Название трека'}
                     </span>
                     <span className={styles.artist}>
                         {source ? <ArtistLink info={source.artist} /> : 'Артист'}

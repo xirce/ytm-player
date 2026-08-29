@@ -24,6 +24,7 @@ export interface ITrackBase extends IHaveRadio {
     id: string;
     title: string;
     artist: IArtistInfoBase;
+    album?: Pick<IAlbumInfo, 'id' | 'name'>;
     imageUrl: string;
     duration: number | null;
 }
