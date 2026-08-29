@@ -9,6 +9,7 @@ import { ArtistPage } from './pages/Artist/ArtistPage';
 import { QueuePage } from "./pages/Queue/QueuePage";
 import { FilteredSearchPage } from './pages/SearchRes/FilteredSearchPage';
 import { HomePage } from './pages/Home/HomePage';
+import { HistoryPage } from './pages/History/HistoryPage';
 import { Layout } from "./layouts/Default/Layout";
 import { FiltersLayout } from "./layouts/Filters/FiltersLayout";
 import { store } from "./store";
@@ -22,6 +23,7 @@ export const App: React.FC = () => {
                 <Routes>
                     <Route path="/" element={<Layout />}>
                         <Route index element={<HomePage />} />
+                        <Route path="history" element={<HistoryPage />} />
                         <Route path="search" element={<FiltersLayout />}>
                             <Route index element={<SearchPage />} />
                             <Route path=":type" element={<FilteredSearchPage />} />

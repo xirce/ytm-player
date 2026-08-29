@@ -10,6 +10,25 @@
     letter-spacing: 0.08em;
 }
 
+.navigation {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.library {
+    padding: 0;
+    border: 0;
+    color: var(--text-light-color);
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+
+.library:hover {
+    color: var(--text-main-color);
+}
+
 .auth {
     display: flex;
     justify-content: flex-end;

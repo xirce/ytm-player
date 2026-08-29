@@ -10,7 +10,7 @@ import { useAppAction, useAppSelector } from "../../store";
 import { getCurrentTrack, getDisplayedTrack, getIsPlaying, getTracks, getRepeat, getTrackIndex } from '../../store/player';
 import { useDependentRef } from "../../hooks/useDependentRef";
 import styles from "./PlayerControls.module.css";
-import { useGetTrackUrlQuery } from '../../apiClient';
+import { useAddTrackToHistoryMutation, useGetTrackUrlQuery } from '../../apiClient';
 
 const CROSSFADE_SECONDS = 3;
 
@@ -48,12 +48,14 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     const initializedPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
     const playerTrackIdsRef = useRef(new WeakMap<MediaPlayerClass, string>());
     const completedTransitionPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
+    const historyRecordedPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
     const crossfadeRef = useRef<{ active: boolean; masterVolume: number }>({
         active: false,
         masterVolume: 1
     });
     const { data: trackUrl, isFetching } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
     const { data: nextTrackUrl } = useGetTrackUrlQuery(nextTrack?.id ?? skipToken);
+    const [addTrackToHistory] = useAddTrackToHistoryMutation();
 
 
     // Обновление источника при получении манифеста
@@ -61,6 +63,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         if (trackUrl) {
             if (currentTrack?.id && playerTrackIdsRef.current.get(player) === currentTrack.id) return;
             initializedPlayersRef.current.delete(player);
+            historyRecordedPlayersRef.current.delete(player);
             if (currentTrack?.id) playerTrackIdsRef.current.set(player, currentTrack.id);
             player.attachSource(trackUrl);
         }
@@ -71,6 +74,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         if (!nextTrackUrl || !nextTrack?.id) return;
         if (playerTrackIdsRef.current.get(standbyPlayer) === nextTrack.id) return;
         initializedPlayersRef.current.delete(standbyPlayer);
+        historyRecordedPlayersRef.current.delete(standbyPlayer);
         playerTrackIdsRef.current.set(standbyPlayer, nextTrack.id);
         standbyPlayer.attachSource(nextTrackUrl);
     }, [nextTrackUrl, nextTrack?.id, standbyPlayer]);
@@ -132,6 +136,14 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         };
         const onTimeUpdated = (event: { timeToEnd?: number }) => {
             if (completedTransitionPlayersRef.current.has(player)) return;
+            const playedTime = player.time();
+            const playingTrackId = playerTrackIdsRef.current.get(player);
+            if (playedTime >= 10 && playingTrackId && !historyRecordedPlayersRef.current.has(player)) {
+                historyRecordedPlayersRef.current.add(player);
+                void addTrackToHistory(playingTrackId).unwrap().catch(() => {
+                    historyRecordedPlayersRef.current.delete(player);
+                });
+            }
             const timeToEnd = event.timeToEnd;
             if (repeatRef.current || !isPlayingRef.current || typeof timeToEnd !== 'number') return;
             if ((tracksRef.current?.length || 0) < 2 || player.time() < CROSSFADE_SECONDS) return;
@@ -188,7 +200,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             player.off('playbackEnded', onEnded);
             player.off('playbackTimeUpdated', onTimeUpdated);
         };
-    }, [player, standbyPlayer, repeatRef, tracksRef, trackIndexRef, isPlayingRef, skipNext, setIsPlaying, swapPlayers, setIsCrossfading, setDisplayTrackIndex]);
+    }, [player, standbyPlayer, repeatRef, tracksRef, trackIndexRef, isPlayingRef, skipNext, setIsPlaying, swapPlayers, setIsCrossfading, setDisplayTrackIndex, addTrackToHistory]);
 
     useEffect(() => {
         // Плеер снова стал активным с новым треком — старый маркер ended ему больше не нужен.

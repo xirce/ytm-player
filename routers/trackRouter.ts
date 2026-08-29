@@ -126,6 +126,18 @@ router.get('/:id/url', asyncHandler(async (req, res) => {
     res.json(await fetchTrackUrl(id, proxyBaseUrl));
 }));
 
+router.post('/:id/history', asyncHandler(async (req, res) => {
+    if (ytmusic.getAuthenticationState().status !== 'authenticated') {
+        throw new HttpError(401, 'YouTube authentication is required');
+    }
+    if (!ytmusic.hasPersonalizedMusicAccess()) {
+        throw new HttpError(503, 'YouTube Music cookie authentication is required');
+    }
+
+    await ytmusic.addTrackToHistory(getRequiredParam(req, 'id'));
+    res.status(204).end();
+}));
+
 
 
 export default router;

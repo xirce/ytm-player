@@ -1,5 +1,5 @@
 import { Innertube, Platform, Types, UniversalCache, YTMusic, YTNodes } from 'youtubei.js';
-import { IPlaylist, IPlaylistPage, YouTubeAuthState } from '../shared';
+import { IPlaylist, IPlaylistPage, ITrackBase, YouTubeAuthState } from '../shared';
 import { getThumbnailUrl, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 
@@ -105,6 +105,25 @@ export class YTMusicApiWrapper {
             throw new Error('YouTube Music cookie authentication is not configured');
         }
         return this.musicAuthenticationInnertube.music.getHomeFeed();
+    }
+
+    public async getMusicHistory(): Promise<ITrackBase[]> {
+        if (!this.musicAuthenticationInnertube) {
+            throw new Error('YouTube Music cookie authentication is not configured');
+        }
+        const response = await this.musicAuthenticationInnertube.actions.execute('/browse', {
+            browseId: 'FEmusic_history',
+            client: 'YTMUSIC',
+            parse: true
+        });
+        const items = response.contents_memo?.getType(YTNodes.MusicResponsiveListItem) ?? [];
+        return items
+            .filter(item => Boolean(item.id) && (
+                item.item_type === 'song'
+                || item.item_type === 'video'
+                || item.item_type === 'non_music_track'
+            ))
+            .map(item => mapToTrack(item));
     }
 
     public async startAuthentication(): Promise<YouTubeAuthState> {
@@ -237,6 +256,17 @@ export class YTMusicApiWrapper {
             format_filter: () => false
         });
         return url;
+    }
+
+    public async addTrackToHistory(id: string): Promise<void> {
+        if (!this.musicAuthenticationInnertube) {
+            throw new Error('YouTube Music cookie authentication is not configured');
+        }
+        const poToken = await this.tokenProvider.getToken(id);
+        const trackInfo = await this.musicAuthenticationInnertube.music.getInfo(id, {
+            po_token: poToken
+        });
+        await trackInfo.addToWatchHistory();
     }
 
     public async getArtist(id: string): Promise<YTMusic.Artist> {

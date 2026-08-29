@@ -60,10 +60,14 @@ const api = createApi({
     reducerPath: 'api',
     baseQuery: axiosBaseQuery({ baseUrl: 'http://localhost:3001/api' }),
     keepUnusedDataFor: 30,
-    tagTypes: ['Home'],
+    tagTypes: ['Home', 'History'],
     endpoints: (build) => ({
         getTrackUrl: build.query<string, string>({
             query: (id: string) => ({ url: `/tracks/${id}/url`, method: 'GET' })
+        }),
+        addTrackToHistory: build.mutation<void, string>({
+            query: (id: string) => ({ url: `/tracks/${id}/history`, method: 'POST' }),
+            invalidatesTags: ['History']
         }),
         getSearchSuggestions: build.query<string[], string>({
             query: (query: string) => ({
@@ -106,6 +110,10 @@ const api = createApi({
             query: () => ({ url: '/home', method: 'GET' }),
             providesTags: ['Home']
         }),
+        getHistory: build.query<ITrackBase[], void>({
+            query: () => ({ url: '/history', method: 'GET' }),
+            providesTags: ['History']
+        }),
         getYouTubeAuthStatus: build.query<YouTubeAuthState, void>({
             query: () => ({ url: '/auth/status', method: 'GET' })
         }),
@@ -122,6 +130,7 @@ const api = createApi({
 
 export const {
     useGetTrackUrlQuery,
+    useAddTrackToHistoryMutation,
     useSearchQuery,
     useGetSearchSuggestionsQuery,
     useLazyGetRadioQuery,
@@ -130,6 +139,7 @@ export const {
     useGetPlaylistQuery,
     useLazyGetPlaylistContinuationQuery,
     useGetHomeQuery,
+    useGetHistoryQuery,
     useGetYouTubeAuthStatusQuery,
     useStartYouTubeAuthenticationMutation,
     useSignOutYouTubeMutation,
