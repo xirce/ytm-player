@@ -1,11 +1,14 @@
-import { Innertube, Platform, Types, YTMusic, YTNodes } from 'youtubei.js';
-import { IPlaylist } from '../shared';
+import { Innertube, Platform, Types, UniversalCache, YTMusic, YTNodes } from 'youtubei.js';
+import { IPlaylist, YouTubeAuthState } from '../shared';
 import { getThumbnailUrl, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 
 export class YTMusicApiWrapper {
     private innertube!: Innertube;
+    private authenticationInnertube!: Innertube;
     private tokenProvider!: TokenProvider;
+    private authState: YouTubeAuthState = { status: 'anonymous' };
+    private authenticationPromise?: Promise<void>;
 
     public async initialize() {
         Platform.shim.eval = async (data: Types.BuildScriptResult) => {
@@ -16,9 +19,97 @@ export class YTMusicApiWrapper {
             || 'http://127.0.0.1:4416';
 
         this.tokenProvider ??= new HttpTokenProvider(tokenProviderUrl);
-        this.innertube ??= await Innertube.create();
+        const cache = new UniversalCache(
+            true,
+            process.env.YOUTUBE_CACHE_DIR?.trim() || '.cache/youtubei'
+        );
+        // YouTube rejects OAuth bearer tokens on public YT Music endpoints such as
+        // /search with INVALID_ARGUMENT. Keep catalog requests anonymous and use a
+        // dedicated session for OAuth/account operations.
+        this.innertube ??= await Innertube.create({ cache });
+        this.authenticationInnertube ??= await Innertube.create({
+            cache,
+            retrieve_player: false
+        });
+        this.registerAuthenticationEvents();
+        if (await cache.get('youtubei_oauth_credentials')) {
+            this.authState = { status: 'restoring' };
+            this.authenticationPromise = this.authenticationInnertube.session.signIn()
+                .catch(error => {
+                    this.authState = { status: 'error', error: (error as Error).message };
+                })
+                .finally(() => {
+                    this.authenticationPromise = undefined;
+                });
+            await this.authenticationPromise;
+        }
 
         console.log(`YouTube PO token provider: ${tokenProviderUrl}`);
+    }
+
+    public getAuthenticationState(): YouTubeAuthState {
+        return { ...this.authState };
+    }
+
+    public async startAuthentication(): Promise<YouTubeAuthState> {
+        if (this.authenticationInnertube.session.logged_in || this.authenticationPromise) {
+            return this.getAuthenticationState();
+        }
+
+        this.authState = { status: 'starting' };
+        let resolveStarted: () => void = () => undefined;
+        const started = new Promise<void>(resolve => { resolveStarted = resolve; });
+        const onPending = () => resolveStarted();
+        const onAuth = () => resolveStarted();
+        const onError = () => resolveStarted();
+        this.authenticationInnertube.session.once('auth-pending', onPending);
+        this.authenticationInnertube.session.once('auth', onAuth);
+        this.authenticationInnertube.session.once('auth-error', onError);
+
+        this.authenticationPromise = this.authenticationInnertube.session.signIn()
+            .catch(error => {
+                this.authState = { status: 'error', error: (error as Error).message };
+                resolveStarted();
+            })
+            .finally(() => {
+                this.authenticationPromise = undefined;
+            });
+
+        await started;
+        this.authenticationInnertube.session.off('auth-pending', onPending);
+        this.authenticationInnertube.session.off('auth', onAuth);
+        this.authenticationInnertube.session.off('auth-error', onError);
+        return this.getAuthenticationState();
+    }
+
+    public async signOut(): Promise<void> {
+        if (this.authenticationInnertube.session.logged_in) {
+            await this.authenticationInnertube.session.signOut();
+        } else {
+            await this.authenticationInnertube.session.oauth.removeCache();
+        }
+        this.authState = { status: 'anonymous' };
+    }
+
+    private registerAuthenticationEvents(): void {
+        this.authenticationInnertube.session.on('auth-pending', data => {
+            this.authState = {
+                status: 'pending',
+                verificationUrl: data.verification_url,
+                userCode: data.user_code,
+                expiresAt: Date.now() + data.expires_in * 1000
+            };
+        });
+        this.authenticationInnertube.session.on('auth', () => {
+            this.authState = { status: 'authenticated' };
+            void this.authenticationInnertube.session.oauth.cacheCredentials();
+        });
+        this.authenticationInnertube.session.on('update-credentials', () => {
+            void this.authenticationInnertube.session.oauth.cacheCredentials();
+        });
+        this.authenticationInnertube.session.on('auth-error', error => {
+            this.authState = { status: 'error', error: error.message };
+        });
     }
 
     public async search(query: string) {

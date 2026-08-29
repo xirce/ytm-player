@@ -59,3 +59,13 @@ export interface ISearchResponse {
     albums: IAlbumInfo[];
     playlists: IPlaylistInfo[];
 }
+
+export type YouTubeAuthState =
+    | { status: 'anonymous' | 'starting' | 'restoring' | 'authenticated' }
+    | {
+        status: 'pending';
+        verificationUrl: string;
+        userCode: string;
+        expiresAt: number;
+    }
+    | { status: 'error'; error: string };

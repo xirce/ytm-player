@@ -9,7 +9,8 @@ import {
     IArtistInfo,
     IPlaylistInfo,
     ITrackBase,
-    IAlbumInfo
+    IAlbumInfo,
+    YouTubeAuthState
 } from "../../shared";
 
 export const instance = axios.create({
@@ -77,6 +78,15 @@ const api = createApi({
         getPlaylist: build.query<IPlaylist, string>({
             query: (id: string) => ({ url: `/playlists/${id}`, method: 'GET' })
         }),
+        getYouTubeAuthStatus: build.query<YouTubeAuthState, void>({
+            query: () => ({ url: '/auth/status', method: 'GET' })
+        }),
+        startYouTubeAuthentication: build.mutation<YouTubeAuthState, void>({
+            query: () => ({ url: '/auth/device', method: 'POST' })
+        }),
+        signOutYouTube: build.mutation<void, void>({
+            query: () => ({ url: '/auth/session', method: 'DELETE' })
+        }),
     })
 });
 
@@ -88,6 +98,9 @@ export const {
     useGetArtistQuery,
     useGetAlbumQuery,
     useGetPlaylistQuery,
+    useGetYouTubeAuthStatusQuery,
+    useStartYouTubeAuthenticationMutation,
+    useSignOutYouTubeMutation,
 } = api;
 
 export default api;
