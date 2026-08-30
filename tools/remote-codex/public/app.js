@@ -18,6 +18,18 @@ let previousMessageNodes = [];
 let nextAssistantTimestamp = 0;
 let workChip;
 
+const scrollToBottom = (behavior = 'smooth') => {
+    messages.scrollTo({ top: messages.scrollHeight, behavior });
+};
+
+const updateViewportHeight = () => {
+    const viewport = window.visualViewport;
+    const height = viewport?.height || window.innerHeight;
+    const offsetTop = viewport?.offsetTop || 0;
+    document.documentElement.style.setProperty('--viewport-height', `${height}px`);
+    document.documentElement.style.setProperty('--viewport-offset-top', `${offsetTop}px`);
+};
+
 const normalizeFileChanges = changes => {
     if (Array.isArray(changes)) return changes;
     if (!changes || typeof changes !== 'object') return [];
@@ -114,7 +126,7 @@ const addMessage = (kind, text, timestamp = Date.now()) => {
     } else element.textContent = text;
     messages.appendChild(element);
     if (kind === 'assistant' && !finalBoundaryAdded) previousMessageNodes.push(element);
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    scrollToBottom();
     return element;
 };
 
@@ -135,7 +147,7 @@ const showWorkChip = label => {
     }
     workChip.querySelector('.work-chip-label').textContent = label;
     messages.appendChild(workChip);
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    scrollToBottom();
 };
 
 const activitySummary = (files, commands) => {
@@ -354,7 +366,7 @@ const connect = () => {
         if (!assistantMessage) assistantMessage = addMessage('assistant', '', nextAssistantTimestamp || Date.now());
         assistantMessage.dataset.raw = `${assistantMessage.dataset.raw || ''}${data.delta || ''}`;
         renderMarkdown(assistantMessage.querySelector('.message-content'), assistantMessage.dataset.raw);
-        window.scrollTo({ top: document.body.scrollHeight });
+        scrollToBottom('auto');
     });
     on('item', renderItem);
     on('turn-completed', () => hideWorkChip());
@@ -419,6 +431,16 @@ prompt.addEventListener('keydown', event => {
     event.preventDefault();
     $('composer').requestSubmit();
 });
+prompt.addEventListener('focus', () => {
+    [0, 100, 300].forEach(delay => setTimeout(() => {
+        updateViewportHeight();
+        scrollToBottom('auto');
+    }, delay));
+});
+window.visualViewport?.addEventListener('resize', updateViewportHeight);
+window.visualViewport?.addEventListener('scroll', updateViewportHeight);
+window.addEventListener('resize', updateViewportHeight);
+updateViewportHeight();
 $('stop').addEventListener('click', () => api('/api/interrupt', { method: 'POST' }).catch(error => addMessage('error', error.message)));
 $('threads-button').addEventListener('click', openThreads);
 $('threads-close').addEventListener('click', () => $('threads-panel').classList.add('hidden'));
