@@ -87,9 +87,9 @@ export const Track: React.FC<ITrackProps> = React.memo(({
                         : formatPlayCount(info.playCount)}
                 </span>
             )}
-            {showDuration && (
+            {showDuration && info.duration != null && (
                 <span className={styles.duration}>
-                    {info.duration != null ? formatSeconds(info.duration) : '—:——'}
+                    {formatSeconds(info.duration)}
                 </span>
             )}
             <div className={styles.actionsBtn}>
