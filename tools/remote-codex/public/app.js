@@ -427,6 +427,9 @@ prompt.addEventListener('input', () => {
     prompt.style.height = `${Math.min(prompt.scrollHeight, 150)}px`;
 });
 prompt.addEventListener('keydown', event => {
+    const mobileInput = window.matchMedia('(max-width: 759px)').matches
+        || window.matchMedia('(pointer: coarse)').matches;
+    if (mobileInput) return;
     if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
     event.preventDefault();
     $('composer').requestSubmit();
