@@ -16,8 +16,9 @@
         grid-template-rows: 56px 24px;
         align-items: center;
         column-gap: 4px;
-        height: 88px;
-        padding: 4px 8px;
+        box-sizing: border-box;
+        height: calc(96px + env(safe-area-inset-bottom));
+        padding: 4px 8px calc(12px + env(safe-area-inset-bottom));
         text-align: left;
     }
 

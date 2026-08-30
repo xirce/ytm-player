@@ -85,6 +85,13 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({
         setCurrentTimeRef(value * duration);
     };
 
+    const commitCurrentTime = (_event: Event | React.SyntheticEvent, value: number) => {
+        const position = value * duration;
+        setCurrentTimeRef(position);
+        setIsChangingTimeRef(false);
+        player.seek(position);
+    };
+
     const handleMouseDown: MouseEventHandler = () => {
         setIsChangingTimeRef(true);
     };
@@ -121,6 +128,7 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({
                 <SliderWrapper
                     value={sliderValue}
                     onChange={changeCurrentTime}
+                    onChangeCommitted={commitCurrentTime}
                     onMouseDown={handleMouseDown}
                 />
             </Grid>
