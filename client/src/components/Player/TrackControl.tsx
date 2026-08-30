@@ -15,6 +15,13 @@ import { loadPlayerProgress, savePlayerProgress } from '../../utils/playerPersis
 
 const CROSSFADE_SECONDS = 3;
 
+const supportsDualPlayerCrossfade = () => {
+    const navigatorWithTouchPoints = navigator as Navigator & { maxTouchPoints?: number };
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && (navigatorWithTouchPoints.maxTouchPoints || 0) > 1);
+    return !isIOS;
+};
+
 export interface TrackControlProps {
     player: MediaPlayerClass;
     standbyPlayer: MediaPlayerClass;
@@ -59,6 +66,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         active: false,
         masterVolume: 1
     });
+    const dualPlayerCrossfadeRef = useRef(supportsDualPlayerCrossfade());
     // `data` keeps the previous argument's result while a new request is loading.
     // Attaching it would restart the old track and incorrectly associate its URL
     // with the newly selected track. `currentData` is scoped to the current ID.
@@ -218,6 +226,12 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             const timeToEnd = event.timeToEnd;
             if (repeatRef.current || !isPlayingRef.current || typeof timeToEnd !== 'number') return;
             if ((tracksRef.current?.length || 0) < 2 || player.time() < CROSSFADE_SECONDS) return;
+            // iOS Safari ties audible playback permission to a particular media
+            // element. Starting the preloaded second element automatically can
+            // advance its timeline while producing no sound. Keep the transition
+            // on the already unlocked element on iOS; other browsers use both
+            // players for the real overlap.
+            if (!dualPlayerCrossfadeRef.current) return;
 
             if (!crossfadeRef.current.active) {
                 if (timeToEnd > CROSSFADE_SECONDS || !isFollowingTrackPrepared()) return;
@@ -246,6 +260,12 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                 setIsPlaying(false);
                 player.seek(0);
             } else if ((tracksRef.current?.length || 0) > 1) {
+                if (!dualPlayerCrossfadeRef.current) {
+                    // Reusing the active element preserves Safari's user-gesture
+                    // playback permission when the next source is attached.
+                    skipNext();
+                    return;
+                }
                 if (isFollowingTrackPrepared()) {
                     standbyPlayer.setVolume(player.getVolume());
                     standbyPlayer.setMute(player.isMuted());
