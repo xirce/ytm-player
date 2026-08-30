@@ -90,6 +90,7 @@ export interface IHomeSection {
 
 export interface IHomeFeed {
     sections: IHomeSection[];
+    continuation: string | null;
 }
 
 export type YouTubeAuthState =

@@ -124,6 +124,13 @@ const api = createApi({
             query: () => ({ url: '/home', method: 'GET' }),
             providesTags: ['Home']
         }),
+        getHomeContinuation: build.query<IHomeFeed, string>({
+            query: cursor => ({
+                url: '/home/continuation',
+                method: 'GET',
+                params: { cursor }
+            })
+        }),
         getHistory: build.query<ITrackBase[], void>({
             query: () => ({ url: '/history', method: 'GET' }),
             providesTags: ['History']
@@ -155,6 +162,7 @@ export const {
     useGetPlaylistQuery,
     useLazyGetPlaylistContinuationQuery,
     useGetHomeQuery,
+    useLazyGetHomeContinuationQuery,
     useGetHistoryQuery,
     useGetYouTubeAuthStatusQuery,
     useStartYouTubeAuthenticationMutation,

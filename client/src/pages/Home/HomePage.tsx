@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { skipToken } from '@reduxjs/toolkit/dist/query';
-import { useGetHomeQuery, useGetYouTubeAuthStatusQuery } from '../../apiClient';
+import {
+    useGetHomeQuery,
+    useGetYouTubeAuthStatusQuery,
+    useLazyGetHomeContinuationQuery
+} from '../../apiClient';
 import { IHomeSection } from '../../../../shared';
 import { Track } from '../../components/Track/Track';
 import { Album } from '../../components/SearchResult/Album';
@@ -43,12 +47,61 @@ const HomeSection: React.FC<{ section: IHomeSection }> = ({ section }) => {
     );
 };
 
+const isQuickPicksSection = (section: IHomeSection): boolean =>
+    /quick\s*picks|рекомендуем|быстр(?:ый|ые)\s+(?:выбор|подборк)/i.test(section.title);
+
+const mergeSections = (current: IHomeSection[], incoming: IHomeSection[]): IHomeSection[] => {
+    const knownTitles = new Set(current.map(section => section.title.trim().toLocaleLowerCase('ru-RU')));
+    const merged = [
+        ...current,
+        ...incoming.filter(section => {
+            const key = section.title.trim().toLocaleLowerCase('ru-RU');
+            if (knownTitles.has(key)) return false;
+            knownTitles.add(key);
+            return true;
+        })
+    ];
+    const quickPicksIndex = merged.findIndex(isQuickPicksSection);
+    if (quickPicksIndex <= 0) return merged;
+    return [merged[quickPicksIndex], ...merged.slice(0, quickPicksIndex), ...merged.slice(quickPicksIndex + 1)];
+};
+
 export const HomePage: React.FC = () => {
     const auth = useGetYouTubeAuthStatusQuery(undefined, { pollingInterval: 2000 });
     const isAuthenticated = auth.data?.status === 'authenticated';
     const canLoadRecommendations = auth.data?.status === 'authenticated'
         && auth.data.musicRecommendationsAvailable;
     const home = useGetHomeQuery(canLoadRecommendations ? undefined : skipToken);
+    const [loadContinuation, continuationState] = useLazyGetHomeContinuationQuery();
+    const [sections, setSections] = useState<IHomeSection[]>([]);
+    const [continuation, setContinuation] = useState<string | null>(null);
+    const loadMoreRef = useRef<HTMLDivElement>(null);
+    const loadingRef = useRef(false);
+
+    useEffect(() => {
+        setSections(home.data?.sections ?? []);
+        setContinuation(home.data?.continuation ?? null);
+    }, [home.data]);
+
+    useEffect(() => {
+        const target = loadMoreRef.current;
+        if (!target || !continuation) return;
+
+        const observer = new IntersectionObserver(entries => {
+            if (!entries[0].isIntersecting || loadingRef.current) return;
+            loadingRef.current = true;
+            void loadContinuation(continuation, true)
+                .unwrap()
+                .then(page => {
+                    setSections(current => mergeSections(current, page.sections));
+                    setContinuation(page.continuation);
+                })
+                .catch(() => setContinuation(null))
+                .finally(() => { loadingRef.current = false; });
+        }, { rootMargin: '400px 0px' });
+        observer.observe(target);
+        return () => observer.disconnect();
+    }, [continuation, loadContinuation]);
 
     if (auth.isLoading || auth.data?.status === 'restoring') {
         return <h1>Загружаем рекомендации...</h1>;
@@ -75,13 +128,17 @@ export const HomePage: React.FC = () => {
     }
     if (home.isLoading || home.isFetching) return <h1>Загружаем рекомендации...</h1>;
     if (home.error) return <h1>Не удалось загрузить рекомендации</h1>;
-    if (!home.data?.sections.length) return <h1>Рекомендации пока пусты</h1>;
+    if (!sections.length) return <h1>Рекомендации пока пусты</h1>;
 
     return (
         <main className={styles.container}>
-            {home.data.sections.map((section, index) => (
+            {sections.map((section, index) => (
                 <HomeSection section={section} key={`${section.title}-${index}`} />
             ))}
+            <div className={styles.loadMore} ref={loadMoreRef}>
+                {continuationState.isFetching && 'Загружаем ещё рекомендации...'}
+                {continuationState.isError && 'Не удалось загрузить следующие рекомендации'}
+            </div>
         </main>
     );
 };
