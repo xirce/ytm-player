@@ -7,7 +7,8 @@
     "start": "tsx server.ts",
     "server": "tsx watch server.ts",
     "client": "npm run start --prefix client",
-    "dev": "concurrently \"npm run server\" \"npm run client\""
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "remote-codex": "tsx tools/remote-codex/watch.ts"
   },
   "repository": {
     "type": "git",
