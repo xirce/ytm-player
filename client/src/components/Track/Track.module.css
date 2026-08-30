@@ -205,6 +205,20 @@
         grid-column: 3;
     }
 
+    .mobileDragHandle .actionsBtn {
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .mobileDragHandle {
+        grid-template-columns: 48px minmax(0, 1fr) 58px 48px;
+        cursor: pointer;
+    }
+
+    .mobileDragHandle .duration {
+        padding-right: 10px;
+    }
+
     .container.mobileCard {
         position: relative;
         display: block;

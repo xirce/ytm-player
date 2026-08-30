@@ -27,11 +27,14 @@ export interface ITrackProps {
     showDuration?: boolean;
     compactPlayCount?: boolean;
     mobileCard?: boolean;
+    playOnRowClick?: boolean;
+    mobileDragHandle?: boolean;
 }
 
 export const Track: React.FC<ITrackProps> = React.memo(({
     source, index, isPlaying, isCurrent, showPlayCount = false, showDuration = true,
-    compactPlayCount = false, mobileCard = false, children
+    compactPlayCount = false, mobileCard = false, playOnRowClick = false,
+    mobileDragHandle = false, children
 }) => {
     const { setTracks, setTrackIndex, setIsPlaying, appendLeftTracks, appendTracks, updateTrackMetadata } = useAppAction();
     const info = source[index];
@@ -57,9 +60,19 @@ export const Track: React.FC<ITrackProps> = React.memo(({
 
     const handleEnqueue = () => appendTracks([info]);
 
+    const handleRowClick = (event: React.MouseEvent<HTMLDivElement>) => {
+        if (!playOnRowClick) return;
+        const target = event.target;
+        if (target instanceof Element && target.closest('a, button, [data-drag-handle]')) return;
+        void togglePlay();
+    };
+
     return (
-        <div className={`${resolvedIsCurrent ? styles.playingContainer : styles.container} ${!showDuration ? styles.withoutDuration : ''} ${mobileCard ? styles.mobileCard : ''}`}>
-            <div className={styles.imageContainer} onClick={() => info.id && togglePlay()}>
+        <div
+            className={`${resolvedIsCurrent ? styles.playingContainer : styles.container} ${!showDuration ? styles.withoutDuration : ''} ${mobileCard ? styles.mobileCard : ''} ${mobileDragHandle ? styles.mobileDragHandle : ''}`}
+            onClick={handleRowClick}
+        >
+            <div className={styles.imageContainer} onClick={() => !playOnRowClick && info.id && togglePlay()}>
                 <img className={styles.image} src={imageUrl} alt={info.title} referrerPolicy="no-referrer" />
                 {resolvedIsPlaying && <VolumeUpRounded className={styles.nowPlayingIcon} fontSize='large' />}
                 {info.id
