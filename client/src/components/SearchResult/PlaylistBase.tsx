@@ -9,11 +9,12 @@ import styles from './SearchResult.module.css';
 export interface IPlaylistBaseProps {
     info: IPlaylistInfo | IAlbumInfo;
     link: string;
+    mobileCard?: boolean;
 }
 
-export const PlaylistBase: React.FC<IPlaylistBaseProps> = React.memo(({ info, link }) => {
+export const PlaylistBase: React.FC<IPlaylistBaseProps> = React.memo(({ info, link, mobileCard }) => {
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} ${mobileCard ? styles.mobileCard : ''}`}>
             <Link to={link}>
                 <div className={styles.content}>
                     <div className={styles.imageContainer}>

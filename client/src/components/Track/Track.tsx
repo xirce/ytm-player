@@ -26,11 +26,12 @@ export interface ITrackProps {
     showPlayCount?: boolean;
     showDuration?: boolean;
     compactPlayCount?: boolean;
+    mobileCard?: boolean;
 }
 
 export const Track: React.FC<ITrackProps> = React.memo(({
     source, index, isPlaying, isCurrent, showPlayCount = false, showDuration = true,
-    compactPlayCount = false, children
+    compactPlayCount = false, mobileCard = false, children
 }) => {
     const { setTracks, setTrackIndex, setIsPlaying, appendLeftTracks, appendTracks } = useAppAction();
     const info = source[index];
@@ -53,7 +54,7 @@ export const Track: React.FC<ITrackProps> = React.memo(({
     const handleEnqueue = () => appendTracks([info]);
 
     return (
-        <div className={`${resolvedIsCurrent ? styles.playingContainer : styles.container} ${!showDuration ? styles.withoutDuration : ''}`}>
+        <div className={`${resolvedIsCurrent ? styles.playingContainer : styles.container} ${!showDuration ? styles.withoutDuration : ''} ${mobileCard ? styles.mobileCard : ''}`}>
             <div className={styles.imageContainer} onClick={() => info.id && togglePlay()}>
                 <img className={styles.image} src={info.imageUrl} alt={info.title} referrerPolicy="no-referrer" />
                 {resolvedIsPlaying && <VolumeUpRounded className={styles.nowPlayingIcon} fontSize='large' />}

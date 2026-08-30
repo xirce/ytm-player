@@ -27,14 +27,15 @@ const HomeSection: React.FC<{ section: IHomeSection }> = ({ section }) => {
                                 showPlayCount
                                 showDuration={!isQuickPicks}
                                 compactPlayCount={isQuickPicks}
+                                mobileCard
                                 key={`track-${item.data.id}-${index}`}
                             />;
                         case 'album':
-                            return <Album info={item.data} key={`album-${item.data.id}-${index}`} />;
+                            return <Album info={item.data} mobileCard key={`album-${item.data.id}-${index}`} />;
                         case 'playlist':
-                            return <Playlist info={item.data} key={`playlist-${item.data.id}-${index}`} />;
+                            return <Playlist info={item.data} mobileCard key={`playlist-${item.data.id}-${index}`} />;
                         case 'artist':
-                            return <Artist info={item.data} key={`artist-${item.data.id}-${index}`} />;
+                            return <Artist info={item.data} mobileCard key={`artist-${item.data.id}-${index}`} />;
                     }
                 })}
             </div>

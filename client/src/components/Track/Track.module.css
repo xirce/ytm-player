@@ -204,4 +204,64 @@
     .withoutDuration .actionsBtn {
         grid-column: 3;
     }
+
+    .container.mobileCard {
+        position: relative;
+        display: block;
+        min-height: 0;
+        margin: 0;
+        overflow: hidden;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+    }
+
+    .mobileCard .imageContainer {
+        width: 100%;
+        height: auto;
+        min-width: 0;
+        min-height: 0;
+        aspect-ratio: 1;
+        margin: 0;
+        overflow: hidden;
+        border-radius: 8px;
+    }
+
+    .mobileCard .title,
+    .mobileCard .artist {
+        display: block;
+        margin: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .mobileCard .title {
+        margin-top: 8px;
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+
+    .mobileCard .artist {
+        margin-top: 3px;
+        font-size: 0.82rem;
+    }
+
+    .mobileCard .trackTitle,
+    .mobileCard .artistName {
+        display: block;
+    }
+
+    .mobileCard .playCount,
+    .mobileCard .duration {
+        display: none;
+    }
+
+    .mobileCard .actionsBtn {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        margin: 0;
+        filter: drop-shadow(0 1px 4px var(--bg-darker-color));
+    }
 }

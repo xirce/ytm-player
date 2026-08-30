@@ -67,4 +67,47 @@ a:last-of-type>.container, :not(a)>.container:last-of-type {
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
+    .container.mobileCard {
+        position: relative;
+        display: block;
+        min-width: 0;
+        margin: 0;
+        overflow: hidden;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+    }
+
+    .mobileCard .content {
+        display: block;
+    }
+
+    .mobileCard .imageContainer {
+        width: 100%;
+        height: auto;
+        min-width: 0;
+        aspect-ratio: 1;
+        margin: 0;
+        overflow: hidden;
+        border-radius: 8px;
+    }
+
+    .mobileCard .infoContainer {
+        display: block;
+        margin-top: 8px;
+        overflow: hidden;
+    }
+
+    .mobileCard .name {
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+
+    .mobileCard .menuBtn {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        filter: drop-shadow(0 1px 4px var(--bg-darker-color));
+    }
 }
