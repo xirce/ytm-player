@@ -5,19 +5,22 @@ import { useReferredState } from '../../hooks/useReferredState';
 import { formatSeconds } from '../../utils/formatting';
 import { SliderWrapper } from '../Slider/SliderWrapper';
 import { loadPlayerProgress } from '../../utils/playerPersistence';
+import styles from './TimeProgressBar.module.css';
 
 export interface ITimeProgressBarProps {
     player: MediaPlayerClass;
     canReadImmediately?: boolean;
     trackId?: string;
     fallbackDuration?: number | null;
+    compact?: boolean;
 }
 
 export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({
     player,
     canReadImmediately = false,
     trackId,
-    fallbackDuration
+    fallbackDuration,
+    compact = false
 }) => {
     const cachedProgress = loadPlayerProgress();
     const cachedForInitialTrack = cachedProgress?.trackId === trackId ? cachedProgress : undefined;
@@ -112,6 +115,15 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({
         // Finishing a crossfade changes canReadImmediately, but keeps the same
         // player. Resetting on that flag change would erase the known duration.
     }, [player, trackId]);
+
+    if (compact) {
+        const progress = Math.min(1, Math.max(0, sliderValue));
+        return (
+            <div className={styles.compactProgress} aria-hidden='true'>
+                <div className={styles.compactProgressValue} style={{ width: `${progress * 100}%` }} />
+            </div>
+        );
+    }
 
     return (
         <Grid container

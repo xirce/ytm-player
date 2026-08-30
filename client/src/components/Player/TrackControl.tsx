@@ -29,6 +29,7 @@ export interface TrackControlProps {
     swapPlayers: () => void;
     progressPlayer: MediaPlayerClass;
     canReadProgressImmediately: boolean;
+    compactProgress?: boolean;
 }
 
 export const TrackControl: React.FC<TrackControlProps> = React.memo(({
@@ -36,7 +37,8 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     standbyPlayer,
     swapPlayers,
     progressPlayer,
-    canReadProgressImmediately
+    canReadProgressImmediately,
+    compactProgress = false
 }) => {
     const {
         setIsPlaying, skipNext, skipPrev, setRepeat, shuffle, setDisplayTrackIndex,
@@ -523,6 +525,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                 canReadImmediately={canReadProgressImmediately}
                 trackId={displayedTrack?.id}
                 fallbackDuration={displayedTrack?.duration}
+                compact={compactProgress}
             />
         </Stack>
     );

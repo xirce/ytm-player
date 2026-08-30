@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from "react-router-dom";
 import { MediaPlayer, type MediaPlayerClass } from 'dashjs';
 import Grid from '@mui/material/Grid';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import QueueMusicRoundedIcon from "@mui/icons-material/QueueMusicRounded";
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import { VolumeControl } from './VolumeControl';
@@ -18,6 +19,7 @@ export const PlayerControls: React.FC = React.memo(() => {
     const [players, setPlayers] = useState<MediaPlayerClass[]>([]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
     const [expanded, setExpanded] = useState(false);
+    const isMobile = useMediaQuery('(max-width:700px)');
     const currentTrack = useAppSelector(getCurrentTrack);
     const displayTrackIndex = useAppSelector(state => state.player.displayTrackIndex);
     const displayedTrack = useAppSelector(getDisplayedTrack);
@@ -101,6 +103,7 @@ export const PlayerControls: React.FC = React.memo(() => {
                         swapPlayers={swapPlayers}
                         progressPlayer={displayedPlayer}
                         canReadProgressImmediately={isCrossfading}
+                        compactProgress={isMobile && !expanded}
                     />
                 )}
             </Grid>

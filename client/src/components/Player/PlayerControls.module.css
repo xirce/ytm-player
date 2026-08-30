@@ -11,6 +11,7 @@
 
 @media (max-width: 700px) {
     .container {
+        position: relative;
         display: grid !important;
         grid-template-columns: minmax(0, 1fr) auto;
         grid-template-rows: 56px;
@@ -64,6 +65,10 @@
 
     .trackControlStack > :last-child {
         display: none;
+    }
+
+    .mini .trackControlStack > :last-child {
+        display: block;
     }
 
     .queueButton {
