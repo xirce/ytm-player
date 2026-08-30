@@ -29,13 +29,32 @@ router.get('/', asyncHandler(async (_req, res) => {
         throw new HttpError(503, 'YouTube Music cookie authentication is required');
     }
 
-    const home = await ytmusic.getHomeFeed();
-    const sections = Array.from(home.sections ?? [])
-        .filter((section): section is YTNodes.MusicCarouselShelf =>
-            section instanceof YTNodes.MusicCarouselShelf
-        )
-        .map(mapToHomeSection)
-        .filter((section): section is IHomeSection => Boolean(section));
+    let home = await ytmusic.getHomeFeed();
+    const sections: IHomeSection[] = [];
+    const knownSectionTitles = new Set<string>();
+
+    for (let page = 0; page < 5; page += 1) {
+        Array.from(home.sections ?? [])
+            .filter((section): section is YTNodes.MusicCarouselShelf =>
+                section instanceof YTNodes.MusicCarouselShelf
+            )
+            .map(mapToHomeSection)
+            .filter((section): section is IHomeSection => Boolean(section))
+            .forEach(section => {
+                const key = section.title.trim().toLocaleLowerCase('ru-RU');
+                if (knownSectionTitles.has(key)) return;
+                knownSectionTitles.add(key);
+                sections.push(section);
+            });
+
+        if (sections.some(isQuickPicksSection) || !home.has_continuation) break;
+        try {
+            home = await home.getContinuation();
+        } catch {
+            // A partial home feed is still more useful than failing the endpoint.
+            break;
+        }
+    }
     const response: IHomeFeed = { sections: putQuickPicksFirst(sections) };
     res.setHeader('Cache-Control', 'no-store');
     res.json(response);
