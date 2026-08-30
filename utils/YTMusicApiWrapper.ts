@@ -332,7 +332,7 @@ export class YTMusicApiWrapper {
             : undefined;
         const appendedItems = response.on_response_received_actions
             ?.firstOfType(YTNodes.AppendContinuationItemsAction);
-        const contents = continuationShelf?.contents ?? appendedItems?.contents ?? [];
+        const contents = Array.from(continuationShelf?.contents ?? appendedItems?.contents ?? []);
         const items = contents.filter(
             (item): item is YTNodes.MusicResponsiveListItem => item instanceof YTNodes.MusicResponsiveListItem
         );

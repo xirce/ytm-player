@@ -28,22 +28,20 @@ router.get('/:id', asyncHandler(async (req, res) => {
             .map(key => key in header ? header[key as keyof typeof header] : undefined)
             .filter((value): value is NonNullable<typeof value> => Boolean(value))
         : [];
-    const subtitleArtistRun = headerArtistTexts.flatMap(value =>
+    const subtitleArtist = headerArtistTexts.flatMap(value =>
         typeof value === 'object' && value && 'runs' in value
             ? value.runs ?? []
             : []
-    ).find(run => {
-        const browseId = run.endpoint?.payload?.browseId ?? run.endpoint?.payload?.browse_id;
-        return typeof browseId === 'string' && browseId.startsWith('UC') && run.text.trim();
-    });
-    const subtitleArtist = subtitleArtistRun
-        ? {
-            id: subtitleArtistRun.endpoint?.payload?.browseId
-                ?? subtitleArtistRun.endpoint?.payload?.browse_id
-                ?? null,
-            name: subtitleArtistRun.text.trim()
+    ).flatMap(run => {
+        if (!('endpoint' in run)) {
+            return [];
         }
-        : undefined;
+        const browseId = run.endpoint?.payload?.browseId ?? run.endpoint?.payload?.browse_id;
+        const name = run.text.trim();
+        return typeof browseId === 'string' && browseId.startsWith('UC') && name
+            ? [{ id: browseId, name }]
+            : [];
+    })[0];
     const plainHeaderArtist = headerArtistTexts
         .map(value => String(value).trim())
         .find(value => value

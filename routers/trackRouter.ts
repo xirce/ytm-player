@@ -112,7 +112,7 @@ router.get('/proxy', asyncHandler(async (req, res) => {
         return;
     }
 
-    Readable.from(upstream.body as AsyncIterable<Uint8Array>)
+    Readable.from(upstream.body as unknown as AsyncIterable<Uint8Array>)
         .on('error', error => {
             console.error('Track proxy stream error', error);
             res.destroy(error as Error);
