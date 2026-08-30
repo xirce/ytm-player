@@ -15,12 +15,13 @@ import { loadPlayerProgress, savePlayerProgress } from '../../utils/playerPersis
 
 const CROSSFADE_SECONDS = 3;
 
-const supportsDualPlayerCrossfade = () => {
+const isIOSDevice = () => {
     const navigatorWithTouchPoints = navigator as Navigator & { maxTouchPoints?: number };
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    return /iPad|iPhone|iPod/.test(navigator.userAgent)
         || (navigator.platform === 'MacIntel' && (navigatorWithTouchPoints.maxTouchPoints || 0) > 1);
-    return !isIOS;
 };
+
+const supportsDualPlayerCrossfade = () => !isIOSDevice();
 
 export interface TrackControlProps {
     player: MediaPlayerClass;
@@ -383,6 +384,11 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         cancelCrossfade();
         shuffle();
     };
+    const mediaPlayerRef = useDependentRef(player);
+    const mediaProgressPlayerRef = useDependentRef(progressPlayer);
+    const mediaCancelCrossfadeRef = useDependentRef(cancelCrossfade);
+    const mediaSkipNextRef = useDependentRef(handleSkipNext);
+    const mediaSkipPrevRef = useDependentRef(handleSkipPrev);
 
     useEffect(() => {
         if (!('mediaSession' in navigator)) return;
@@ -407,9 +413,10 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
 
         const seekBy = (offset: number) => {
             try {
-                const duration = progressPlayer.duration();
-                const position = progressPlayer.time();
-                progressPlayer.seek(Math.min(duration, Math.max(0, position + offset)));
+                const target = mediaProgressPlayerRef.current;
+                const duration = target.duration();
+                const position = target.time();
+                target.seek(Math.min(duration, Math.max(0, position + offset)));
             } catch {
                 // Ignore a command received while dash.js is switching sources.
             }
@@ -418,23 +425,28 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             play: () => setIsPlaying(true),
             pause: () => setIsPlaying(false),
             stop: () => {
-                cancelCrossfade();
+                mediaCancelCrossfadeRef.current();
                 setIsPlaying(false);
-                player.seek(0);
+                mediaPlayerRef.current.seek(0);
             },
-            nexttrack: handleSkipNext,
-            previoustrack: handleSkipPrev,
-            seekbackward: details => seekBy(-(details.seekOffset ?? 10)),
-            seekforward: details => seekBy(details.seekOffset ?? 10),
+            nexttrack: () => mediaSkipNextRef.current(),
+            previoustrack: () => mediaSkipPrevRef.current(),
             seekto: details => {
                 if (typeof details.seekTime !== 'number') return;
                 try {
-                    progressPlayer.seek(details.seekTime);
+                    mediaProgressPlayerRef.current.seek(details.seekTime);
                 } catch {
                     // Ignore a command received while dash.js is switching sources.
                 }
             }
         };
+        // iOS Control Center has only two secondary media buttons. If interval
+        // seeking handlers are registered, Safari gives those slots to ±10 sec
+        // and hides previous/next track. The timeline still uses `seekto`.
+        if (!isIOSDevice()) {
+            handlers.seekbackward = details => seekBy(-(details.seekOffset ?? 10));
+            handlers.seekforward = details => seekBy(details.seekOffset ?? 10);
+        }
 
         Object.entries(handlers).forEach(([action, handler]) => {
             try {
@@ -453,7 +465,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                 }
             });
         };
-    }, [progressPlayer, player, isPlaying, setIsPlaying, skipNext, skipPrev]);
+    }, [mediaProgressPlayerRef, mediaPlayerRef, mediaCancelCrossfadeRef, mediaSkipNextRef, mediaSkipPrevRef, setIsPlaying]);
 
     useEffect(() => {
         if (!('mediaSession' in navigator) || !('setPositionState' in navigator.mediaSession)) return;
