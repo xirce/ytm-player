@@ -8,23 +8,35 @@ import styles from "./TrackInfo.module.css";
 
 export interface ITrackInfoProps {
     source: ITrackBase;
+    expanded?: boolean;
 }
 
-export const TrackInfo: React.FC<ITrackInfoProps> = React.memo(({ source }) => {
+export const TrackInfo: React.FC<ITrackInfoProps> = React.memo(({ source, expanded = false }) => {
+    const imageUrl = expanded
+        ? source?.imageUrls?.large ?? source?.imageUrl
+        : source?.imageUrls?.small ?? source?.imageUrl;
     return (
-        <Grid container item xs justifyContent='left' alignItems='center' wrap='nowrap' gap={2} direction='row'>
-            <Grid item width='60px' height='60px'>
-                {source?.imageUrl && (
+        <Grid
+            container item xs
+            justifyContent={expanded ? 'center' : 'left'}
+            alignItems='center'
+            wrap='nowrap'
+            gap={2}
+            direction={expanded ? 'column' : 'row'}
+            className={expanded ? styles.expanded : styles.mini}
+        >
+            <Grid item width='60px' height='60px' className={styles.imageContainer}>
+                {imageUrl && (
                     <img
                         className={styles.image}
-                        src={source.imageUrl}
+                        src={imageUrl}
                         alt={source.title}
                         referrerPolicy="no-referrer"
                     />
                 )}
             </Grid>
-            <Grid item>
-                <Stack direction='column' alignItems='start'>
+            <Grid item className={styles.infoContainer}>
+                <Stack direction='column' alignItems={expanded ? 'center' : 'start'}>
                     <span className={styles.title} title={source?.title ?? ''}>
                         {source?.album?.id
                             ? <AlbumLink info={source.album}>{source.title}</AlbumLink>

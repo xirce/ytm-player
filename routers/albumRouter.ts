@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import ytmusic from '../utils/YTMusicApiWrapper';
-import { getThumbnailUrl, mapToTrack } from '../mappings/ytmusic-api';
+import { getThumbnailUrl, getThumbnailUrls, mapToTrack } from '../mappings/ytmusic-api';
 import { IAlbum } from '../shared';
 import { asyncHandler } from '../middleware/errors';
 import { getRequiredParam } from '../middleware/validation';
@@ -17,14 +17,47 @@ router.get('/:id', asyncHandler(async (req, res) => {
             ? header.thumbnails
             : undefined;
     const imageUrl = getThumbnailUrl(thumbnail);
+    const imageUrls = getThumbnailUrls(thumbnail);
     const firstTrack = albumInfo.contents[0];
     const firstArtist = firstTrack
         ? mapToTrack(firstTrack).artist
         : { id: null, name: '' };
     const headerAuthor = header && 'author' in header ? header.author : undefined;
-    const artist = headerAuthor
-        ? { id: headerAuthor.channel_id ?? null, name: headerAuthor.name }
-        : firstArtist;
+    const headerArtistTexts = header
+        ? ['strapline_text_one', 'subtitle', 'second_subtitle']
+            .map(key => key in header ? header[key as keyof typeof header] : undefined)
+            .filter((value): value is NonNullable<typeof value> => Boolean(value))
+        : [];
+    const subtitleArtistRun = headerArtistTexts.flatMap(value =>
+        typeof value === 'object' && value && 'runs' in value
+            ? value.runs ?? []
+            : []
+    ).find(run => {
+        const browseId = run.endpoint?.payload?.browseId ?? run.endpoint?.payload?.browse_id;
+        return typeof browseId === 'string' && browseId.startsWith('UC') && run.text.trim();
+    });
+    const subtitleArtist = subtitleArtistRun
+        ? {
+            id: subtitleArtistRun.endpoint?.payload?.browseId
+                ?? subtitleArtistRun.endpoint?.payload?.browse_id
+                ?? null,
+            name: subtitleArtistRun.text.trim()
+        }
+        : undefined;
+    const plainHeaderArtist = headerArtistTexts
+        .map(value => String(value).trim())
+        .find(value => value
+            && !/^(?:album|single|ep|альбом|сингл)$/i.test(value)
+            && !/^(?:19|20)\d{2}$/.test(value)
+            && !/^\d+\s*(?:songs?|tracks?|пес(?:ен|ни)|трек)/i.test(value)
+            && !/^\d+:\d+(?::\d+)?$/.test(value));
+    const headerArtist = headerAuthor?.name?.trim()
+        ? { id: headerAuthor.channel_id ?? null, name: headerAuthor.name.trim() }
+        : undefined;
+    const artist = headerArtist
+        ?? subtitleArtist
+        ?? (firstArtist.name?.trim() ? firstArtist : undefined)
+        ?? { id: null, name: plainHeaderArtist ?? '' };
     const headerText = header
         ? ['subtitle', 'second_subtitle'].map(key =>
             key in header ? String(header[key as keyof typeof header] ?? '') : ''
@@ -48,7 +81,8 @@ router.get('/:id', asyncHandler(async (req, res) => {
             .map(track => mapToTrack(track, {
                 artist,
                 album: { id, name: header?.title.toString() ?? '' },
-                imageUrl
+                imageUrl,
+                imageUrls
             }))
     };
     res.json(album);

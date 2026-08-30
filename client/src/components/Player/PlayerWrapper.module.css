@@ -3,5 +3,13 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 999;
+    z-index: 1001;
+}
+
+@media (max-width: 700px) {
+    .container {
+        right: 0;
+        bottom: calc(64px + env(safe-area-inset-bottom));
+        left: 0;
+    }
 }

@@ -19,11 +19,19 @@ export const AlbumPage: React.FC = () => {
     }
 
     const { info, tracks } = data;
+    const albumTracks = (tracks || []).map(track => ({
+        ...track,
+        artist: track.artist?.name?.trim() ? track.artist : info.artist,
+        album: track.album?.id
+            ? track.album
+            : { id: info.id, name: info.name },
+        imageUrl: track.imageUrl || info.imageUrl
+    }));
 
     return (
         <>
             <PlaylistHeader info={info} />
-            <TrackList source={tracks || []} showPlayCount />
+            <TrackList source={albumTracks} showPlayCount />
         </>
     );
 }

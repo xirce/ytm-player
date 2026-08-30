@@ -76,6 +76,13 @@ export const playerSlice = createSlice({
                 if (track.id === action.payload.id) track.duration = action.payload.duration;
             });
         },
+        updateTrackMetadata(state, action: PayloadAction<ITrackBase>) {
+            state.tracks.forEach((track, index) => {
+                if (track.id === action.payload.id) {
+                    state.tracks[index] = { ...track, ...action.payload };
+                }
+            });
+        },
         skipNext(state) {
             state.trackIndex = state.trackIndex === state.tracks.length - 1 ? 0 : state.trackIndex + 1;
             state.displayTrackIndex = null;

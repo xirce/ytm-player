@@ -33,15 +33,19 @@ export const Track: React.FC<ITrackProps> = React.memo(({
     source, index, isPlaying, isCurrent, showPlayCount = false, showDuration = true,
     compactPlayCount = false, mobileCard = false, children
 }) => {
-    const { setTracks, setTrackIndex, setIsPlaying, appendLeftTracks, appendTracks } = useAppAction();
+    const { setTracks, setTrackIndex, setIsPlaying, appendLeftTracks, appendTracks, updateTrackMetadata } = useAppAction();
     const info = source[index];
     const displayedTrack = useAppSelector(getDisplayedTrack);
     const playerIsPlaying = useAppSelector(getIsPlaying);
     const resolvedIsCurrent = isCurrent ?? displayedTrack?.id === info.id;
     const resolvedIsPlaying = resolvedIsCurrent && (isPlaying ?? playerIsPlaying);
+    const imageUrl = mobileCard
+        ? info.imageUrls?.medium ?? info.imageUrl
+        : info.imageUrls?.small ?? info.imageUrl;
 
     const togglePlay = async () => {
         if (resolvedIsCurrent) {
+            updateTrackMetadata(info);
             setIsPlaying(!resolvedIsPlaying);
         } else {
             setTracks(source);
@@ -56,7 +60,7 @@ export const Track: React.FC<ITrackProps> = React.memo(({
     return (
         <div className={`${resolvedIsCurrent ? styles.playingContainer : styles.container} ${!showDuration ? styles.withoutDuration : ''} ${mobileCard ? styles.mobileCard : ''}`}>
             <div className={styles.imageContainer} onClick={() => info.id && togglePlay()}>
-                <img className={styles.image} src={info.imageUrl} alt={info.title} referrerPolicy="no-referrer" />
+                <img className={styles.image} src={imageUrl} alt={info.title} referrerPolicy="no-referrer" />
                 {resolvedIsPlaying && <VolumeUpRounded className={styles.nowPlayingIcon} fontSize='large' />}
                 {info.id
                     ? resolvedIsPlaying

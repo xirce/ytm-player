@@ -26,11 +26,11 @@
 
 @media (max-width: 700px) {
     .container::-webkit-scrollbar-track {
-        margin-bottom: 112px;
+        margin-bottom: calc(148px + env(safe-area-inset-bottom));
     }
 
     .content {
         padding: 20px 12px 32px;
-        margin-bottom: 112px;
+        margin-bottom: calc(148px + env(safe-area-inset-bottom));
     }
 }

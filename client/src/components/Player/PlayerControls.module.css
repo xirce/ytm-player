@@ -12,13 +12,13 @@
 @media (max-width: 700px) {
     .container {
         display: grid !important;
-        grid-template-columns: minmax(0, 1fr) auto auto;
-        grid-template-rows: 56px 24px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-rows: 56px;
         align-items: center;
         column-gap: 4px;
         box-sizing: border-box;
-        height: calc(96px + env(safe-area-inset-bottom));
-        padding: 4px 8px calc(12px + env(safe-area-inset-bottom));
+        height: 64px;
+        padding: 4px 10px;
         text-align: left;
     }
 
@@ -50,21 +50,130 @@
         margin-bottom: 0 !important;
     }
 
+    .mini .transportControls > button {
+        display: none;
+    }
+
+    .mini .transportControls > button:nth-child(3) {
+        display: inline-grid;
+    }
+
     .mobileSecondaryControl {
         display: none;
     }
 
     .trackControlStack > :last-child {
-        grid-column: 1 / 4;
-        grid-row: 2;
+        display: none;
+    }
+
+    .queueButton {
+        display: none;
+    }
+
+    .container.expanded {
+        position: fixed;
+        inset: 0;
+        z-index: 1200;
+        display: flex !important;
+        flex-direction: column;
+        width: 100vw;
+        height: 100dvh;
+        padding: calc(14px + env(safe-area-inset-top)) 20px calc(22px + env(safe-area-inset-bottom));
+        overflow: hidden;
+        background: linear-gradient(180deg, #25252b 0%, var(--bg-dark-color) 55%);
+        border: 0;
+    }
+
+    .collapseButton {
+        position: absolute;
+        top: calc(8px + env(safe-area-inset-top));
+        left: 12px;
+        z-index: 2;
+    }
+
+    .expanded .trackInfoColumn {
+        display: flex;
+        flex: 0 1 auto;
+        width: 100%;
+        min-height: 0;
+        padding-top: 46px;
+        overflow: visible;
+    }
+
+    .expanded .trackControlColumn,
+    .expanded .trackControlStack {
+        display: flex !important;
+        width: 100%;
+    }
+
+    .expanded .trackControlColumn {
+        flex: 0 0 auto;
+        max-width: none;
+        margin-top: clamp(28px, 6vh, 58px);
+        margin-bottom: auto;
+    }
+
+    .expanded .trackControlStack {
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .expanded .trackControlStack > :last-child {
+        display: flex;
+        order: -1;
         width: 100%;
         min-width: 0;
     }
 
-    .queueButton {
-        grid-column: 3;
-        grid-row: 1;
-        align-self: center;
-        margin-left: 0;
+    .expanded .transportControls {
+        display: flex;
+        width: 100%;
+        justify-content: space-around;
+        gap: 10px;
+    }
+
+    .expanded .transportControls > button {
+        display: inline-grid;
+        width: 52px;
+        height: 52px;
+        place-items: center;
+    }
+
+    .expanded .transportControls > button:nth-child(3) {
+        width: 64px;
+        height: 64px;
+        color: var(--bg-dark-color);
+        background: var(--text-light-color);
+    }
+
+    .expanded .transportControls svg {
+        width: 30px;
+        height: 30px;
+    }
+
+    .expanded .transportControls > button:nth-child(3) svg {
+        width: 38px;
+        height: 38px;
+    }
+
+    .expanded .mobileSecondaryControl {
+        display: inline-grid;
+    }
+
+    .expanded .volumeColumn {
+        display: block !important;
+        position: absolute;
+        top: calc(8px + env(safe-area-inset-top));
+        right: 12px;
+        width: auto;
+    }
+
+    .expanded .volumeColumn > :first-child {
+        display: none;
+    }
+
+    .expanded .queueButton {
+        display: block;
+        margin: 0;
     }
 }

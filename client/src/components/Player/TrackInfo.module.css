@@ -43,4 +43,61 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
+    .mini {
+        cursor: pointer;
+    }
+
+    .mini .imageContainer {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+    }
+
+    .mini .artist {
+        display: block;
+        max-width: min(48vw, 220px);
+        margin-top: 2px;
+        font-size: 0.78rem;
+    }
+
+    .expanded {
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 20px;
+        width: 100%;
+        text-align: center;
+    }
+
+    .expanded .imageContainer {
+        width: min(78vw, 420px);
+        height: min(78vw, 420px);
+        max-height: 45dvh;
+        min-width: 0;
+    }
+
+    .expanded .image {
+        border-radius: 8px;
+        box-shadow: 0 12px 42px rgba(0, 0, 0, 0.42);
+    }
+
+    .expanded .infoContainer,
+    .expanded .title,
+    .expanded .artist {
+        width: 100%;
+        max-width: 100%;
+        text-align: center;
+    }
+
+    .expanded .title {
+        font-size: clamp(1.35rem, 5.5vw, 1.65rem);
+        font-weight: 650;
+        line-height: 1.25;
+    }
+
+    .expanded .artist {
+        margin-top: 7px;
+        font-size: clamp(1rem, 4.2vw, 1.2rem);
+    }
 }

@@ -398,9 +398,15 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                 title: displayedTrack.title,
                 artist: displayedTrack.artist?.name ?? '',
                 album: displayedTrack.album?.name ?? '',
-                artwork: displayedTrack.imageUrl
-                    ? [{ src: displayedTrack.imageUrl }]
-                    : []
+                artwork: displayedTrack.imageUrls
+                    ? [
+                        { src: displayedTrack.imageUrls.small, sizes: '120x120' },
+                        { src: displayedTrack.imageUrls.medium, sizes: '512x512' },
+                        { src: displayedTrack.imageUrls.large, sizes: '1200x1200' }
+                    ].filter(item => item.src)
+                    : displayedTrack.imageUrl
+                        ? [{ src: displayedTrack.imageUrl }]
+                        : []
             })
             : null;
         navigator.mediaSession.playbackState = displayedTrack

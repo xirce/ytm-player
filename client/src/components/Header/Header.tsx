@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import Grid from '@mui/material/Grid';
 import MenuItem from '@mui/material/MenuItem';
 import MenuRounded from '@mui/icons-material/MenuRounded';
-import { Link } from 'react-router-dom';
+import HomeRounded from '@mui/icons-material/HomeRounded';
+import SearchRounded from '@mui/icons-material/SearchRounded';
+import LibraryMusicRounded from '@mui/icons-material/LibraryMusicRounded';
+import { Link, NavLink } from 'react-router-dom';
 import { SearchControl } from "../SearchInput/SearchControl";
 import styles from './Header.module.css';
 import { YouTubeAuthControl } from '../Auth/YouTubeAuthControl';
@@ -14,7 +17,7 @@ const Header: React.FC = () => {
 
     return (
         <header className={styles.container}>
-            <Grid container
+            <Grid container className={styles.desktopContent}
                   justifyContent='space-between'
                   alignItems='center'
                   direction='row'>
@@ -62,6 +65,20 @@ const Header: React.FC = () => {
                     </MenuWrapper>
                 </Grid>
             </Grid>
+            <nav className={styles.bottomNavigation} aria-label='Основная навигация'>
+                <NavLink to='/' end className={({ isActive }) => isActive ? styles.activeNavItem : styles.navItem}>
+                    <HomeRounded />
+                    <span>Главная</span>
+                </NavLink>
+                <NavLink to='/search' className={({ isActive }) => isActive ? styles.activeNavItem : styles.navItem}>
+                    <SearchRounded />
+                    <span>Поиск</span>
+                </NavLink>
+                <NavLink to='/history' className={({ isActive }) => isActive ? styles.activeNavItem : styles.navItem}>
+                    <LibraryMusicRounded />
+                    <span>Библиотека</span>
+                </NavLink>
+            </nav>
         </header>
     );
 }

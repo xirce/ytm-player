@@ -1,5 +1,5 @@
 import { YTMusic, YTNodes } from 'youtubei.js';
-import { IAlbumInfo, IArtistInfoBase, IArtistInfo, IHomeItem, IHomeSection, IPlaylistInfo, ITrackBase } from '../../shared';
+import { IAlbumInfo, IArtistInfoBase, IArtistInfo, IHomeItem, IHomeSection, IImageUrls, IPlaylistInfo, ITrackBase } from '../../shared';
 
 type MusicListItem = YTNodes.MusicResponsiveListItem | YTNodes.MusicTwoRowItem;
 
@@ -18,6 +18,22 @@ export const getThumbnailUrl = (
             : best;
     }, items[Math.floor((items.length - 1) / 2)]).url;
 };
+
+const withThumbnailSize = (url: string, size: number): string => {
+    if (!url || !/(?:googleusercontent\.com|ggpht\.com)/i.test(url)) return url;
+    if (/=w\d+(?:-h\d+)?/.test(url)) {
+        return url.replace(/=w\d+(?:-h\d+)?/, `=w${size}-h${size}`);
+    }
+    return url;
+};
+
+export const getThumbnailUrls = (
+    thumbnails: ArrayLike<{ url: string; width?: number }> | undefined
+): IImageUrls => ({
+    small: withThumbnailSize(getThumbnailUrl(thumbnails, 120), 120),
+    medium: withThumbnailSize(getThumbnailUrl(thumbnails, 512), 512),
+    large: withThumbnailSize(getThumbnailUrl(thumbnails, 1200), 1200)
+});
 
 const lastThumbnail = (source: MusicListItem): string => {
     const thumbnails = source instanceof YTNodes.MusicResponsiveListItem
@@ -96,17 +112,27 @@ export const mapToArtistInfo = (source: YTMusic.Artist, id: string): IArtistInfo
 
 export const mapToTrack = (
     source: YTNodes.MusicResponsiveListItem,
-    fallback: Partial<Pick<ITrackBase, 'artist' | 'album' | 'imageUrl'>> = {}
+    fallback: Partial<Pick<ITrackBase, 'artist' | 'album' | 'imageUrl' | 'imageUrls'>> = {}
 ): ITrackBase => {
     const artist = source.artists?.at(0) ?? source.authors?.at(0) ?? source.author;
+    const mappedArtist = artist ? mapToArtistInfoBase(artist) : undefined;
+    const sourceImageUrls = getThumbnailUrls(source.thumbnails);
+    const imageUrls = sourceImageUrls.medium
+        ? sourceImageUrls
+        : fallback.imageUrls ?? getThumbnailUrls(fallback.imageUrl ? [{ url: fallback.imageUrl }] : []);
     return {
         id: source.id ?? '',
         title: source.title ?? source.name ?? '',
-        artist: artist ? mapToArtistInfoBase(artist) : fallback.artist ?? { id: null, name: '' },
+        artist: mappedArtist?.name?.trim()
+            ? mappedArtist
+            : fallback.artist?.name?.trim()
+                ? fallback.artist
+                : mappedArtist ?? fallback.artist ?? { id: null, name: '' },
         album: source.album?.id
             ? { id: source.album.id, name: source.album.name }
             : fallback.album,
-        imageUrl: getThumbnailUrl(source.thumbnails) || fallback.imageUrl || '',
+        imageUrl: imageUrls.medium || fallback.imageUrl || '',
+        imageUrls,
         duration: source.duration?.seconds ?? null,
         playCount: getPlayCount(source),
         radioId: `RDAMVM${source.id ?? ''}`
@@ -148,19 +174,23 @@ export const mapToAlbumInfo = (
     };
 };
 
-export const mapPlaylistPanelVideoToTrack = (source: YTNodes.PlaylistPanelVideo): ITrackBase => ({
-    id: source.video_id,
-    title: source.title.toString(),
-    artist: {
-        id: source.artists?.[0]?.channel_id ?? null,
-        name: source.artists?.[0]?.name ?? source.author ?? ''
-    },
-    album: source.album?.id ? { id: source.album.id, name: source.album.name } : undefined,
-    imageUrl: getThumbnailUrl(source.thumbnail),
-    duration: source.duration?.seconds ?? null,
-    playCount: null,
-    radioId: `RDAMVM${source.video_id}`
-});
+export const mapPlaylistPanelVideoToTrack = (source: YTNodes.PlaylistPanelVideo): ITrackBase => {
+    const imageUrls = getThumbnailUrls(source.thumbnail);
+    return {
+        id: source.video_id,
+        title: source.title.toString(),
+        artist: {
+            id: source.artists?.[0]?.channel_id ?? null,
+            name: source.artists?.[0]?.name ?? source.author ?? ''
+        },
+        album: source.album?.id ? { id: source.album.id, name: source.album.name } : undefined,
+        imageUrl: imageUrls.medium,
+        imageUrls,
+        duration: source.duration?.seconds ?? null,
+        playCount: null,
+        radioId: `RDAMVM${source.video_id}`
+    };
+};
 
 const mapToHomeItem = (source: YTNodes.MusicCarouselShelf['contents'][number]): IHomeItem | undefined => {
     if (source instanceof YTNodes.MusicResponsiveListItem) {

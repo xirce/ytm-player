@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { MediaPlayer, type MediaPlayerClass } from 'dashjs';
 import Grid from '@mui/material/Grid';
 import QueueMusicRoundedIcon from "@mui/icons-material/QueueMusicRounded";
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import { VolumeControl } from './VolumeControl';
 import { TrackControl } from "./TrackControl";
 import { TrackInfo } from "./TrackInfo";
@@ -11,10 +12,12 @@ import { getCurrentTrack, getDisplayedTrack } from '../../store/player';
 import styles from './PlayerControls.module.css';
 
 export const PlayerControls: React.FC = React.memo(() => {
+    const location = useLocation();
     const firstAudioRef = useRef<HTMLAudioElement>(null);
     const secondAudioRef = useRef<HTMLAudioElement>(null);
     const [players, setPlayers] = useState<MediaPlayerClass[]>([]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
+    const [expanded, setExpanded] = useState(false);
     const currentTrack = useAppSelector(getCurrentTrack);
     const displayTrackIndex = useAppSelector(state => state.player.displayTrackIndex);
     const displayedTrack = useAppSelector(getDisplayedTrack);
@@ -39,10 +42,31 @@ export const PlayerControls: React.FC = React.memo(() => {
     const isCrossfading = displayTrackIndex !== null;
     const displayedPlayer = isCrossfading ? standbyPlayer : player;
 
+    useEffect(() => {
+        if (!expanded) return;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        const collapseOnLink = (event: MouseEvent) => {
+            const target = event.target;
+            if (target instanceof Element && target.closest('a[href]')) {
+                setExpanded(false);
+            }
+        };
+        document.addEventListener('click', collapseOnLink);
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            document.removeEventListener('click', collapseOnLink);
+        };
+    }, [expanded]);
+
+    useEffect(() => {
+        setExpanded(false);
+    }, [location.pathname, location.search]);
+
     return (
         <Grid
             container
-            className={styles.container}
+            className={`${styles.container} ${expanded ? styles.expanded : styles.mini}`}
             justifyContent='center'
             alignItems='center'
             direction='row'
@@ -51,8 +75,23 @@ export const PlayerControls: React.FC = React.memo(() => {
             <audio ref={firstAudioRef} style={{ display: 'none' }} />
             <audio ref={secondAudioRef} style={{ display: 'none' }} />
 
-            <Grid item xs className={styles.trackInfoColumn}>
-                <TrackInfo source={displayedTrack} />
+            {expanded && (
+                <button
+                    className={`${styles.iconBtn} ${styles.collapseButton}`}
+                    onClick={() => setExpanded(false)}
+                    aria-label='Свернуть плеер'
+                >
+                    <KeyboardArrowDownRoundedIcon fontSize='large' />
+                </button>
+            )}
+
+            <Grid
+                item
+                xs
+                className={styles.trackInfoColumn}
+                onClick={() => !expanded && setExpanded(true)}
+            >
+                <TrackInfo source={displayedTrack} expanded={expanded} />
             </Grid>
             <Grid item xs={4} className={styles.trackControlColumn}>
                 {player && standbyPlayer && (

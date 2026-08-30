@@ -2,6 +2,12 @@ export interface IHaveRadio {
     radioId: string;
 }
 
+export interface IImageUrls {
+    small: string;
+    medium: string;
+    large: string;
+}
+
 export interface IArtistInfoBase {
     id: string | null,
     name: string;
@@ -26,6 +32,7 @@ export interface ITrackBase extends IHaveRadio {
     artist: IArtistInfoBase;
     album?: Pick<IAlbumInfo, 'id' | 'name'>;
     imageUrl: string;
+    imageUrls?: IImageUrls;
     duration: number | null;
     playCount?: number | null;
 }
