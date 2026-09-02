@@ -211,6 +211,30 @@ const mapToHomeItem = (source: YTNodes.MusicCarouselShelf['contents'][number]): 
     }
 
     if (source instanceof YTNodes.MusicTwoRowItem && source.id) {
+        // Localized songs and /next endpoints are not always classified as songs by youtubei.js.
+        const videoId = source.endpoint.payload.videoId;
+        if (typeof videoId === 'string' && videoId) {
+            const artistRun = source.subtitle.runs?.find(run =>
+                'endpoint' in run && run.endpoint?.payload.browseId?.startsWith('UC'));
+            const artist = source.artists?.[0] ?? source.author ?? (artistRun && 'endpoint' in artistRun ? {
+                name: artistRun.text,
+                channel_id: artistRun.endpoint?.payload.browseId
+            } : undefined);
+            const imageUrls = getThumbnailUrls(source.thumbnail);
+            return {
+                type: 'track',
+                data: {
+                    id: videoId,
+                    title: source.title.toString(),
+                    artist: mapToArtistInfoBase(artist),
+                    imageUrl: imageUrls.medium,
+                    imageUrls,
+                    duration: null,
+                    playCount: parseCompactCount(source.subtitle.toString()),
+                    radioId: `RDAMVM${videoId}`
+                }
+            };
+        }
         switch (source.item_type) {
             case 'album':
                 return { type: 'album', data: mapToAlbumInfo(source) };
