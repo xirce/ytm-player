@@ -9,20 +9,71 @@ import { VolumeControl } from './VolumeControl';
 import { TrackControl } from "./TrackControl";
 import { TrackInfo } from "./TrackInfo";
 import { useAppSelector } from '../../store';
-import { getCurrentTrack, getDisplayedTrack } from '../../store/player';
+import { getCurrentTrack, getDisplayedTrack, getIsPlaying } from '../../store/player';
 import styles from './PlayerControls.module.css';
+
+const createSilentAudio = () => {
+    const sampleRate = 8000;
+    const dataLength = sampleRate * 10;
+    const buffer = new ArrayBuffer(44 + dataLength);
+    const view = new DataView(buffer);
+    const write = (offset: number, value: string) => {
+        for (let index = 0; index < value.length; index++) view.setUint8(offset + index, value.charCodeAt(index));
+    };
+
+    write(0, 'RIFF');
+    view.setUint32(4, 36 + dataLength, true);
+    write(8, 'WAVEfmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate, true);
+    view.setUint16(32, 1, true);
+    view.setUint16(34, 8, true);
+    write(36, 'data');
+    view.setUint32(40, dataLength, true);
+    new Uint8Array(buffer, 44).fill(128);
+    return new Blob([buffer], { type: 'audio/wav' });
+};
 
 export const PlayerControls: React.FC = React.memo(() => {
     const location = useLocation();
     const firstAudioRef = useRef<HTMLAudioElement>(null);
     const secondAudioRef = useRef<HTMLAudioElement>(null);
+    const keepaliveAudioRef = useRef<HTMLAudioElement>(null);
     const [players, setPlayers] = useState<MediaPlayerClass[]>([]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
     const [expanded, setExpanded] = useState(false);
     const isMobile = useMediaQuery('(max-width:700px)');
     const currentTrack = useAppSelector(getCurrentTrack);
+    const isPlaying = useAppSelector(getIsPlaying);
     const displayTrackIndex = useAppSelector(state => state.player.displayTrackIndex);
     const displayedTrack = useAppSelector(getDisplayedTrack);
+
+    useEffect(() => {
+        const audio = keepaliveAudioRef.current;
+        if (!audio) return;
+        const source = URL.createObjectURL(createSilentAudio());
+        audio.src = source;
+        return () => URL.revokeObjectURL(source);
+    }, []);
+
+    const startKeepalive = useCallback(() => {
+        const audio = keepaliveAudioRef.current;
+        if (!audio || !audio.paused) return;
+        void audio.play().catch(() => {
+            // A later user-initiated Play can retry if WebKit rejects this attempt.
+        });
+    }, []);
+
+    useEffect(() => {
+        if (isPlaying) {
+            startKeepalive();
+        } else {
+            keepaliveAudioRef.current?.pause();
+        }
+    }, [isPlaying, startKeepalive]);
 
     useEffect(() => {
         if (!firstAudioRef.current || !secondAudioRef.current) return;
@@ -74,6 +125,13 @@ export const PlayerControls: React.FC = React.memo(() => {
             direction='row'
             visibility={currentTrack ? 'visible' : 'hidden'}
         >
+            <audio
+                ref={keepaliveAudioRef}
+                preload='auto'
+                aria-hidden
+                style={{ display: 'none' }}
+                onEnded={() => isPlaying && startKeepalive()}
+            />
             <audio ref={firstAudioRef} style={{ display: 'none' }} />
             <audio ref={secondAudioRef} style={{ display: 'none' }} />
 
@@ -104,6 +162,7 @@ export const PlayerControls: React.FC = React.memo(() => {
                         progressPlayer={displayedPlayer}
                         canReadProgressImmediately={isCrossfading}
                         compactProgress={isMobile && !expanded}
+                        onPlayRequested={startKeepalive}
                     />
                 )}
             </Grid>

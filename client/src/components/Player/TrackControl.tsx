@@ -30,6 +30,7 @@ export interface TrackControlProps {
     progressPlayer: MediaPlayerClass;
     canReadProgressImmediately: boolean;
     compactProgress?: boolean;
+    onPlayRequested?: () => void;
 }
 
 export const TrackControl: React.FC<TrackControlProps> = React.memo(({
@@ -38,7 +39,8 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     swapPlayers,
     progressPlayer,
     canReadProgressImmediately,
-    compactProgress = false
+    compactProgress = false,
+    onPlayRequested
 }) => {
     const {
         setIsPlaying, skipNext, skipPrev, setRepeat, shuffle, setDisplayTrackIndex,
@@ -358,6 +360,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         if (isPlaying) {
             setIsPlaying(false);
         } else {
+            onPlayRequested?.();
             setIsPlaying(true);
         }
     };
