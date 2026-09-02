@@ -4,7 +4,7 @@ import { useGetHistoryQuery, useGetYouTubeAuthStatusQuery } from '../../apiClien
 import { TrackList } from '../../components/TrackList/TrackList';
 
 export const HistoryPage: React.FC = React.memo(() => {
-    const auth = useGetYouTubeAuthStatusQuery(undefined, { pollingInterval: 2000 });
+    const auth = useGetYouTubeAuthStatusQuery();
     const canLoadHistory = auth.data?.status === 'authenticated'
         && auth.data.musicRecommendationsAvailable;
     const history = useGetHistoryQuery(canLoadHistory ? undefined : skipToken);

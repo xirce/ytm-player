@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     useGetYouTubeAuthStatusQuery,
     useSignOutYouTubeMutation,
@@ -7,9 +7,16 @@ import {
 import styles from './YouTubeAuthControl.module.css';
 
 export const YouTubeAuthControl: React.FC = () => {
-    const { data, refetch } = useGetYouTubeAuthStatusQuery(undefined, { pollingInterval: 2000 });
+    const { data, refetch, isFetching } = useGetYouTubeAuthStatusQuery();
     const [startAuthentication, startState] = useStartYouTubeAuthenticationMutation();
     const [signOut, signOutState] = useSignOutYouTubeMutation();
+
+    useEffect(() => {
+        if (!['pending', 'starting', 'restoring'].includes(data?.status ?? '')) return;
+        const checkAfterSignIn = () => { void refetch(); };
+        window.addEventListener('focus', checkAfterSignIn);
+        return () => window.removeEventListener('focus', checkAfterSignIn);
+    }, [data?.status, refetch]);
 
     const start = async () => {
         await startAuthentication().unwrap();
@@ -37,6 +44,9 @@ export const YouTubeAuthControl: React.FC = () => {
             <div className={styles.pending}>
                 <span>Код: <strong>{data.userCode}</strong></span>
                 <a href={data.verificationUrl} target="_blank" rel="noreferrer">Открыть YouTube</a>
+                <button className={styles.button} onClick={() => void refetch()} disabled={isFetching}>
+                    Проверить вход
+                </button>
             </div>
         );
     }

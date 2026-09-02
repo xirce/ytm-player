@@ -67,7 +67,7 @@ const mergeSections = (current: IHomeSection[], incoming: IHomeSection[]): IHome
 };
 
 export const HomePage: React.FC = () => {
-    const auth = useGetYouTubeAuthStatusQuery(undefined, { pollingInterval: 2000 });
+    const auth = useGetYouTubeAuthStatusQuery();
     const isAuthenticated = auth.data?.status === 'authenticated';
     const canLoadRecommendations = auth.data?.status === 'authenticated'
         && auth.data.musicRecommendationsAvailable;

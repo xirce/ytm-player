@@ -26,12 +26,16 @@ export const axiosBaseQuery = ({ baseUrl }: { baseUrl: string } = { baseUrl: '' 
     method: AxiosRequestConfig['method']
     data?: AxiosRequestConfig['data']
     params?: AxiosRequestConfig['params']
-}> => async ({ url, method, data, params }) => {
+    requiresAuth?: boolean
+}> => async ({ url, method, data, params, requiresAuth }, queryApi) => {
     try {
         const result = await instance.request({ url: baseUrl + url, method, data, params })
         return { data: result.data }
     } catch (axiosError) {
         let err = axiosError as AxiosError
+        if (requiresAuth && (err.response?.status === 401 || err.response?.status === 503)) {
+            queryApi.dispatch(api.util.invalidateTags(['Auth']));
+        }
         return {
             error: {
                 status: err.response?.status,
@@ -60,7 +64,7 @@ const api = createApi({
     reducerPath: 'api',
     baseQuery: axiosBaseQuery({ baseUrl: '/api' }),
     keepUnusedDataFor: 30,
-    tagTypes: ['Home', 'History'],
+    tagTypes: ['Home', 'History', 'Auth'],
     endpoints: (build) => ({
         getTrackUrl: build.query<string, string>({
             query: (id: string) => ({
@@ -70,7 +74,7 @@ const api = createApi({
             })
         }),
         addTrackToHistory: build.mutation<void, string>({
-            query: (id: string) => ({ url: `/tracks/${id}/history`, method: 'POST' }),
+            query: (id: string) => ({ url: `/tracks/${id}/history`, method: 'POST', requiresAuth: true }),
             invalidatesTags: ['History']
         }),
         getSearchSuggestions: build.query<string[], string>({
@@ -121,22 +125,24 @@ const api = createApi({
             })
         }),
         getHome: build.query<IHomeFeed, void>({
-            query: () => ({ url: '/home', method: 'GET' }),
+            query: () => ({ url: '/home', method: 'GET', requiresAuth: true }),
             providesTags: ['Home']
         }),
         getHomeContinuation: build.query<IHomeFeed, string>({
             query: cursor => ({
                 url: '/home/continuation',
                 method: 'GET',
+                requiresAuth: true,
                 params: { cursor }
             })
         }),
         getHistory: build.query<ITrackBase[], void>({
-            query: () => ({ url: '/history', method: 'GET' }),
+            query: () => ({ url: '/history', method: 'GET', requiresAuth: true }),
             providesTags: ['History']
         }),
         getYouTubeAuthStatus: build.query<YouTubeAuthState, void>({
-            query: () => ({ url: '/auth/status', method: 'GET' })
+            query: () => ({ url: '/auth/status', method: 'GET' }),
+            providesTags: ['Auth']
         }),
         startYouTubeAuthentication: build.mutation<YouTubeAuthState, void>({
             query: () => ({ url: '/auth/device', method: 'POST' }),
