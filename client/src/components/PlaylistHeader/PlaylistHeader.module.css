@@ -1,11 +1,18 @@
 .container {
     margin-bottom: 48px;
+    gap: 16px;
+    text-align: center;
 }
 
 .imageContainer {
-    width: 192px;
-    height: 192px;
-    margin-right: 16px;
+    width: min(192px, 100%);
+    aspect-ratio: 1;
+    flex-shrink: 0;
+}
+
+.container h2 {
+    margin: 0 0 8px;
+    overflow-wrap: anywhere;
 }
 
 .image {
@@ -17,20 +24,10 @@
 
 @media (max-width: 700px) {
     .container {
-        align-items: center;
         margin-bottom: 24px;
     }
 
-    .imageContainer {
-        width: 112px;
-        height: 112px;
-        min-width: 112px;
-        margin-right: 12px;
-    }
-
     .container h2 {
-        margin: 0 0 8px;
         font-size: 1.25rem;
-        overflow-wrap: anywhere;
     }
 }

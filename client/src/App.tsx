@@ -13,6 +13,7 @@ import { HomePage } from './pages/Home/HomePage';
 import { HistoryPage } from './pages/History/HistoryPage';
 import { Layout } from "./layouts/Default/Layout";
 import { FiltersLayout } from "./layouts/Filters/FiltersLayout";
+import { BackNavigationLayout } from './layouts/BackNavigation/BackNavigationLayout';
 import { store } from "./store";
 import './App.css';
 
@@ -29,10 +30,12 @@ export const App: React.FC = () => {
                             <Route index element={<SearchPage />} />
                             <Route path=":type" element={<FilteredSearchPage />} />
                         </Route>
-                        <Route path="playlist/:id" element={<PlaylistPage />} />
-                        <Route path="album/:id" element={<AlbumPage />} />
-                        <Route path="artist/:id" element={<ArtistPage />} />
-                        <Route path="artist/:id/tracks" element={<ArtistTracksPage />} />
+                        <Route element={<BackNavigationLayout />}>
+                            <Route path="playlist/:id" element={<PlaylistPage />} />
+                            <Route path="album/:id" element={<AlbumPage />} />
+                            <Route path="artist/:id" element={<ArtistPage />} />
+                            <Route path="artist/:id/tracks" element={<ArtistTracksPage />} />
+                        </Route>
                         <Route path="queue" element={<QueuePage />} />
                         <Route path='*' element={<Navigate to="/" replace />} />
                     </Route>

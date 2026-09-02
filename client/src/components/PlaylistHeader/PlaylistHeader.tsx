@@ -10,13 +10,13 @@ export interface IPlaylistHeaderProps {
 
 export const PlaylistHeader: React.FC<IPlaylistHeaderProps> = React.memo(({ info }) => {
     return (
-        <Stack className={styles.container} direction='row'>
+        <Stack className={styles.container} direction='column' alignItems='center'>
             <div className={styles.imageContainer}>
                 <img className={styles.image} src={info.imageUrl} alt={info.name} referrerPolicy="no-referrer" />
             </div>
             <div>
                 <h2>{info.name}</h2>
-                <PlaylistInfo source={info} />
+                <PlaylistInfo source={info} centered />
             </div>
         </Stack>
     );

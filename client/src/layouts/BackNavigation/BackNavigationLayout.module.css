@@ -1,0 +1,41 @@
+.container {
+    display: contents;
+}
+
+.back {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: var(--text-light-color);
+    background: transparent;
+    cursor: pointer;
+}
+
+.back:hover {
+    background: var(--bg-dark-color);
+}
+
+.back:focus-visible {
+    outline: 2px solid var(--text-light-color);
+    outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+    .container {
+        display: flow-root;
+        position: relative;
+    }
+
+    .back {
+        display: flex;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 2;
+    }
+}
