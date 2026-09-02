@@ -22,6 +22,15 @@
     max-width: 300px;
     cursor: default;
     color: var(--text-light-color);
+    font-weight: 500;
+}
+
+.expanded .title {
+    font-weight: 700;
+}
+
+.title a {
+    color: inherit;
 }
 
 .artist {
@@ -92,7 +101,6 @@
 
     .expanded .title {
         font-size: clamp(1.35rem, 5.5vw, 1.65rem);
-        font-weight: 650;
         line-height: 1.25;
     }
 

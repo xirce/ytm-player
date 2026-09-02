@@ -37,7 +37,7 @@ export const QueuePage: React.FC = React.memo(() => {
                 label="Автовоспроизведение"
             />
             {autoplay && autoplaySource && (
-                <p>Радио построено на основе трека «{autoplaySource.title}»</p>
+                <p>Радио построено на основе трека «<span style={{ fontWeight: 500 }}>{autoplaySource.title}</span>»</p>
             )}
             <div ref={containerRef}>
                 <DraggableList<ITrackProps, void, QueueTrack>

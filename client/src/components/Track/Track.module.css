@@ -112,6 +112,12 @@
 .trackTitle {
     min-width: 0;
     flex: 1 1 auto;
+    color: var(--text-light-color);
+    font-weight: 500;
+}
+
+.trackTitle a {
+    color: inherit;
 }
 
 .playCount {
@@ -253,7 +259,6 @@
     .mobileCard .title {
         margin-top: 8px;
         font-size: 0.95rem;
-        font-weight: 600;
     }
 
     .mobileCard .artist {
