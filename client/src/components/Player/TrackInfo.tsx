@@ -9,9 +9,10 @@ import styles from "./TrackInfo.module.css";
 export interface ITrackInfoProps {
     source: ITrackBase;
     expanded?: boolean;
+    sharedArtwork?: boolean;
 }
 
-export const TrackInfo: React.FC<ITrackInfoProps> = React.memo(({ source, expanded = false }) => {
+export const TrackInfo: React.FC<ITrackInfoProps> = React.memo(({ source, expanded = false, sharedArtwork = false }) => {
     const imageUrl = expanded
         ? source?.imageUrls?.large ?? source?.imageUrl
         : source?.imageUrls?.small ?? source?.imageUrl;
@@ -25,13 +26,16 @@ export const TrackInfo: React.FC<ITrackInfoProps> = React.memo(({ source, expand
             direction={expanded ? 'column' : 'row'}
             className={expanded ? styles.expanded : styles.mini}
         >
-            <Grid item width='60px' height='60px' className={styles.imageContainer}>
+            <Grid item width='60px' height='60px' className={styles.imageContainer}
+                data-player-artwork={sharedArtwork ? expanded ? 'full' : 'mini' : undefined}>
                 {imageUrl && (
                     <img
                         className={styles.image}
                         src={imageUrl}
                         alt={source.title}
                         referrerPolicy="no-referrer"
+                        draggable={false}
+                        style={sharedArtwork ? { visibility: 'hidden' } : undefined}
                     />
                 )}
             </Grid>

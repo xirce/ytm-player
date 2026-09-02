@@ -1,5 +1,5 @@
 import React from 'react';
-import { ListItemIcon, ListItemText, MenuItem } from '@mui/material';
+import { ListItemIcon, ListItemText, MenuItem, useMediaQuery } from '@mui/material';
 import {
     ErrorOutlineRounded,
     PauseRounded,
@@ -36,7 +36,8 @@ export const Track: React.FC<ITrackProps> = React.memo(({
     compactPlayCount = false, mobileCard = false, playOnRowClick = false,
     mobileDragHandle = false, children
 }) => {
-    const { setTracks, setTrackIndex, setIsPlaying, appendLeftTracks, appendTracks, updateTrackMetadata } = useAppAction();
+    const { setTracks, setTrackIndex, setIsPlaying, setPlayerExpanded, appendLeftTracks, appendTracks, updateTrackMetadata } = useAppAction();
+    const isMobile = useMediaQuery('(max-width:700px)');
     const info = source[index];
     const displayedTrack = useAppSelector(getDisplayedTrack);
     const playerIsPlaying = useAppSelector(getIsPlaying);
@@ -46,25 +47,29 @@ export const Track: React.FC<ITrackProps> = React.memo(({
         ? info.imageUrls?.medium ?? info.imageUrl
         : info.imageUrls?.small ?? info.imageUrl;
 
-    const togglePlay = async () => {
+    const playTrack = (toggle = true) => {
+        if (!info.id) return;
+        const shouldPlay = !toggle || !resolvedIsPlaying;
         if (resolvedIsCurrent) {
             updateTrackMetadata(info);
-            setIsPlaying(!resolvedIsPlaying);
+            setIsPlaying(shouldPlay);
         } else {
             setTracks(source);
             setTrackIndex(index);
             setIsPlaying(true);
         }
+        if (isMobile && shouldPlay) setPlayerExpanded(true);
     }
     const handlePlayNext = () => appendLeftTracks([info]);
 
     const handleEnqueue = () => appendTracks([info]);
 
     const handleRowClick = (event: React.MouseEvent<HTMLDivElement>) => {
-        if (!playOnRowClick) return;
+        if (!isMobile && !playOnRowClick) return;
+        if (!event.currentTarget.contains(event.target as Node)) return;
         const target = event.target;
         if (target instanceof Element && target.closest('a, button, [data-drag-handle]')) return;
-        void togglePlay();
+        playTrack(!isMobile);
     };
 
     return (
@@ -72,7 +77,10 @@ export const Track: React.FC<ITrackProps> = React.memo(({
             className={`${resolvedIsCurrent ? styles.playingContainer : styles.container} ${!showDuration ? styles.withoutDuration : ''} ${mobileCard ? styles.mobileCard : ''} ${mobileDragHandle ? styles.mobileDragHandle : ''}`}
             onClick={handleRowClick}
         >
-            <div className={styles.imageContainer} onClick={() => !playOnRowClick && info.id && togglePlay()}>
+            <div className={styles.imageContainer} onClick={event => {
+                event.stopPropagation();
+                playTrack();
+            }}>
                 <img className={styles.image} src={imageUrl} alt={info.title} referrerPolicy="no-referrer" />
                 {resolvedIsPlaying && <VolumeUpRounded className={styles.nowPlayingIcon} fontSize='large' />}
                 {info.id
@@ -86,7 +94,7 @@ export const Track: React.FC<ITrackProps> = React.memo(({
             </div>
             <div className={styles.title}>
                 <span className={styles.trackTitle}>
-                    {info.album?.id
+                    {!isMobile && info.album?.id
                         ? <AlbumLink info={info.album}>{info.title}</AlbumLink>
                         : info.title}
                 </span>

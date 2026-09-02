@@ -8,8 +8,9 @@ import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownR
 import { VolumeControl } from './VolumeControl';
 import { TrackControl } from "./TrackControl";
 import { TrackInfo } from "./TrackInfo";
-import { useAppSelector } from '../../store';
-import { getCurrentTrack, getDisplayedTrack, getIsPlaying } from '../../store/player';
+import { usePlayerSheet } from '../../hooks/usePlayerSheet';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { getCurrentTrack, getDisplayedTrack, getIsPlaying, playerSlice } from '../../store/player';
 import styles from './PlayerControls.module.css';
 
 const createSilentAudio = () => {
@@ -44,9 +45,17 @@ export const PlayerControls: React.FC = React.memo(() => {
     const keepaliveAudioRef = useRef<HTMLAudioElement>(null);
     const [players, setPlayers] = useState<MediaPlayerClass[]>([]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
-    const [expanded, setExpanded] = useState(false);
+    const dispatch = useAppDispatch();
+    const expanded = useAppSelector(state => state.player.isExpanded);
+    const setExpanded = useCallback((value: boolean) => {
+        dispatch(playerSlice.actions.setPlayerExpanded(value));
+    }, [dispatch]);
     const isMobile = useMediaQuery('(max-width:700px)');
+    const [miniControlsContainer, setMiniControlsContainer] = useState<HTMLDivElement | null>(null);
+    const fullLayout = isMobile || expanded;
     const currentTrack = useAppSelector(getCurrentTrack);
+    const sheet = usePlayerSheet(isMobile && !!currentTrack, expanded, setExpanded);
+    const overlayVisible = isMobile ? sheet.visible : expanded;
     const isPlaying = useAppSelector(getIsPlaying);
     const displayTrackIndex = useAppSelector(state => state.player.displayTrackIndex);
     const displayedTrack = useAppSelector(getDisplayedTrack);
@@ -96,7 +105,7 @@ export const PlayerControls: React.FC = React.memo(() => {
     const displayedPlayer = isCrossfading ? standbyPlayer : player;
 
     useEffect(() => {
-        if (!expanded) return;
+        if (!overlayVisible) return;
         const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         const collapseOnLink = (event: MouseEvent) => {
@@ -110,21 +119,36 @@ export const PlayerControls: React.FC = React.memo(() => {
             document.body.style.overflow = previousOverflow;
             document.removeEventListener('click', collapseOnLink);
         };
-    }, [expanded]);
+    }, [overlayVisible, setExpanded]);
 
     useEffect(() => {
         setExpanded(false);
-    }, [location.pathname, location.search]);
+    }, [location.pathname, location.search, setExpanded]);
 
     return (
+        <div
+            ref={sheet.ref}
+            className={isMobile ? styles.sheetHost : undefined}
+            style={{ visibility: currentTrack ? 'visible' : 'hidden' }}
+            {...sheet.handlers}
+        >
         <Grid
+            data-player-panel
             container
-            className={`${styles.container} ${expanded ? styles.expanded : styles.mini}`}
+            className={`${styles.container} ${fullLayout ? styles.expanded : styles.mini} ${isMobile ? styles.sheet : ''}`}
             justifyContent='center'
             alignItems='center'
             direction='row'
             visibility={currentTrack ? 'visible' : 'hidden'}
         >
+            {isMobile && <>
+                <div className={`${styles.container} ${styles.mini} ${styles.morphMini}`} data-player-layer='mini'>
+                    <div className={styles.miniInfo} onClick={() => setExpanded(true)}>
+                        <TrackInfo source={displayedTrack} sharedArtwork />
+                    </div>
+                    <div ref={setMiniControlsContainer} className={styles.miniTransport} />
+                </div>
+            </>}
             <audio
                 ref={keepaliveAudioRef}
                 preload='auto'
@@ -135,11 +159,12 @@ export const PlayerControls: React.FC = React.memo(() => {
             <audio ref={firstAudioRef} style={{ display: 'none' }} />
             <audio ref={secondAudioRef} style={{ display: 'none' }} />
 
-            {expanded && (
+            {fullLayout && (
                 <button
                     className={`${styles.iconBtn} ${styles.collapseButton}`}
                     onClick={() => setExpanded(false)}
                     aria-label='Свернуть плеер'
+                    data-player-layer='full'
                 >
                     <KeyboardArrowDownRoundedIcon fontSize='large' />
                 </button>
@@ -150,10 +175,11 @@ export const PlayerControls: React.FC = React.memo(() => {
                 xs
                 className={styles.trackInfoColumn}
                 onClick={() => !expanded && setExpanded(true)}
+                data-player-layer='full'
             >
-                <TrackInfo source={displayedTrack} expanded={expanded} />
+                <TrackInfo source={displayedTrack} expanded={fullLayout} sharedArtwork={isMobile} />
             </Grid>
-            <Grid item xs={4} className={styles.trackControlColumn}>
+            <Grid item xs={4} className={styles.trackControlColumn} data-player-layer='full'>
                 {player && standbyPlayer && (
                     <TrackControl
                         player={player}
@@ -161,12 +187,12 @@ export const PlayerControls: React.FC = React.memo(() => {
                         swapPlayers={swapPlayers}
                         progressPlayer={displayedPlayer}
                         canReadProgressImmediately={isCrossfading}
-                        compactProgress={isMobile && !expanded}
+                        miniControlsContainer={isMobile ? miniControlsContainer : null}
                         onPlayRequested={startKeepalive}
                     />
                 )}
             </Grid>
-            <Grid container item xs justifyContent='center' className={styles.volumeColumn}>
+            <Grid container item xs justifyContent='center' className={styles.volumeColumn} data-player-layer='full'>
                 <Grid item xs={8}>
                     {displayedPlayer && (
                         <VolumeControl
@@ -184,5 +210,17 @@ export const PlayerControls: React.FC = React.memo(() => {
                 </Grid>
             </Grid>
         </Grid>
+        {isMobile && (displayedTrack?.imageUrls?.large ?? displayedTrack?.imageUrl) && (
+            <img
+                className={styles.sharedArtwork}
+                data-player-shared-artwork
+                src={displayedTrack.imageUrls?.large ?? displayedTrack.imageUrl}
+                alt={displayedTrack.title}
+                draggable={false}
+                referrerPolicy='no-referrer'
+                onClick={() => !expanded && setExpanded(true)}
+            />
+        )}
+        </div>
     );
 });

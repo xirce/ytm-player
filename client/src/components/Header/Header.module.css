@@ -46,12 +46,14 @@
         right: 0;
         bottom: 0;
         left: 0;
-        z-index: 1000;
+        /* Cover the sheet below its mini row without animating a clipping mask. */
+        z-index: 1201;
         height: calc(64px + env(safe-area-inset-bottom));
         padding: 0 8px env(safe-area-inset-bottom);
         border-top: 1px solid var(--bg-main-color);
         border-bottom: 0;
         background: var(--bg-dark-color);
+        will-change: transform;
     }
 
     .desktopContent {

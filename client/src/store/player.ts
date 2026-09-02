@@ -6,6 +6,7 @@ import { ITrackBase } from "../../../shared";
 import { loadPlayerProgress, loadPlayerState } from "../utils/playerPersistence";
 
 export interface IPlayerState {
+    isExpanded: boolean;
     isPlaying: boolean;
     trackIndex: number;
     displayTrackIndex: number | null;
@@ -30,6 +31,7 @@ const restoredTrackIndex = Math.min(
 );
 
 const initialPlayerState: IPlayerState = {
+    isExpanded: false,
     isPlaying: false,
     trackIndex: restoredTrackIndex,
     displayTrackIndex: null,
@@ -43,6 +45,9 @@ export const playerSlice = createSlice({
     name: 'player',
     initialState: initialPlayerState,
     reducers: {
+        setPlayerExpanded(state, action: PayloadAction<boolean>) {
+            state.isExpanded = action.payload;
+        },
         setIsPlaying(state: IPlayerState, action: PayloadAction<boolean>) {
             state.isPlaying = action.payload;
         },

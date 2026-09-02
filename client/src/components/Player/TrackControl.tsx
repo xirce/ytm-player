@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Stack from "@mui/material/Stack";
 import Grid from "@mui/material/Grid";
 import { skipToken } from "@reduxjs/toolkit/query";
@@ -29,7 +30,7 @@ export interface TrackControlProps {
     swapPlayers: () => void;
     progressPlayer: MediaPlayerClass;
     canReadProgressImmediately: boolean;
-    compactProgress?: boolean;
+    miniControlsContainer?: HTMLDivElement | null;
     onPlayRequested?: () => void;
 }
 
@@ -39,7 +40,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     swapPlayers,
     progressPlayer,
     canReadProgressImmediately,
-    compactProgress = false,
+    miniControlsContainer,
     onPlayRequested
 }) => {
     const {
@@ -506,6 +507,21 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
 
     return (
         <Stack className={styles.trackControlStack}>
+            {miniControlsContainer && createPortal(<>
+                <button className={styles.iconBtn} onClick={handlePlaying} aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}>
+                    {isPlaying ? <PauseRounded fontSize='large' /> : <PlayArrowRounded fontSize='large' />}
+                </button>
+                <button className={styles.iconBtn} onClick={handleSkipNext} aria-label='Следующий трек'>
+                    <SkipNextRounded fontSize='large' />
+                </button>
+                <TimeProgressBar
+                    player={progressPlayer}
+                    canReadImmediately={canReadProgressImmediately}
+                    trackId={displayedTrack?.id}
+                    fallbackDuration={displayedTrack?.duration}
+                    compact
+                />
+            </>, miniControlsContainer)}
             <Grid className={styles.transportControls} container justifyContent="center" alignItems="center" gap={2} marginBottom={1}>
                 <button className={`${styles.iconBtn} ${styles.mobileSecondaryControl}`} onClick={handleShuffle}>
                     <ShuffleRounded />
@@ -513,10 +529,10 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                 <button className={styles.iconBtn} onClick={handleSkipPrev}>
                     <SkipPreviousRounded fontSize="large" />
                 </button>
-                <button className={styles.iconBtn} onClick={handlePlaying}>
+                <button className={styles.iconBtn} onClick={handlePlaying} aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}>
                     {isPlaying ? <PauseRounded fontSize="large" /> : <PlayArrowRounded fontSize="large" />}
                 </button>
-                <button className={styles.iconBtn} onClick={handleSkipNext}>
+                <button className={styles.iconBtn} onClick={handleSkipNext} aria-label='Следующий трек'>
                     <SkipNextRounded fontSize="large" />
                 </button>
                 <button className={`${styles.iconBtn} ${styles.mobileSecondaryControl}`} onClick={handleToggleRepeat}>
@@ -528,7 +544,6 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                 canReadImmediately={canReadProgressImmediately}
                 trackId={displayedTrack?.id}
                 fallbackDuration={displayedTrack?.duration}
-                compact={compactProgress}
             />
         </Stack>
     );

@@ -16,7 +16,7 @@ const Header: React.FC = () => {
     const [mobileAnchor, setMobileAnchor] = useState<HTMLElement | null>(null);
 
     return (
-        <header className={styles.container}>
+        <header className={styles.container} data-player-navigation>
             <Grid container className={styles.desktopContent}
                   justifyContent='space-between'
                   alignItems='center'
