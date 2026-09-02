@@ -4,8 +4,21 @@
     gap: 32px;
 }
 
-.section h2 {
-    margin: 0 0 16px;
+.section {
+    min-width: 0;
+}
+
+.sectionHeading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.sectionHeading h2 {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
 }
 
 .items {
@@ -20,19 +33,77 @@
     text-align: center;
 }
 
+.carousel {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+}
+
+.carousel::-webkit-scrollbar {
+    display: none;
+}
+
+.pageDots {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 0;
+}
+
+.pageDot {
+    display: grid;
+    place-items: center;
+    width: 14px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-light-color);
+    cursor: pointer;
+}
+
+.pageDot::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.3;
+}
+
+.pageDot[aria-current='page']::before {
+    opacity: 1;
+}
+
 @media (max-width: 700px) {
     .container {
-        gap: 24px;
+        gap: 40px;
     }
 
-    .section h2 {
+    .sectionHeading {
         margin-bottom: 12px;
+    }
+
+    .sectionHeading h2 {
         font-size: 1.3rem;
     }
 
     .items {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 18px 12px;
+    }
+
+    .listenAgainGrid {
+        flex: 0 0 100%;
+        min-width: 0;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-rows: repeat(3, auto);
+        align-content: start;
+        gap: 6px;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
     }
 }
 

@@ -81,7 +81,7 @@ export const Track: React.FC<ITrackProps> = React.memo(({
                 event.stopPropagation();
                 playTrack();
             }}>
-                <img className={styles.image} src={imageUrl} alt={info.title} referrerPolicy="no-referrer" />
+                <img className={styles.image} src={imageUrl} alt={info.title} loading={mobileCard ? 'lazy' : undefined} referrerPolicy="no-referrer" />
                 {resolvedIsPlaying && <VolumeUpRounded className={styles.nowPlayingIcon} fontSize='large' />}
                 {info.id
                     ? resolvedIsPlaying

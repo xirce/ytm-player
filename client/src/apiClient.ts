@@ -12,6 +12,7 @@ import {
     ITrackBase,
     IAlbumInfo,
     IHomeFeed,
+    IHomeSectionPage,
     YouTubeAuthState
 } from "../../shared";
 
@@ -136,6 +137,9 @@ const api = createApi({
                 params: { cursor }
             })
         }),
+        getHomeSection: build.query<IHomeSectionPage, string>({
+            query: cursor => ({ url: '/home/section', method: 'GET', requiresAuth: true, params: { cursor } })
+        }),
         getHistory: build.query<ITrackBase[], void>({
             query: () => ({ url: '/history', method: 'GET', requiresAuth: true }),
             providesTags: ['History']
@@ -169,6 +173,7 @@ export const {
     useLazyGetPlaylistContinuationQuery,
     useGetHomeQuery,
     useLazyGetHomeContinuationQuery,
+    useLazyGetHomeSectionQuery,
     useGetHistoryQuery,
     useGetYouTubeAuthStatusQuery,
     useStartYouTubeAuthenticationMutation,

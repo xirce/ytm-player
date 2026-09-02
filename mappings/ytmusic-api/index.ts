@@ -192,7 +192,7 @@ export const mapPlaylistPanelVideoToTrack = (source: YTNodes.PlaylistPanelVideo)
     };
 };
 
-const mapToHomeItem = (source: YTNodes.MusicCarouselShelf['contents'][number]): IHomeItem | undefined => {
+export const mapToHomeItem = (source: unknown): IHomeItem | undefined => {
     if (source instanceof YTNodes.MusicResponsiveListItem) {
         switch (source.item_type) {
             case 'song':

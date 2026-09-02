@@ -86,6 +86,12 @@ export type IHomeItem =
 export interface IHomeSection {
     title: string;
     items: IHomeItem[];
+    continuation?: string | null;
+}
+
+export interface IHomeSectionPage {
+    items: IHomeItem[];
+    continuation: string | null;
 }
 
 export interface IHomeFeed {

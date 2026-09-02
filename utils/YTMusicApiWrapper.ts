@@ -1,6 +1,6 @@
 import { Innertube, MusicPlaylistShelfContinuation, Platform, Types, UniversalCache, YTMusic, YTNodes } from 'youtubei.js';
-import { IPlaylist, IPlaylistPage, ITrackBase, YouTubeAuthState } from '../shared';
-import { getThumbnailUrl, mapPlaylistPanelVideoToTrack, mapToArtistInfo, mapToTrack } from '../mappings/ytmusic-api';
+import { IHomeItem, IHomeSectionPage, IPlaylist, IPlaylistPage, ITrackBase, YouTubeAuthState } from '../shared';
+import { getThumbnailUrl, mapPlaylistPanelVideoToTrack, mapToArtistInfo, mapToHomeItem, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 
 const validateMusicCookie = (cookie: string): string => {
@@ -105,6 +105,31 @@ export class YTMusicApiWrapper {
             throw new Error('YouTube Music cookie authentication is not configured');
         }
         return this.musicAuthenticationInnertube.music.getHomeFeed();
+    }
+
+    public async getHomeSectionPage(request: { browseId?: string; params?: string; continuation?: string }): Promise<IHomeSectionPage> {
+        if (!this.musicAuthenticationInnertube) {
+            throw new Error('YouTube Music cookie authentication is not configured');
+        }
+        const response = await this.musicAuthenticationInnertube.actions.execute('/browse', {
+            ...request, client: 'YTMUSIC', parse: true
+        });
+        const shelf = response.continuation_contents
+            ?? response.contents_memo?.getType(YTNodes.Grid)?.[0]
+            ?? response.contents_memo?.getType(YTNodes.MusicShelf)?.[0]
+            ?? response.contents_memo?.getType(YTNodes.MusicCarouselShelf)?.[0];
+        const contents = shelf && 'contents' in shelf ? shelf.contents
+            : shelf && 'items' in shelf ? shelf.items : undefined;
+        const nodes: unknown[] = Array.isArray(contents) ? contents : response.on_response_received_actions
+            ?.filter(action => action instanceof YTNodes.AppendContinuationItemsAction)
+            .flatMap(action => action.contents ?? []) ?? [];
+        const continuationItem = nodes.find(node => node instanceof YTNodes.ContinuationItem);
+        const token = (shelf && 'continuation' in shelf ? shelf.continuation : null)
+            ?? (continuationItem instanceof YTNodes.ContinuationItem ? continuationItem.endpoint.payload.token : null);
+        return {
+            items: nodes.map(mapToHomeItem).filter((item): item is IHomeItem => Boolean(item)),
+            continuation: typeof token === 'string' && token ? token : null
+        };
     }
 
     public async getMusicHistory(): Promise<ITrackBase[]> {
