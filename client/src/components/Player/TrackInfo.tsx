@@ -42,12 +42,14 @@ export const TrackInfo: React.FC<ITrackInfoProps> = React.memo(({ source, expand
             <Grid item className={styles.infoContainer}>
                 <Stack direction='column' alignItems={expanded ? 'center' : 'start'}>
                     <span className={styles.title} title={source?.title ?? ''}>
-                        {source?.album?.id
+                        {expanded && source?.album?.id
                             ? <AlbumLink info={source.album}>{source.title}</AlbumLink>
                             : source?.title ?? 'Название трека'}
                     </span>
                     <span className={styles.artist}>
-                        {source ? <ArtistLink info={source.artist} /> : 'Артист'}
+                        {source
+                            ? expanded ? <ArtistLink info={source.artist} /> : source.artist.name
+                            : 'Артист'}
                     </span>
                 </Stack>
             </Grid>
