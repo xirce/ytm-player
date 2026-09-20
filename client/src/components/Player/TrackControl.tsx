@@ -32,6 +32,12 @@ export interface TrackControlProps {
     canReadProgressImmediately: boolean;
     miniControlsContainer?: HTMLDivElement | null;
     onPlayRequested?: () => void;
+    onTrackNavigationChange?: (navigation: TrackNavigation | null) => void;
+}
+
+export interface TrackNavigation {
+    next: () => void;
+    previous: () => void;
 }
 
 export const TrackControl: React.FC<TrackControlProps> = React.memo(({
@@ -41,7 +47,8 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     progressPlayer,
     canReadProgressImmediately,
     miniControlsContainer,
-    onPlayRequested
+    onPlayRequested,
+    onTrackNavigationChange
 }) => {
     const {
         setIsPlaying, skipNext, skipPrev, setRepeat, shuffle, setDisplayTrackIndex,
@@ -55,6 +62,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     const tracks = useAppSelector(getTracks);
     const trackIndex = useAppSelector(getTrackIndex);
     const trackIndexRef = useDependentRef(trackIndex);
+    const previousTrack = tracks[trackIndex === 0 ? tracks.length - 1 : trackIndex - 1];
     const nextTrack = tracks[trackIndex + 1];
     const autoplay = useAppSelector(getAutoplay);
     const autoplayRef = useDependentRef(autoplay);
@@ -366,12 +374,28 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         }
     };
 
+    const resetTrackToStart = (trackId?: string, duration?: number | null) => {
+        if (!trackId) return;
+        [player, standbyPlayer].forEach(targetPlayer => {
+            if (playerTrackIdsRef.current.get(targetPlayer) !== trackId) return;
+            try {
+                targetPlayer.seek(0);
+            } catch {
+                // The source may be detached while a rapid track change is loading.
+            }
+        });
+        savePlayerProgress({ trackId, position: 0, duration: duration || undefined });
+    };
+
     const handleSkipPrev = () => {
         cancelCrossfade();
-        const currentTime = player.time() || 0;
+        const currentTime = playerTrackIdsRef.current.get(player) === currentTrack?.id
+            ? player.time() || 0
+            : 0;
         if (currentTime > 2) {
-            player.seek(0);
+            resetTrackToStart(currentTrack?.id, currentTrack?.duration);
         } else {
+            resetTrackToStart(previousTrack?.id, previousTrack?.duration);
             skipPrev();
         }
     };
@@ -381,6 +405,24 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         skipNext();
         if (!isPlaying) setIsPlaying(true);
     };
+
+    const handlePreviousTrack = () => {
+        const wasCrossfading = crossfadeRef.current.active;
+        cancelCrossfade();
+        // During a crossfade the artwork already shows the upcoming track, so
+        // returning to the current track is the expected "previous" action.
+        if (!wasCrossfading) {
+            resetTrackToStart(previousTrack?.id, previousTrack?.duration);
+            skipPrev();
+        }
+        if (!isPlaying) setIsPlaying(true);
+    };
+
+    useEffect(() => {
+        if (!onTrackNavigationChange) return;
+        onTrackNavigationChange({ next: handleSkipNext, previous: handlePreviousTrack });
+        return () => onTrackNavigationChange(null);
+    });
 
     const handleToggleRepeat = () => {
         cancelCrossfade();

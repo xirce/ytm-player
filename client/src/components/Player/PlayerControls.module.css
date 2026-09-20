@@ -70,7 +70,7 @@
     .sheet {
         pointer-events: auto;
         will-change: transform;
-        touch-action: none !important;
+        touch-action: pan-x !important;
         user-select: none;
         -webkit-user-select: none;
         -webkit-touch-callout: none;
@@ -110,10 +110,68 @@
         top: 0;
         transform-origin: top left;
         will-change: transform;
-        border-radius: 8px;
+        -webkit-user-drag: none;
+        touch-action: pan-x;
+        cursor: grab;
+        overflow: hidden;
+    }
+
+    .sheetHost[data-player-state='open'] .sharedArtwork {
+        overflow: visible;
+    }
+
+    .sharedArtwork:active {
+        cursor: grabbing;
+    }
+
+    .sharedArtworkImage {
+        display: block;
+        width: 100%;
+        height: 100%;
         object-fit: cover;
         -webkit-user-drag: none;
-        touch-action: none;
+        user-select: none;
+    }
+
+    .artworkCarousel {
+        position: relative;
+        display: flex;
+        gap: 24px;
+        width: 100%;
+        height: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+        touch-action: pan-x;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .sheetHost[data-player-state='open'] .artworkCarousel {
+        left: calc((100% - 100vw) / 2);
+        width: 100vw;
+        padding-inline: calc((100vw - var(--artwork-card-width)) / 2);
+        box-sizing: border-box;
+    }
+
+    .artworkCarousel::-webkit-scrollbar {
+        display: none;
+    }
+
+    .artworkCarousel.singleArtwork {
+        overflow: hidden;
+    }
+
+    .artworkSlide {
+        flex: 0 0 var(--artwork-card-width, 100%);
+        width: var(--artwork-card-width, 100%);
+        height: 100%;
+        overflow: hidden;
+        border-radius: 8px;
+        background: transparent;
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
     }
 
     .mini .transportControls > button {

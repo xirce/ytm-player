@@ -80,9 +80,9 @@
     }
 
     .expanded .imageContainer {
-        width: min(78vw, 420px);
-        height: min(78vw, 420px);
-        max-height: 45dvh;
+        width: min(calc(100vw - 40px), 65dvh);
+        height: min(calc(100vw - 40px), 65dvh);
+        max-height: none;
         min-width: 0;
     }
 
