@@ -13,6 +13,12 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { getCurrentTrack, getDisplayedTrack, getIsPlaying, playerSlice } from '../../store/player';
 import styles from './PlayerControls.module.css';
 
+type NavigatorWithAudioSession = Navigator & {
+    audioSession?: {
+        type: string;
+    };
+};
+
 const createSilentAudio = () => {
     const sampleRate = 8000;
     const dataLength = sampleRate * 10;
@@ -173,6 +179,17 @@ export const PlayerControls: React.FC = React.memo(() => {
 
     useEffect(() => () => {
         if (artworkScrollTimerRef.current) clearTimeout(artworkScrollTimerRef.current);
+    }, []);
+
+    useEffect(() => {
+        const audioSession = (navigator as NavigatorWithAudioSession).audioSession;
+        if (!audioSession) return;
+        try {
+            // Tell supporting WebKit versions that this page provides primary media playback.
+            audioSession.type = 'playback';
+        } catch {
+            // Audio Session is still experimental and may expose only part of the API.
+        }
     }, []);
 
     useEffect(() => {
