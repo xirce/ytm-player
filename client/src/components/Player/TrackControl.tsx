@@ -564,7 +564,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                     compact
                 />
             </>, miniControlsContainer)}
-            <Grid className={styles.transportControls} container justifyContent="center" alignItems="center" gap={2} marginBottom={1}>
+            <Grid className={styles.transportControls} data-player-transport container justifyContent="center" alignItems="center" gap={2} marginBottom={1}>
                 <button className={`${styles.iconBtn} ${styles.mobileSecondaryControl}`} onClick={handleShuffle}>
                     <ShuffleRounded />
                 </button>

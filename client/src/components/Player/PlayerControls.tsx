@@ -8,6 +8,7 @@ import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownR
 import { VolumeControl } from './VolumeControl';
 import { TrackControl, type TrackNavigation } from "./TrackControl";
 import { TrackInfo } from "./TrackInfo";
+import { MobilePlayerQueue, MobilePlayerQueueHandle, type QueueStage } from './MobilePlayerQueue';
 import { usePlayerSheet } from '../../hooks/usePlayerSheet';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { getCurrentTrack, getDisplayedTrack, getIsPlaying, playerSlice } from '../../store/player';
@@ -51,6 +52,9 @@ export const PlayerControls: React.FC = React.memo(() => {
     const keepaliveAudioRef = useRef<HTMLAudioElement>(null);
     const [players, setPlayers] = useState<MediaPlayerClass[]>([]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
+    const [queueStage, setQueueStage] = useState<QueueStage>(0);
+    const mobileQueueRef = useRef<MobilePlayerQueueHandle>(null);
+    const queueMiniActiveRef = useRef(false);
     const dispatch = useAppDispatch();
     const expanded = useAppSelector(state => state.player.isExpanded);
     const setExpanded = useCallback((value: boolean) => {
@@ -60,7 +64,12 @@ export const PlayerControls: React.FC = React.memo(() => {
     const [miniControlsContainer, setMiniControlsContainer] = useState<HTMLDivElement | null>(null);
     const fullLayout = isMobile || expanded;
     const currentTrack = useAppSelector(getCurrentTrack);
-    const sheet = usePlayerSheet(isMobile && !!currentTrack, expanded, setExpanded);
+    const sheet = usePlayerSheet(isMobile && !!currentTrack, expanded, setExpanded, {
+        isOpen: () => queueStage > 0,
+        begin: (y, time) => mobileQueueRef.current?.begin(y, time),
+        move: (y, time) => mobileQueueRef.current?.move(y, time) ?? false,
+        finish: (y, time, cancelled) => mobileQueueRef.current?.finish(y, time, cancelled)
+    });
     const overlayVisible = isMobile ? sheet.visible : expanded;
     const isPlaying = useAppSelector(getIsPlaying);
     const tracks = useAppSelector(state => state.player.tracks);
@@ -70,6 +79,12 @@ export const PlayerControls: React.FC = React.memo(() => {
     const displayedTrack = useAppSelector(getDisplayedTrack);
     const trackNavigationRef = useRef<TrackNavigation | null>(null);
     const artworkCarouselRef = useRef<HTMLDivElement>(null);
+    const queueGeometryRef = useRef<{
+        key: string;
+        expandedScale: number;
+        artworkHeight: number;
+        artworkTop: number;
+    } | null>(null);
     const artworkScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const artworkPointerStartRef = useRef(0);
     const artworkPointerActiveRef = useRef(false);
@@ -164,8 +179,10 @@ export const PlayerControls: React.FC = React.memo(() => {
         if (!carousel) return;
         const center = () => {
             const currentSlide = carousel.querySelectorAll<HTMLElement>('[data-player-artwork-slide]')[1];
-            const cardWidth = carousel.parentElement?.clientWidth;
-            if (cardWidth) carousel.style.setProperty('--artwork-card-width', `${cardWidth}px`);
+        const cardWidth = carousel.parentElement?.clientWidth;
+        const cardHeight = carousel.parentElement?.clientHeight;
+        if (cardWidth) carousel.style.setProperty('--artwork-card-width', `${cardWidth}px`);
+        if (cardHeight) carousel.style.setProperty('--artwork-card-height', `${cardHeight}px`);
             if (currentSlide) {
                 carousel.scrollLeft = currentSlide.offsetLeft - (carousel.clientWidth - currentSlide.offsetWidth) / 2;
             }
@@ -173,7 +190,8 @@ export const PlayerControls: React.FC = React.memo(() => {
         };
         center();
         const observer = new ResizeObserver(center);
-        observer.observe(carousel);
+        // Queue expansion changes carousel height every frame; only the artwork viewport needs recentering.
+        observer.observe(carousel.parentElement ?? carousel);
         return () => observer.disconnect();
     }, [displayedTrack?.id, trackIndex, displayTrackIndex, isMobile]);
 
@@ -254,7 +272,66 @@ export const PlayerControls: React.FC = React.memo(() => {
 
     useEffect(() => {
         setExpanded(false);
+        setQueueStage(0);
     }, [location.pathname, location.search, setExpanded]);
+
+    useEffect(() => {
+        if (!expanded) setQueueStage(0);
+    }, [expanded]);
+
+    const setQueueProgress = useCallback((progress: number) => {
+        const host = sheet.ref.current;
+        if (!host) return;
+        if (!expanded) queueGeometryRef.current = null;
+        const key = `${window.innerWidth}:${window.innerHeight}:${displayedTrack?.id ?? ''}`;
+        // Layout reads are kept out of the per-frame queue animation.
+        if (expanded && progress > 0 && queueGeometryRef.current?.key !== key) {
+            const artwork = host.querySelector<HTMLElement>('[data-player-shared-artwork]');
+            const info = host.querySelector<HTMLElement>('[data-player-track-metadata]');
+            const controls = host.querySelector<HTMLElement>('[data-player-controls]');
+            const transport = controls?.querySelector<HTMLElement>('[data-player-transport]');
+            const previousShift = Number.parseFloat(host.style.getPropertyValue('--queue-artwork-shift-y') || '0') || 0;
+            queueGeometryRef.current = {
+                key,
+                expandedScale: artwork?.offsetWidth ? Math.max(1, window.innerWidth / artwork.offsetWidth) : 1.18,
+                artworkHeight: artwork?.offsetHeight ?? 0,
+                artworkTop: artwork ? artwork.getBoundingClientRect().top - previousShift : 0
+            };
+            if (info && controls) {
+                const queueTop = host.clientHeight - Math.min(window.innerHeight * 0.4, 560);
+                const controlsTop = queueTop - controls.offsetHeight - 28;
+                const infoTop = controlsTop - info.offsetHeight - 20;
+                host.style.setProperty('--queue-info-shift', `${infoTop - info.offsetTop}px`);
+                host.style.setProperty('--queue-controls-shift', `${controlsTop - controls.offsetTop}px`);
+                if (transport) {
+                    const transportOffset = transport.getBoundingClientRect().top - controls.getBoundingClientRect().top;
+                    host.style.setProperty('--queue-black-top', `${controlsTop + transportOffset - 28}px`);
+                }
+            }
+        }
+        const geometry = queueGeometryRef.current;
+        const openProgress = Math.min(progress, 1);
+        const fullProgress = expanded ? Math.max(0, progress - 1) : 0;
+        const scale = 1 + openProgress * ((geometry?.expandedScale ?? 1) - 1);
+        host.style.setProperty('--queue-progress', String(openProgress));
+        host.style.setProperty('--queue-full-progress', String(fullProgress));
+        host.style.setProperty('--queue-artwork-scale', String(scale));
+        if (geometry?.artworkHeight) host.style.setProperty('--queue-artwork-height', `${geometry.artworkHeight * scale}px`);
+        host.style.setProperty('--queue-artwork-shift-y', `${-(geometry?.artworkTop ?? 0) * openProgress + (window.innerHeight * 0.08) * fullProgress}px`);
+        host.style.setProperty('--queue-artwork-shift-x', `${20 * fullProgress}px`);
+        host.style.setProperty('--queue-artwork-outer-scale', String(1 - fullProgress * (1 - 48 / window.innerWidth)));
+        host.style.setProperty('--queue-neighbor-opacity', String(1 - openProgress));
+        host.style.setProperty('--queue-artwork-radius', `${8 * (1 - openProgress)}px`);
+        host.dataset.queueStage = fullProgress >= 0.99 ? 'full' : fullProgress > 0 ? 'revealing' : 'partial';
+        if (expanded && (progress > 1 || queueMiniActiveRef.current)) {
+            queueMiniActiveRef.current = progress > 1;
+            host.querySelectorAll<HTMLElement>('[data-player-panel] > [data-player-layer="full"]').forEach(layer => {
+                layer.style.opacity = String(1 - fullProgress);
+            });
+            const miniLayer = host.querySelector<HTMLElement>('[data-player-layer="mini"]');
+            if (miniLayer) miniLayer.style.opacity = String(fullProgress);
+        } else if (!expanded) queueMiniActiveRef.current = false;
+    }, [sheet.ref, expanded, displayedTrack?.id]);
 
     return (
         <div
@@ -263,6 +340,7 @@ export const PlayerControls: React.FC = React.memo(() => {
             style={{ visibility: currentTrack ? 'visible' : 'hidden' }}
             {...sheet.handlers}
         >
+        {isMobile && <div className={styles.backdrop} data-player-backdrop />}
         <Grid
             data-player-panel
             container
@@ -273,8 +351,17 @@ export const PlayerControls: React.FC = React.memo(() => {
             visibility={currentTrack ? 'visible' : 'hidden'}
         >
             {isMobile && <>
-                <div className={`${styles.container} ${styles.mini} ${styles.morphMini}`} data-player-layer='mini'>
-                    <div className={styles.miniInfo} onClick={() => setExpanded(true)}>
+                <div
+                    className={`${styles.container} ${styles.mini} ${styles.morphMini}`}
+                    data-player-layer='mini'
+                    onClick={(event) => {
+                        if (!(event.target as Element).closest('button, a')) {
+                            if (queueStage === 2) setQueueStage(1);
+                            else setExpanded(true);
+                        }
+                    }}
+                >
+                    <div className={styles.miniInfo}>
                         <TrackInfo source={displayedTrack} sharedArtwork />
                     </div>
                     <div ref={setMiniControlsContainer} className={styles.miniTransport} />
@@ -310,7 +397,7 @@ export const PlayerControls: React.FC = React.memo(() => {
             >
                 <TrackInfo source={displayedTrack} expanded={fullLayout} sharedArtwork={isMobile} />
             </Grid>
-            <Grid item xs={4} className={styles.trackControlColumn} data-player-layer='full'>
+            <Grid item xs={4} className={styles.trackControlColumn} data-player-layer='full' data-player-controls>
                 {player && standbyPlayer && (
                     <TrackControl
                         player={player}
@@ -333,13 +420,13 @@ export const PlayerControls: React.FC = React.memo(() => {
                         />
                     )}
                 </Grid>
-                <Grid item className={styles.queueButton}>
+                {!isMobile && <Grid item className={styles.queueButton}>
                     <Link to='/queue'>
                         <button className={styles.iconBtn} title='Очередь'>
                             <QueueMusicRoundedIcon />
                         </button>
                     </Link>
-                </Grid>
+                </Grid>}
             </Grid>
         </Grid>
         {isMobile && (displayedTrack?.imageUrls?.large ?? displayedTrack?.imageUrl) && (
@@ -369,6 +456,7 @@ export const PlayerControls: React.FC = React.memo(() => {
                 </div>
             </div>
         )}
+        {isMobile && <MobilePlayerQueue ref={mobileQueueRef} stage={queueStage} onStageChange={setQueueStage} onProgress={setQueueProgress} />}
         </div>
     );
 });

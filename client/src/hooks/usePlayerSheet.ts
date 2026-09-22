@@ -2,7 +2,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type React from 'react';
 
 export const PLAYER_TRANSITION_MS = 400;
-const INTERACTIVE = 'button, [role="button"], input, [role="slider"], .MuiSlider-root';
+const INTERACTIVE = 'a, [role="link"], button, [role="button"], input, [role="slider"], .MuiSlider-root, [data-player-queue]';
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
 interface Gesture {
@@ -14,9 +14,22 @@ interface Gesture {
     progress: number;
     open: boolean;
     dragging: boolean;
+    queue: boolean;
 }
 
-export const usePlayerSheet = (enabled: boolean, expanded: boolean, setExpanded: (value: boolean) => void) => {
+interface ExpandedSwipe {
+    isOpen: () => boolean;
+    begin: (y: number, time: number) => void;
+    move: (y: number, time: number) => boolean;
+    finish: (y: number, time: number, cancelled?: boolean) => void;
+}
+
+export const usePlayerSheet = (
+    enabled: boolean,
+    expanded: boolean,
+    setExpanded: (value: boolean) => void,
+    expandedSwipe?: ExpandedSwipe
+) => {
     const ref = useRef<HTMLDivElement>(null);
     const frame = useRef<number | null>(null);
     const animation = useRef<{ items: Animation[]; from: number; to: number } | null>(null);
@@ -25,16 +38,19 @@ export const usePlayerSheet = (enabled: boolean, expanded: boolean, setExpanded:
     const geometry = useRef({ navHeight: 64, mini: { x: 0, y: 0, width: 48, height: 48 }, full: { x: 0, y: 0, width: 1, height: 1 } });
     const layers = useRef<{
         panel: HTMLElement | null;
+        backdrop: HTMLElement | null;
         artwork: HTMLElement | null;
         mini: HTMLElement | null;
         full: HTMLElement[];
         navigation: HTMLElement | null;
-    }>({ panel: null, artwork: null, mini: null, full: [], navigation: null });
+    }>({ panel: null, backdrop: null, artwork: null, mini: null, full: [], navigation: null });
     const gesture = useRef<Gesture | null>(null);
     const suppressClick = useRef(false);
     const initialized = useRef(false);
     const state = useRef({ expanded, setExpanded });
     state.current = { expanded, setExpanded };
+    const expandedSwipeRef = useRef(expandedSwipe);
+    expandedSwipeRef.current = expandedSwipe;
     const [visible, setVisible] = useState(expanded);
 
     const paint = useCallback((value: number) => {
@@ -42,9 +58,10 @@ export const usePlayerSheet = (enabled: boolean, expanded: boolean, setExpanded:
         if (!element) return;
         const p = progress.current = clamp(value);
         const { navHeight, mini, full } = geometry.current;
-        const { panel, artwork, mini: miniLayer, full: fullLayers, navigation } = layers.current;
+        const { panel, backdrop, artwork, mini: miniLayer, full: fullLayers, navigation } = layers.current;
         const panelY = travel.current * (1 - p);
         if (panel) panel.style.transform = `translate3d(0, ${panelY}px, 0)`;
+        if (backdrop) backdrop.style.transform = `translate3d(0, ${panelY}px, 0)`;
         if (artwork) {
             // Artwork is a sibling layer: one screen-space transform, no moving/scaling ancestor.
             const x = mini.x + (full.x - mini.x) * p;
@@ -80,6 +97,7 @@ export const usePlayerSheet = (enabled: boolean, expanded: boolean, setExpanded:
         const panel = element.querySelector<HTMLElement>('[data-player-panel]');
         layers.current = {
             panel,
+            backdrop: element.querySelector<HTMLElement>('[data-player-backdrop]'),
             navigation,
             artwork: element.querySelector<HTMLElement>('[data-player-shared-artwork]'),
             mini: element.querySelector<HTMLElement>('[data-player-layer="mini"]'),
@@ -107,6 +125,7 @@ export const usePlayerSheet = (enabled: boolean, expanded: boolean, setExpanded:
 
     const resetStyles = useCallback(() => {
         layers.current.panel?.style.removeProperty('transform');
+        layers.current.backdrop?.style.removeProperty('transform');
         layers.current.navigation?.style.removeProperty('transform');
         layers.current.full.forEach(layer => layer.style.removeProperty('opacity'));
     }, []);
@@ -124,7 +143,7 @@ export const usePlayerSheet = (enabled: boolean, expanded: boolean, setExpanded:
         const element = ref.current;
         if (element && typeof element.animate === 'function') {
             const targets = [
-                ...[layers.current.panel, layers.current.artwork, layers.current.navigation]
+                ...[layers.current.panel, layers.current.backdrop, layers.current.artwork, layers.current.navigation]
                     .filter((target): target is HTMLElement => target !== null)
                     .map(target => ({ target, property: 'transform' as const })),
                 ...[layers.current.mini, ...layers.current.full]
@@ -208,7 +227,7 @@ export const usePlayerSheet = (enabled: boolean, expanded: boolean, setExpanded:
         measure();
         gesture.current = {
             x, y, lastY: y, time, velocity: 0, progress: progress.current,
-            open: state.current.expanded, dragging: false
+            open: state.current.expanded, dragging: false, queue: false
         };
     }, [measure, stopAnimation]);
 
@@ -227,7 +246,12 @@ export const usePlayerSheet = (enabled: boolean, expanded: boolean, setExpanded:
             suppressClick.current = true;
             stopAnimation();
             setVisible(true);
+            if (start.open && expandedSwipeRef.current && (dy < 0 || expandedSwipeRef.current.isOpen())) {
+                start.queue = true;
+                expandedSwipeRef.current.begin(start.y, start.time);
+            }
         }
+        if (start.queue) return expandedSwipeRef.current?.move(y, time) ?? false;
         if (time > start.time) start.velocity = (y - start.lastY) / (time - start.time);
         start.lastY = y;
         start.time = time;
@@ -245,6 +269,10 @@ export const usePlayerSheet = (enabled: boolean, expanded: boolean, setExpanded:
         if (!start) return;
         if (!start.dragging) {
             settle(state.current.expanded);
+            return;
+        }
+        if (start.queue) {
+            expandedSwipeRef.current?.finish(y, time, cancelled);
             return;
         }
         const direction = start.open ? 1 : -1;

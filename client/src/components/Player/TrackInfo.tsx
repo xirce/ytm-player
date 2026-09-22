@@ -35,11 +35,11 @@ export const TrackInfo: React.FC<ITrackInfoProps> = React.memo(({ source, expand
                         alt={source.title}
                         referrerPolicy="no-referrer"
                         draggable={false}
-                        style={sharedArtwork ? { visibility: 'hidden' } : undefined}
+                        style={sharedArtwork && expanded ? { visibility: 'hidden' } : undefined}
                     />
                 )}
             </Grid>
-            <Grid item className={styles.infoContainer}>
+            <Grid item className={styles.infoContainer} data-player-track-metadata={expanded ? '' : undefined}>
                 <Stack direction='column' alignItems={expanded ? 'center' : 'start'}>
                     <span className={styles.title} title={source?.title ?? ''}>
                         {expanded && source?.album?.id

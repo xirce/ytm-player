@@ -1,4 +1,4 @@
-import React, { MouseEventHandler, useState, useEffect, useMemo } from 'react';
+import React, { MouseEventHandler, TouchEventHandler, useState, useEffect, useMemo } from 'react';
 import Grid from '@mui/material/Grid';
 import { MediaPlayer, MediaPlayerClass } from 'dashjs';
 import { useReferredState } from '../../hooks/useReferredState';
@@ -71,20 +71,8 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({
         };
     }, [player]);
 
-    useEffect(() => {
-        const handleMouseUp = () => {
-            if (!isChangingTimeRef.current) return;
-            setIsChangingTimeRef(false);
-            player.seek(currentTimeRef.current as number);
-        };
-
-        document.addEventListener('mouseup', handleMouseUp);
-        return () => {
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isChangingTimeRef, player, currentTimeRef]);
-
     const changeCurrentTime = (event: Event, value: number) => {
+        setIsChangingTimeRef(true);
         setCurrentTimeRef(value * duration);
     };
 
@@ -96,6 +84,10 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({
     };
 
     const handleMouseDown: MouseEventHandler = () => {
+        setIsChangingTimeRef(true);
+    };
+
+    const handleTouchStart: TouchEventHandler = () => {
         setIsChangingTimeRef(true);
     };
 
@@ -142,6 +134,7 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({
                     onChange={changeCurrentTime}
                     onChangeCommitted={commitCurrentTime}
                     onMouseDown={handleMouseDown}
+                    onTouchStart={handleTouchStart}
                 />
             </Grid>
             <Grid item><span>{formattedDuration}</span></Grid>

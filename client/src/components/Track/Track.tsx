@@ -16,6 +16,7 @@ import { formatPlayCount, formatSeconds, formatShortPlayCount } from '../../util
 import { ITrackBase } from '../../../../shared';
 import { useAppAction, useAppSelector } from "../../store";
 import { getDisplayedTrack, getIsPlaying } from '../../store/player';
+import { useTouchPress } from '../../hooks/useTouchPress';
 import styles from "./Track.module.css";
 
 export interface ITrackProps {
@@ -38,6 +39,7 @@ export const Track: React.FC<ITrackProps> = React.memo(({
 }) => {
     const { setTracks, setTrackIndex, setIsPlaying, setPlayerExpanded, appendLeftTracks, appendTracks, updateTrackMetadata } = useAppAction();
     const isMobile = useMediaQuery('(max-width:700px)');
+    const { pressed, touchHandlers } = useTouchPress();
     const info = source[index];
     const displayedTrack = useAppSelector(getDisplayedTrack);
     const playerIsPlaying = useAppSelector(getIsPlaying);
@@ -74,8 +76,9 @@ export const Track: React.FC<ITrackProps> = React.memo(({
 
     return (
         <div
-            className={`${resolvedIsCurrent ? styles.playingContainer : styles.container} ${!showDuration ? styles.withoutDuration : ''} ${mobileCard ? styles.mobileCard : ''} ${mobileDragHandle ? styles.mobileDragHandle : ''}`}
+            className={`${resolvedIsCurrent ? styles.playingContainer : styles.container} ${pressed ? styles.touchPressed : ''} ${!showDuration ? styles.withoutDuration : ''} ${mobileCard ? styles.mobileCard : ''} ${mobileDragHandle ? styles.mobileDragHandle : ''}`}
             onClick={handleRowClick}
+            {...touchHandlers}
         >
             <div className={styles.imageContainer} onClick={event => {
                 event.stopPropagation();

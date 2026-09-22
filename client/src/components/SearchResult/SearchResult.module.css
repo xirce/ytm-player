@@ -12,7 +12,13 @@ a:last-of-type>.container, :not(a)>.container:last-of-type {
     margin-bottom: 0;
 }
 
-.container:hover {
+@media (hover: hover) and (pointer: fine) {
+    .container:hover {
+        background-color: var(--bg-main-color);
+    }
+}
+
+.touchPressed {
     background-color: var(--bg-main-color);
 }
 

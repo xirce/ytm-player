@@ -11,22 +11,77 @@ const originalAnimate = HTMLElement.prototype.animate;
 const originalTimeline = Object.getOwnPropertyDescriptor(document, 'timeline');
 const originalPixelRatio = window.devicePixelRatio;
 
-function Harness({ initialOpen }) {
+function Harness({ initialOpen, expandedSwipe }) {
     const [open, update] = useState(initialOpen);
     setOpen = update;
-    sheet = usePlayerSheet(true, open, value => { change(value); update(value); });
+    sheet = usePlayerSheet(true, open, value => { change(value); update(value); }, expandedSwipe);
     return <div ref={sheet.ref}>
+        <div data-player-backdrop />
         <div data-player-panel>
             <div data-player-layer='mini'>Mini player</div>
             <span data-player-artwork='mini' /><span data-player-artwork='full' />
             <button data-player-layer='full'><svg /></button><div className='MuiSlider-root' />
         </div>
         <img alt='Artwork' data-player-shared-artwork draggable={false} />
+        <div data-player-queue>Queue sheet</div>
     </div>;
 }
 
-function mount(open = false) {
-    act(() => { ReactDOM.render(<Harness initialOpen={open} />, host); });
+test('queue gestures do not collapse the expanded player', () => {
+    mount(true);
+    const queue = element.querySelector('[data-player-queue]');
+    touch('touchstart', 100, 0, queue);
+    touch('touchmove', 260, 100, queue);
+    advance(16);
+    touch('touchend', 260, 110, queue);
+    expect(progress()).toBe(1);
+    expect(change).not.toHaveBeenCalled();
+});
+
+test('an upward swipe from the expanded player controls the queue', () => {
+    const expandedSwipe = {
+        isOpen: () => false,
+        begin: jest.fn(),
+        move: jest.fn(() => true),
+        finish: jest.fn()
+    };
+    mount(true, expandedSwipe);
+    touch('touchstart', 300, 0);
+    expect(touch('touchmove', 180, 100).defaultPrevented).toBe(true);
+    touch('touchend', 160, 110);
+    expect(expandedSwipe.begin).toHaveBeenCalledWith(300, 0);
+    expect(expandedSwipe.move).toHaveBeenCalledWith(180, 100);
+    expect(expandedSwipe.finish).toHaveBeenCalledWith(160, 110, false);
+    expect(change).not.toHaveBeenCalled();
+});
+
+test('a downward swipe closes an open queue before it can collapse the player', () => {
+    let queueOpen = true;
+    const expandedSwipe = {
+        isOpen: () => queueOpen,
+        begin: jest.fn(),
+        move: jest.fn(() => true),
+        finish: jest.fn()
+    };
+    mount(true, expandedSwipe);
+    touch('touchstart', 100, 0);
+    expect(touch('touchmove', 240, 100).defaultPrevented).toBe(true);
+    touch('touchend', 260, 110);
+    expect(expandedSwipe.begin).toHaveBeenCalledWith(100, 0);
+    expect(expandedSwipe.move).toHaveBeenCalledWith(240, 100);
+    expect(expandedSwipe.finish).toHaveBeenCalledWith(260, 110, false);
+    expect(change).not.toHaveBeenCalled();
+    expect(progress()).toBe(1);
+
+    queueOpen = false;
+    touch('touchstart', 100, 200);
+    touch('touchmove', 240, 300);
+    touch('touchend', 260, 310);
+    expect(change).toHaveBeenCalledWith(false);
+});
+
+function mount(open = false, expandedSwipe) {
+    act(() => { ReactDOM.render(<Harness initialOpen={open} expandedSwipe={expandedSwipe} />, host); });
     element = host.firstChild;
 }
 
@@ -123,6 +178,7 @@ test('native artwork drag closes continuously, retaining the panel during animat
     touch('touchmove', 300, 200, artwork);
     advance(0);
     expect(progress()).toBeCloseTo(1 - 200 / 672);
+    expect(element.querySelector('[data-player-backdrop]').style.transform).toBe(panel().style.transform);
     expect(change).not.toHaveBeenCalled();
     touch('touchend', 300, 210, artwork);
     expect(change).toHaveBeenCalledWith(false);
@@ -202,7 +258,7 @@ test('native completion stays synchronized and can be caught mid-flight without 
     mount();
     act(() => setOpen(true));
     expect(frames.size).toBe(0);
-    expect(animations).toHaveLength(5);
+    expect(animations).toHaveLength(6);
     for (const [keyframes, options] of HTMLElement.prototype.animate.mock.calls) {
         expect(Object.keys(keyframes[0])).toHaveLength(1);
         expect(options.duration).toBe(PLAYER_TRANSITION_MS);
@@ -213,8 +269,8 @@ test('native completion stays synchronized and can be caught mid-flight without 
     expect(progress()).toBeCloseTo(0.5);
     expect(animations.every(item => item.cancel.mock.calls.length === 1)).toBe(true);
     touch('touchend', 100, 10);
-    expect(animations).toHaveLength(10);
-    act(() => animations[5].onfinish());
+    expect(animations).toHaveLength(12);
+    act(() => animations[6].onfinish());
     expect(element.dataset.playerState).toBe('open');
     expect(progress()).toBe(1);
     expect(navigation.style.transform).toBe('translate3d(0, 64px, 0)');

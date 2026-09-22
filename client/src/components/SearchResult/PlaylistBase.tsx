@@ -4,6 +4,7 @@ import { IPlaylistInfo, IAlbumInfo } from '../../../../shared';
 import { ActionsControl } from '../Actions/ActionsControl';
 import { PlayRadioAction } from '../Actions/PlayRadioAction';
 import { PlaylistInfo } from '../PlaylistInfo/PlaylistInfo';
+import { useTouchPress } from '../../hooks/useTouchPress';
 import styles from './SearchResult.module.css';
 
 export interface IPlaylistBaseProps {
@@ -13,8 +14,9 @@ export interface IPlaylistBaseProps {
 }
 
 export const PlaylistBase: React.FC<IPlaylistBaseProps> = React.memo(({ info, link, mobileCard }) => {
+    const { pressed, touchHandlers } = useTouchPress();
     return (
-        <div className={`${styles.container} ${mobileCard ? styles.mobileCard : ''}`}>
+        <div className={`${styles.container} ${pressed ? styles.touchPressed : ''} ${mobileCard ? styles.mobileCard : ''}`} {...touchHandlers}>
             <Link to={link}>
                 <div className={styles.content}>
                     <div className={styles.imageContainer}>

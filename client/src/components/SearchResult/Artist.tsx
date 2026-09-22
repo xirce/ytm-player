@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { IArtistInfo } from '../../../../shared';
+import { useTouchPress } from '../../hooks/useTouchPress';
 import styles from './SearchResult.module.css';
 
 export interface IArtistProps {
@@ -9,9 +10,10 @@ export interface IArtistProps {
 }
 
 export const Artist: React.FC<IArtistProps> = React.memo(({ info, mobileCard }) => {
+    const { pressed, touchHandlers } = useTouchPress();
     return (
         <Link to={`/artist/${info.id}`}>
-            <div className={`${styles.container} ${mobileCard ? styles.mobileCard : ''}`}>
+            <div className={`${styles.container} ${pressed ? styles.touchPressed : ''} ${mobileCard ? styles.mobileCard : ''}`} {...touchHandlers}>
                 <div className={styles.content}>
                     <div className={styles.imageContainer}>
                         <img className={styles.image} src={info.imageUrl} alt={info.name} loading={mobileCard ? 'lazy' : undefined} referrerPolicy="no-referrer" />

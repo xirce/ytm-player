@@ -65,6 +65,64 @@
         inset: 0;
         z-index: 1200;
         pointer-events: none;
+        --queue-progress: 0;
+        --queue-full-progress: 0;
+        --queue-artwork-scale: 1;
+        --queue-artwork-shift-y: 0px;
+        --queue-artwork-shift-x: 0px;
+        --queue-artwork-outer-scale: 1;
+        --queue-artwork-height: 100%;
+        --queue-neighbor-opacity: 1;
+        --queue-artwork-radius: 8px;
+        --queue-info-shift: 0px;
+        --queue-controls-shift: 0px;
+        --queue-black-top: 100dvh;
+        background: transparent;
+    }
+
+    .sheetHost[data-player-state='open'],
+    .sheetHost[data-player-state='moving'] {
+        pointer-events: auto;
+    }
+
+    .backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background: linear-gradient(
+            180deg,
+            rgb(37, 37, 43) 0%,
+            rgb(23, 23, 23) 55%
+        );
+    }
+
+    .sheetHost::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background: #000;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .sheetHost[data-player-state='open']::before,
+    .sheetHost[data-player-state='moving']::before {
+        opacity: var(--queue-progress);
+    }
+
+    .sheetHost::after {
+        content: '';
+        position: fixed;
+        top: var(--queue-black-top);
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 3;
+        background: linear-gradient(transparent, #000 28px);
+        opacity: var(--queue-progress);
+        pointer-events: none;
     }
 
     .sheet {
@@ -74,6 +132,19 @@
         user-select: none;
         -webkit-user-select: none;
         -webkit-touch-callout: none;
+        z-index: 6;
+    }
+
+    .sheet button,
+    .sheet a,
+    .sheet input,
+    .sheet [role='slider'] {
+        pointer-events: auto;
+    }
+
+    .sheet :global(.MuiSlider-root) {
+        pointer-events: auto;
+        touch-action: none;
     }
 
     .sheet > [data-player-layer='full'] {
@@ -86,6 +157,20 @@
         pointer-events: none;
     }
 
+    .sheetHost[data-queue-stage='revealing'] .sheet > [data-player-layer='mini'],
+    .sheetHost[data-queue-stage='full'] .sheet > [data-player-layer='mini'] {
+        visibility: visible;
+    }
+
+    .sheetHost[data-queue-stage='full'] .sheet > [data-player-layer='mini'] {
+        pointer-events: auto;
+    }
+
+    .sheetHost:not([data-player-state='open']) [data-player-queue] {
+        visibility: hidden;
+        pointer-events: none;
+    }
+
     .container.morphMini {
         position: absolute;
         top: 0;
@@ -93,9 +178,16 @@
         right: 0;
         z-index: 2;
         border: 0;
-        background: transparent;
+        background: var(--bg-dark-color);
+        pointer-events: auto;
         will-change: opacity;
     }
+
+    .sheetHost[data-queue-stage='revealing'] .container.morphMini,
+.sheetHost[data-queue-stage='full'] .container.morphMini {
+    top: calc(env(safe-area-inset-top) + 4px);
+    z-index: 8;
+}
 
     .miniInfo {
         min-width: 0;
@@ -114,6 +206,10 @@
         touch-action: pan-x;
         cursor: grab;
         overflow: hidden;
+        translate: var(--queue-artwork-shift-x) var(--queue-artwork-shift-y);
+        scale: var(--queue-artwork-outer-scale);
+        opacity: calc(1 - var(--queue-full-progress));
+        border-radius: var(--queue-artwork-radius);
     }
 
     .sheetHost[data-player-state='open'] .sharedArtwork {
@@ -136,9 +232,10 @@
     .artworkCarousel {
         position: relative;
         display: flex;
+        align-items: center;
         gap: 24px;
         width: 100%;
-        height: 100%;
+        height: var(--queue-artwork-height);
         overflow-x: auto;
         overflow-y: hidden;
         scroll-snap-type: x mandatory;
@@ -164,14 +261,32 @@
     }
 
     .artworkSlide {
+        position: relative;
         flex: 0 0 var(--artwork-card-width, 100%);
         width: var(--artwork-card-width, 100%);
-        height: 100%;
+        height: var(--artwork-card-height, 100%);
         overflow: hidden;
-        border-radius: 8px;
+        border-radius: var(--queue-artwork-radius);
         background: transparent;
         scroll-snap-align: center;
         scroll-snap-stop: always;
+    }
+
+    .artworkSlide[aria-hidden='false'] {
+        scale: var(--queue-artwork-scale);
+    }
+
+    .artworkSlide[aria-hidden='true'] {
+        opacity: var(--queue-neighbor-opacity);
+    }
+
+    .artworkSlide[aria-hidden='false']::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.12) 28%, rgba(0, 0, 0, 0.62) 100%);
+        opacity: var(--queue-progress);
+        pointer-events: none;
     }
 
     .mini .transportControls > button {
@@ -202,14 +317,15 @@
     .container.expanded {
         position: fixed;
         inset: 0;
-        z-index: 0;
+        z-index: 6;
         display: flex !important;
         flex-direction: column;
         width: 100vw;
         height: 100dvh;
         padding: calc(14px + env(safe-area-inset-top)) 20px calc(22px + env(safe-area-inset-bottom));
         overflow: hidden;
-        background: linear-gradient(180deg, #25252b 0%, var(--bg-dark-color) 55%);
+        background: transparent;
+        pointer-events: none;
         touch-action: pan-x;
         border: 0;
     }
@@ -219,6 +335,7 @@
         top: calc(8px + env(safe-area-inset-top));
         left: 12px;
         z-index: 2;
+        opacity: calc(1 - var(--queue-full-progress));
     }
 
     .expanded .trackInfoColumn {
@@ -230,6 +347,13 @@
         overflow: visible;
     }
 
+    .expanded [data-player-track-metadata] {
+        position: relative;
+        z-index: 7;
+        transform: translateY(calc(var(--queue-progress) * var(--queue-info-shift)));
+        opacity: calc(1 - var(--queue-full-progress));
+    }
+
     .expanded .trackControlColumn,
     .expanded .trackControlStack {
         display: flex !important;
@@ -237,10 +361,26 @@
     }
 
     .expanded .trackControlColumn {
+        position: relative;
+        z-index: 7;
         flex: 0 0 auto;
         max-width: none;
         margin-top: clamp(28px, 6vh, 58px);
         margin-bottom: auto;
+        transform: translateY(calc(var(--queue-progress) * var(--queue-controls-shift)));
+        opacity: calc(1 - var(--queue-full-progress));
+    }
+
+    .sheetHost[data-queue-stage='full'] .sharedArtwork,
+    .sheetHost[data-queue-stage='full'] .expanded [data-player-track-metadata],
+    .sheetHost[data-queue-stage='full'] .expanded .trackControlColumn,
+    .sheetHost[data-queue-stage='full'] .collapseButton {
+        pointer-events: none;
+    }
+
+    .sheetHost[data-queue-stage='full'] .sheet > [data-player-layer='full'] {
+        visibility: hidden;
+        pointer-events: none;
     }
 
     .expanded .trackControlStack {
@@ -302,8 +442,4 @@
         display: none;
     }
 
-    .expanded .queueButton {
-        display: block;
-        margin: 0;
-    }
 }
