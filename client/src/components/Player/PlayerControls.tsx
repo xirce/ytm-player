@@ -289,7 +289,9 @@ export const PlayerControls: React.FC = React.memo(() => {
         const openProgress = Math.min(progress, 1);
         const fullProgress = expanded ? Math.max(0, Math.min(progress - 1, 1)) : 0;
         host.dataset.queueStage = fullProgress >= 1 ? 'full' : fullProgress > 0 ? 'revealing' : 'partial';
-        const key = `${window.innerWidth}:${window.innerHeight}:${displayedTrack?.id ?? ''}`;
+        // A track change does not alter the layout. Keep the original geometry so
+        // we never remeasure artwork while it is transformed into the mini slot.
+        const key = `${window.innerWidth}:${window.innerHeight}`;
         // Layout reads are kept out of the per-frame queue animation.
         if (expanded && progress > 0 && queueGeometryRef.current?.key !== key) {
             const artwork = host.querySelector<HTMLElement>('[data-player-shared-artwork]');
@@ -357,7 +359,7 @@ export const PlayerControls: React.FC = React.memo(() => {
             const miniLayer = host.querySelector<HTMLElement>('[data-player-layer="mini"]');
             if (miniLayer) miniLayer.style.opacity = String(fullProgress);
         } else if (!expanded) queueMiniActiveRef.current = false;
-    }, [sheet.ref, expanded, displayedTrack?.id]);
+    }, [sheet.ref, expanded]);
 
     return (
         <div
