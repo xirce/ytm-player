@@ -476,7 +476,10 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             }
         };
         const handlers: Partial<Record<MediaSessionAction, MediaSessionActionHandler>> = {
-            play: () => setIsPlaying(true),
+            play: () => {
+                onPlayRequested?.();
+                setIsPlaying(true);
+            },
             pause: () => setIsPlaying(false),
             stop: () => {
                 mediaCancelCrossfadeRef.current();
@@ -497,20 +500,31 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         // iOS Control Center has only two secondary media buttons. If interval
         // seeking handlers are registered, Safari gives those slots to ±10 sec
         // and hides previous/next track. The timeline still uses `seekto`.
-        if (!isIOSDevice()) {
+        const isIOS = isIOSDevice();
+        if (!isIOS) {
             handlers.seekbackward = details => seekBy(-(details.seekOffset ?? 10));
             handlers.seekforward = details => seekBy(details.seekOffset ?? 10);
         }
 
-        Object.entries(handlers).forEach(([action, handler]) => {
-            try {
-                navigator.mediaSession.setActionHandler(action as MediaSessionAction, handler ?? null);
-            } catch {
-                // Some browsers expose Media Session but support only part of its actions.
-            }
-        });
+        const registerHandlers = () => {
+            Object.entries(handlers).forEach(([action, handler]) => {
+                try {
+                    navigator.mediaSession.setActionHandler(action as MediaSessionAction, handler ?? null);
+                } catch {
+                    // Some browsers expose Media Session but support only part of its actions.
+                }
+            });
+        };
+        registerHandlers();
+
+        // WebKit determines the available remote commands when a media element
+        // becomes active. Register again at that point so AirPods next/previous
+        // gestures are routed to the page rather than the element defaults.
+        const playbackPlayers = isIOS ? [player, standbyPlayer] : [];
+        playbackPlayers.forEach(target => target.on('playbackStarted', registerHandlers));
 
         return () => {
+            playbackPlayers.forEach(target => target.off('playbackStarted', registerHandlers));
             Object.keys(handlers).forEach(action => {
                 try {
                     navigator.mediaSession.setActionHandler(action as MediaSessionAction, null);
@@ -519,7 +533,8 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                 }
             });
         };
-    }, [mediaProgressPlayerRef, mediaPlayerRef, mediaCancelCrossfadeRef, mediaSkipNextRef, mediaSkipPrevRef, setIsPlaying]);
+    }, [player, standbyPlayer, mediaProgressPlayerRef, mediaPlayerRef, mediaCancelCrossfadeRef,
+        mediaSkipNextRef, mediaSkipPrevRef, onPlayRequested, setIsPlaying]);
 
     useEffect(() => {
         if (!('mediaSession' in navigator) || !('setPositionState' in navigator.mediaSession)) return;
