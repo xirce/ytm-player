@@ -2,8 +2,12 @@
     display: contents;
 }
 
+.backPositioner,
 .back {
     display: none;
+}
+
+.back {
     align-items: center;
     justify-content: center;
     width: 44px;
@@ -31,11 +35,19 @@
         position: relative;
     }
 
+    .backPositioner {
+        display: block;
+        position: sticky;
+        top: env(safe-area-inset-top);
+        left: 0;
+        z-index: 1001;
+        height: 0;
+    }
+
     .back {
         display: flex;
         position: absolute;
         top: 0;
         left: 0;
-        z-index: 2;
     }
 }

@@ -345,7 +345,12 @@ export const PlayerControls: React.FC = React.memo(() => {
         host.style.setProperty('--queue-progress', String(openProgress));
         host.style.setProperty('--queue-full-progress', String(fullProgress));
         host.style.setProperty('--queue-artwork-scale', String(scale));
-        if (geometry?.artworkHeight) host.style.setProperty('--queue-artwork-height', `${geometry.artworkHeight * scale}px`);
+        if (geometry?.artworkHeight) {
+            host.style.setProperty('--queue-artwork-height', `${geometry.artworkHeight * scale}px`);
+        } else {
+            // Do not carry the expanded queue carousel height into the next player opening.
+            host.style.removeProperty('--queue-artwork-height');
+        }
         host.style.setProperty('--queue-artwork-shift-y', `${startShiftY + (miniShiftY - startShiftY) * fullProgress}px`);
         host.style.setProperty('--queue-artwork-shift-x', `${miniShiftX * fullProgress}px`);
         host.style.setProperty('--queue-artwork-outer-scale', String(1 - fullProgress * (1 - miniScale)));
