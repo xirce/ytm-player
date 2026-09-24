@@ -97,7 +97,8 @@ const HomeSection: React.FC<{
         switch (item.type) {
             case 'track':
                 return <Track source={tracks} index={tracks.indexOf(item.data)} showPlayCount
-                    showDuration={!isQuickPicks} compactPlayCount={isQuickPicks} mobileCard key={key} />;
+                    showDuration={!isQuickPicks} compactPlayCount={isQuickPicks} mobileCard
+                    playWithRadioQueue key={key} />;
             case 'album': return <Album info={item.data} mobileCard key={key} />;
             case 'playlist': return <Playlist info={item.data} mobileCard key={key} />;
             case 'artist': return <Artist info={item.data} mobileCard key={key} />;

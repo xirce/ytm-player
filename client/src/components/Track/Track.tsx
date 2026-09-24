@@ -17,7 +17,11 @@ import { ITrackBase } from '../../../../shared';
 import { useAppAction, useAppSelector } from "../../store";
 import { getDisplayedTrack, getIsPlaying } from '../../store/player';
 import { useTouchPress } from '../../hooks/useTouchPress';
+import { useLazyGetRadioQuery } from '../../apiClient';
+import { buildRadioQueue } from '../../utils/buildRadioQueue';
 import styles from "./Track.module.css";
+
+let latestPlaybackRequest = 0;
 
 export interface ITrackProps {
     source: ITrackBase[];
@@ -30,14 +34,16 @@ export interface ITrackProps {
     mobileCard?: boolean;
     playOnRowClick?: boolean;
     mobileDragHandle?: boolean;
+    playWithRadioQueue?: boolean;
 }
 
 export const Track: React.FC<ITrackProps> = React.memo(({
     source, index, isPlaying, isCurrent, showPlayCount = false, showDuration = true,
     compactPlayCount = false, mobileCard = false, playOnRowClick = false,
-    mobileDragHandle = false, children
+    mobileDragHandle = false, playWithRadioQueue = false, children
 }) => {
     const { setTracks, setTrackIndex, setIsPlaying, setPlayerExpanded, appendLeftTracks, appendTracks, updateTrackMetadata } = useAppAction();
+    const [getRadio] = useLazyGetRadioQuery();
     const isMobile = useMediaQuery('(max-width:700px)');
     const { pressed, touchHandlers } = useTouchPress();
     const info = source[index];
@@ -56,9 +62,18 @@ export const Track: React.FC<ITrackProps> = React.memo(({
             updateTrackMetadata(info);
             setIsPlaying(shouldPlay);
         } else {
-            setTracks(source);
-            setTrackIndex(index);
+            const requestId = ++latestPlaybackRequest;
+            setTracks(playWithRadioQueue ? [info] : source);
+            setTrackIndex(playWithRadioQueue ? 0 : index);
             setIsPlaying(true);
+            if (playWithRadioQueue) {
+                void getRadio(info.radioId).unwrap().then(tracks => {
+                    if (requestId !== latestPlaybackRequest) return;
+                    const queue = buildRadioQueue(info, tracks);
+                    setTracks(queue.tracks);
+                    setTrackIndex(queue.trackIndex);
+                }).catch(() => undefined);
+            }
         }
         if (isMobile && shouldPlay) setPlayerExpanded(true);
     }
