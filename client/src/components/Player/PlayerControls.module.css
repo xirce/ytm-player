@@ -208,8 +208,12 @@
         overflow: hidden;
         translate: var(--queue-artwork-shift-x) var(--queue-artwork-shift-y);
         scale: var(--queue-artwork-outer-scale);
-        opacity: calc(1 - var(--queue-full-progress));
+        opacity: 1;
         border-radius: var(--queue-artwork-radius);
+    }
+
+    .sheetHost[data-queue-stage='full'] .sharedArtwork {
+        opacity: 0;
     }
 
     .sheetHost[data-player-state='open'] .sharedArtwork {

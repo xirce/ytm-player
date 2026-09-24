@@ -84,6 +84,9 @@ export const PlayerControls: React.FC = React.memo(() => {
         expandedScale: number;
         artworkHeight: number;
         artworkTop: number;
+        miniScale?: number;
+        miniShiftX?: number;
+        miniShiftY?: number;
     } | null>(null);
     const artworkScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const artworkPointerStartRef = useRef(0);
@@ -283,6 +286,9 @@ export const PlayerControls: React.FC = React.memo(() => {
         const host = sheet.ref.current;
         if (!host) return;
         if (!expanded) queueGeometryRef.current = null;
+        const openProgress = Math.min(progress, 1);
+        const fullProgress = expanded ? Math.max(0, Math.min(progress - 1, 1)) : 0;
+        host.dataset.queueStage = fullProgress >= 1 ? 'full' : fullProgress > 0 ? 'revealing' : 'partial';
         const key = `${window.innerWidth}:${window.innerHeight}:${displayedTrack?.id ?? ''}`;
         // Layout reads are kept out of the per-frame queue animation.
         if (expanded && progress > 0 && queueGeometryRef.current?.key !== key) {
@@ -310,19 +316,39 @@ export const PlayerControls: React.FC = React.memo(() => {
             }
         }
         const geometry = queueGeometryRef.current;
-        const openProgress = Math.min(progress, 1);
-        const fullProgress = expanded ? Math.max(0, progress - 1) : 0;
+        if (geometry && fullProgress > 0 && geometry.miniScale === undefined) {
+            const artwork = host.querySelector<HTMLElement>('[data-player-shared-artwork]');
+            const activeArtwork = artwork?.querySelector<HTMLElement>('[data-player-artwork-slide][aria-hidden="false"]');
+            const miniArtwork = host.querySelector<HTMLElement>('[data-player-artwork="mini"]');
+            if (artwork && activeArtwork && miniArtwork) {
+                const activeRect = activeArtwork.getBoundingClientRect();
+                const miniRect = miniArtwork.getBoundingClientRect();
+                if (activeRect.width && miniRect.width) {
+                    const miniScale = miniRect.width / activeRect.width;
+                    const startShiftY = -geometry.artworkTop;
+                    geometry.miniScale = miniScale;
+                    // The individual scale also scales the base player transform.
+                    // Remove only the existing queue translation before mapping the
+                    // visible artwork onto the mini-player artwork slot.
+                    geometry.miniShiftX = miniRect.left - activeRect.left * miniScale;
+                    geometry.miniShiftY = miniRect.top - (activeRect.top - startShiftY) * miniScale;
+                }
+            }
+        }
         const scale = 1 + openProgress * ((geometry?.expandedScale ?? 1) - 1);
+        const startShiftY = -(geometry?.artworkTop ?? 0) * openProgress;
+        const miniShiftX = geometry?.miniShiftX ?? 20;
+        const miniShiftY = geometry?.miniShiftY ?? startShiftY + window.innerHeight * 0.08;
+        const miniScale = geometry?.miniScale ?? 48 / window.innerWidth;
         host.style.setProperty('--queue-progress', String(openProgress));
         host.style.setProperty('--queue-full-progress', String(fullProgress));
         host.style.setProperty('--queue-artwork-scale', String(scale));
         if (geometry?.artworkHeight) host.style.setProperty('--queue-artwork-height', `${geometry.artworkHeight * scale}px`);
-        host.style.setProperty('--queue-artwork-shift-y', `${-(geometry?.artworkTop ?? 0) * openProgress + (window.innerHeight * 0.08) * fullProgress}px`);
-        host.style.setProperty('--queue-artwork-shift-x', `${20 * fullProgress}px`);
-        host.style.setProperty('--queue-artwork-outer-scale', String(1 - fullProgress * (1 - 48 / window.innerWidth)));
+        host.style.setProperty('--queue-artwork-shift-y', `${startShiftY + (miniShiftY - startShiftY) * fullProgress}px`);
+        host.style.setProperty('--queue-artwork-shift-x', `${miniShiftX * fullProgress}px`);
+        host.style.setProperty('--queue-artwork-outer-scale', String(1 - fullProgress * (1 - miniScale)));
         host.style.setProperty('--queue-neighbor-opacity', String(1 - openProgress));
         host.style.setProperty('--queue-artwork-radius', `${8 * (1 - openProgress)}px`);
-        host.dataset.queueStage = fullProgress >= 0.99 ? 'full' : fullProgress > 0 ? 'revealing' : 'partial';
         if (expanded && (progress > 1 || queueMiniActiveRef.current)) {
             queueMiniActiveRef.current = progress > 1;
             host.querySelectorAll<HTMLElement>('[data-player-panel] > [data-player-layer="full"]').forEach(layer => {
