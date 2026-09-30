@@ -3,3 +3,6 @@
 node_modules
 .env
 .cache
+dist
+.env.production
+.env.release

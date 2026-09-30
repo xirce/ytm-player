@@ -1,0 +1,81 @@
+name: ytm-player
+
+services:
+  app:
+    build:
+      context: .
+    image: ${APP_IMAGE:-ytm-player:local}
+    env_file:
+      - ${ENV_FILE:-.env.production}
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3001
+      YOUTUBE_CACHE_DIR: /app/.cache/youtubei
+    depends_on:
+      postgres:
+        condition: service_healthy
+      po-token-provider:
+        condition: service_started
+    volumes:
+      - youtube-cache:/app/.cache/youtubei
+    networks:
+      - app-network
+      - data-network
+      - provider-network
+    restart: unless-stopped
+
+  po-token-provider:
+    image: ${PO_TOKEN_PROVIDER_IMAGE:-brainicism/bgutil-ytdlp-pot-provider@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c}
+    expose:
+      - "4416"
+    networks:
+      - provider-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - ${ENV_FILE:-.env.production}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - data-network
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    env_file:
+      - ${ENV_FILE:-.env.production}
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+  data-network:
+    internal: true
+  provider-network:
+    internal: true
+
+volumes:
+  postgres-data:
+  youtube-cache:
+  caddy-data:
+  caddy-config:

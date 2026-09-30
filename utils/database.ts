@@ -75,6 +75,17 @@ export const database = {
         await databasePool.query('DELETE FROM oauth_states WHERE expires_at <= now()');
     },
 
+    async ping(): Promise<void> {
+        await getPool().query('SELECT 1');
+    },
+
+    async close(): Promise<void> {
+        if (!pool) return;
+        const currentPool = pool;
+        pool = undefined;
+        await currentPool.end();
+    },
+
     async saveOAuthState(state: string, nonce: string, codeVerifier: string, expiresAt: Date): Promise<void> {
         await getPool().query(
             `INSERT INTO oauth_states (state_hash, nonce, code_verifier, expires_at)
