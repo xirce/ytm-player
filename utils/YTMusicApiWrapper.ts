@@ -1,6 +1,6 @@
 import { Constants, Innertube, MusicPlaylistShelfContinuation, Platform, Types, UniversalCache, YTMusic, YTNodes } from 'youtubei.js';
-import { IHomeItem, IHomeSectionPage, IPlaylist, IPlaylistPage, ISabrFormat, ITrackBase, YouTubeAuthState } from '../shared';
-import { getThumbnailUrl, mapPlaylistPanelVideoToTrack, mapToArtistInfo, mapToHomeItem, mapToTrack } from '../mappings/ytmusic-api';
+import { IPlaylist, IPlaylistPage, ISabrFormat, ITrackBase } from '../shared';
+import { getThumbnailUrl, mapPlaylistPanelVideoToTrack, mapToArtistInfo, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 import { performance } from 'node:perf_hooks';
 
@@ -26,36 +26,9 @@ export interface TrackUrlResult {
     timings: TrackUrlTimings;
 }
 
-const validateMusicCookie = (cookie: string): string => {
-    const invalidIndex = Array.from(cookie).findIndex(character => {
-        const code = character.codePointAt(0) ?? 0;
-        return code < 0x20 || code > 0x7e;
-    });
-    if (invalidIndex !== -1) {
-        const character = Array.from(cookie)[invalidIndex];
-        const hint = character === '…'
-            ? ' The value was truncated by DevTools; copy the complete Cookie header using "Copy as cURL".'
-            : '';
-        throw new Error(`YOUTUBE_MUSIC_COOKIE contains an invalid character at index ${invalidIndex}.${hint}`);
-    }
-    return cookie.replace(/^cookie:\s*/i, '');
-};
-
-const getMusicAccountIndex = (): number => {
-    const value = process.env.YOUTUBE_MUSIC_AUTHUSER?.trim() || '0';
-    if (!/^\d+$/.test(value)) {
-        throw new Error('YOUTUBE_MUSIC_AUTHUSER must be a non-negative integer');
-    }
-    return Number.parseInt(value, 10);
-};
-
 export class YTMusicApiWrapper {
     private innertube!: Innertube;
-    private authenticationInnertube!: Innertube;
-    private musicAuthenticationInnertube?: Innertube;
     private tokenProvider!: TokenProvider;
-    private authState: YouTubeAuthState = { status: 'anonymous' };
-    private authenticationPromise?: Promise<void>;
 
     public async initialize() {
         Platform.shim.eval = async (data: Types.BuildScriptResult) => {
@@ -70,182 +43,9 @@ export class YTMusicApiWrapper {
             true,
             process.env.YOUTUBE_CACHE_DIR?.trim() || '.cache/youtubei'
         );
-        // YouTube rejects OAuth bearer tokens on public YT Music endpoints such as
-        // /search with INVALID_ARGUMENT. Keep catalog requests anonymous and use a
-        // dedicated session for OAuth/account operations.
         this.innertube ??= await Innertube.create({ cache });
-        this.authenticationInnertube ??= await Innertube.create({
-            cache,
-            retrieve_player: false
-        });
-        const configuredMusicCookie = process.env.YOUTUBE_MUSIC_COOKIE?.trim();
-        const musicCookie = configuredMusicCookie
-            ? validateMusicCookie(configuredMusicCookie)
-            : undefined;
-        if (musicCookie) {
-            this.musicAuthenticationInnertube ??= await Innertube.create({
-                cache,
-                cookie: musicCookie,
-                account_index: getMusicAccountIndex(),
-                on_behalf_of_user: process.env.YOUTUBE_MUSIC_PAGE_ID?.trim() || undefined,
-                enable_session_cache: false,
-                lang: process.env.YOUTUBE_MUSIC_LANGUAGE?.trim() || 'ru',
-                retrieve_player: false
-            });
-        }
-        this.registerAuthenticationEvents();
-        if (await cache.get('youtubei_oauth_credentials')) {
-            this.authState = { status: 'restoring' };
-            this.authenticationPromise = this.authenticationInnertube.session.signIn()
-                .catch(error => {
-                    if (this.musicAuthenticationInnertube) {
-                        this.setAuthenticatedState(false);
-                    } else {
-                        this.authState = { status: 'error', error: (error as Error).message };
-                    }
-                })
-                .finally(() => {
-                    this.authenticationPromise = undefined;
-                });
-            await this.authenticationPromise;
-        } else if (this.musicAuthenticationInnertube) {
-            this.setAuthenticatedState(false);
-        }
 
         console.log(`YouTube PO token provider: ${tokenProviderUrl}`);
-    }
-
-    public getAuthenticationState(): YouTubeAuthState {
-        return { ...this.authState };
-    }
-
-    public hasPersonalizedMusicAccess(): boolean {
-        return Boolean(this.musicAuthenticationInnertube?.session.logged_in);
-    }
-
-    public async getHomeFeed(): Promise<YTMusic.HomeFeed> {
-        if (!this.musicAuthenticationInnertube) {
-            throw new Error('YouTube Music cookie authentication is not configured');
-        }
-        return this.musicAuthenticationInnertube.music.getHomeFeed();
-    }
-
-    public async getHomeSectionPage(request: { browseId?: string; params?: string; continuation?: string }): Promise<IHomeSectionPage> {
-        if (!this.musicAuthenticationInnertube) {
-            throw new Error('YouTube Music cookie authentication is not configured');
-        }
-        const response = await this.musicAuthenticationInnertube.actions.execute('/browse', {
-            ...request, client: 'YTMUSIC', parse: true
-        });
-        const shelf = response.continuation_contents
-            ?? response.contents_memo?.getType(YTNodes.Grid)?.[0]
-            ?? response.contents_memo?.getType(YTNodes.MusicShelf)?.[0]
-            ?? response.contents_memo?.getType(YTNodes.MusicCarouselShelf)?.[0];
-        const contents = shelf && 'contents' in shelf ? shelf.contents
-            : shelf && 'items' in shelf ? shelf.items : undefined;
-        const nodes: unknown[] = Array.isArray(contents) ? contents : response.on_response_received_actions
-            ?.filter(action => action instanceof YTNodes.AppendContinuationItemsAction)
-            .flatMap(action => action.contents ?? []) ?? [];
-        const continuationItem = nodes.find(node => node instanceof YTNodes.ContinuationItem);
-        const token = (shelf && 'continuation' in shelf ? shelf.continuation : null)
-            ?? (continuationItem instanceof YTNodes.ContinuationItem ? continuationItem.endpoint.payload.token : null);
-        return {
-            items: nodes.map(mapToHomeItem).filter((item): item is IHomeItem => Boolean(item)),
-            continuation: typeof token === 'string' && token ? token : null
-        };
-    }
-
-    public async getMusicHistory(): Promise<ITrackBase[]> {
-        if (!this.musicAuthenticationInnertube) {
-            throw new Error('YouTube Music cookie authentication is not configured');
-        }
-        const response = await this.musicAuthenticationInnertube.actions.execute('/browse', {
-            browseId: 'FEmusic_history',
-            client: 'YTMUSIC',
-            parse: true
-        });
-        const items = response.contents_memo?.getType(YTNodes.MusicResponsiveListItem) ?? [];
-        return items
-            .filter(item => Boolean(item.id) && (
-                item.item_type === 'song'
-                || item.item_type === 'video'
-                || item.item_type === 'non_music_track'
-            ))
-            .map(item => mapToTrack(item));
-    }
-
-    public async startAuthentication(): Promise<YouTubeAuthState> {
-        if (this.authenticationInnertube.session.logged_in || this.authenticationPromise) {
-            return this.getAuthenticationState();
-        }
-
-        this.authState = { status: 'starting' };
-        let resolveStarted: () => void = () => undefined;
-        const started = new Promise<void>(resolve => { resolveStarted = resolve; });
-        const onPending = () => resolveStarted();
-        const onAuth = () => resolveStarted();
-        const onError = () => resolveStarted();
-        this.authenticationInnertube.session.once('auth-pending', onPending);
-        this.authenticationInnertube.session.once('auth', onAuth);
-        this.authenticationInnertube.session.once('auth-error', onError);
-
-        this.authenticationPromise = this.authenticationInnertube.session.signIn()
-            .catch(error => {
-                this.authState = { status: 'error', error: (error as Error).message };
-                resolveStarted();
-            })
-            .finally(() => {
-                this.authenticationPromise = undefined;
-            });
-
-        await started;
-        this.authenticationInnertube.session.off('auth-pending', onPending);
-        this.authenticationInnertube.session.off('auth', onAuth);
-        this.authenticationInnertube.session.off('auth-error', onError);
-        return this.getAuthenticationState();
-    }
-
-    public async signOut(): Promise<void> {
-        if (this.authenticationInnertube.session.logged_in) {
-            await this.authenticationInnertube.session.signOut();
-        } else {
-            await this.authenticationInnertube.session.oauth.removeCache();
-        }
-        if (this.musicAuthenticationInnertube) {
-            this.setAuthenticatedState(false);
-        } else {
-            this.authState = { status: 'anonymous' };
-        }
-    }
-
-    private setAuthenticatedState(hasOAuth: boolean): void {
-        const hasCookie = this.hasPersonalizedMusicAccess();
-        this.authState = {
-            status: 'authenticated',
-            method: hasOAuth && hasCookie ? 'oauth+cookie' : hasCookie ? 'cookie' : 'oauth',
-            musicRecommendationsAvailable: hasCookie
-        };
-    }
-
-    private registerAuthenticationEvents(): void {
-        this.authenticationInnertube.session.on('auth-pending', data => {
-            this.authState = {
-                status: 'pending',
-                verificationUrl: data.verification_url,
-                userCode: data.user_code,
-                expiresAt: Date.now() + data.expires_in * 1000
-            };
-        });
-        this.authenticationInnertube.session.on('auth', () => {
-            this.setAuthenticatedState(true);
-            void this.authenticationInnertube.session.oauth.cacheCredentials();
-        });
-        this.authenticationInnertube.session.on('update-credentials', () => {
-            void this.authenticationInnertube.session.oauth.cacheCredentials();
-        });
-        this.authenticationInnertube.session.on('auth-error', error => {
-            this.authState = { status: 'error', error: error.message };
-        });
     }
 
     public async search(query: string) {
@@ -377,17 +177,6 @@ export class YTMusicApiWrapper {
         };
     }
 
-    public async addTrackToHistory(id: string): Promise<void> {
-        if (!this.musicAuthenticationInnertube) {
-            throw new Error('YouTube Music cookie authentication is not configured');
-        }
-        const poToken = await this.tokenProvider.getToken(id);
-        const trackInfo = await this.musicAuthenticationInnertube.music.getInfo(id, {
-            po_token: poToken
-        });
-        await trackInfo.addToWatchHistory();
-    }
-
     public async getArtist(id: string): Promise<YTMusic.Artist> {
         return this.innertube.music.getArtist(id);
     }
@@ -474,7 +263,7 @@ export class YTMusicApiWrapper {
     }
 
     private getPlaylistInnertube(_playlistId: string): Innertube {
-        return this.musicAuthenticationInnertube ?? this.innertube;
+        return this.innertube;
     }
 
     public async getPlaylist(playlistId: string, browseParams?: string): Promise<YTMusic.Playlist> {

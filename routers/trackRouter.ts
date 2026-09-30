@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { Readable } from 'node:stream';
 import { performance } from 'node:perf_hooks';
 import ytmusic from '../utils/YTMusicApiWrapper';
+import { requireUser } from '../middleware/appAuth';
+import { personalMusicClients } from '../utils/personalMusicClient';
 import type { TrackUrlTimings } from '../utils/YTMusicApiWrapper';
 import type { ITrackPlaybackSource } from '../shared';
 import { asyncHandler, HttpError } from '../middleware/errors';
@@ -478,15 +480,8 @@ router.get('/:id/url', asyncHandler(async (req, res) => {
     res.json(source);
 }));
 
-router.post('/:id/history', asyncHandler(async (req, res) => {
-    if (ytmusic.getAuthenticationState().status !== 'authenticated') {
-        throw new HttpError(401, 'YouTube authentication is required');
-    }
-    if (!ytmusic.hasPersonalizedMusicAccess()) {
-        throw new HttpError(503, 'YouTube Music cookie authentication is required');
-    }
-
-    await ytmusic.addTrackToHistory(getRequiredParam(req, 'id'));
+router.post('/:id/history', requireUser, asyncHandler(async (req, res) => {
+    await (await personalMusicClients.get(req.user!.id)).addTrackToHistory(getRequiredParam(req, 'id'));
     res.status(204).end();
 }));
 

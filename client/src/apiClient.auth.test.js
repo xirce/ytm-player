@@ -2,11 +2,17 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { act } from 'react-dom/test-utils';
 import { Provider } from 'react-redux';
+import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import api, { axiosBaseQuery, instance } from './apiClient';
 import { YouTubeAuthControl } from './components/Auth/YouTubeAuthControl';
 
-const authenticated = { status: 'authenticated', method: 'cookie', musicRecommendationsAvailable: true };
+const authenticated = {
+    status: 'authenticated',
+    user: { email: 'listener@example.com', name: 'Listener' },
+    musicConnection: 'connected',
+    musicRecommendationsAvailable: true
+};
 let store;
 let container;
 let request;
@@ -31,7 +37,10 @@ afterEach(() => {
 
 const renderHeader = async () => {
     await act(async () => {
-        ReactDOM.render(<Provider store={store}><YouTubeAuthControl /></Provider>, container);
+        ReactDOM.render(
+            <MemoryRouter><Provider store={store}><YouTubeAuthControl /></Provider></MemoryRouter>,
+            container
+        );
     });
 };
 
@@ -43,7 +52,7 @@ test('header loads status once, shares it with pages and does not poll while idl
     await act(async () => { jest.advanceTimersByTime(10000); });
     expect(request).toHaveBeenCalledTimes(1);
     expect(request.mock.calls[0][0].url).toBe('/api/auth/status');
-    expect(container.textContent).toContain('YouTube Music подключён');
+    expect(container.textContent).toContain('Listener');
 });
 
 test('denied protected request refreshes the shared authentication status', async () => {
@@ -63,7 +72,7 @@ test('only protected authentication failures invalidate status', async () => {
     const dispatch = jest.fn();
     const query = axiosBaseQuery();
     for (const [requiresAuth, status, refresh] of [
-        [true, 401, true], [true, 503, true],
+        [true, 401, true], [true, 409, true],
         [false, 401, false], [true, 500, false], [true, undefined, false]
     ]) {
         dispatch.mockClear();
@@ -77,14 +86,9 @@ test('only protected authentication failures invalidate status', async () => {
     expect(dispatch).not.toHaveBeenCalled();
 });
 
-test('pending login is checked on return to the tab and stops checking after success', async () => {
-    request.mockResolvedValueOnce({ data: {
-        status: 'pending', userCode: 'TEST-CODE', verificationUrl: 'https://example.com/login'
-    } }).mockResolvedValue({ data: authenticated });
+test('anonymous header links to Google login', async () => {
+    request.mockResolvedValue({ data: { status: 'anonymous' } });
     await renderHeader();
-    expect(container.textContent).toContain('Проверить вход');
-    await act(async () => { window.dispatchEvent(new Event('focus')); });
-    expect(container.textContent).toContain('YouTube Music подключён');
-    await act(async () => { window.dispatchEvent(new Event('focus')); });
-    expect(request).toHaveBeenCalledTimes(2);
+    expect(container.querySelector('a').getAttribute('href')).toBe('/api/auth/google/start');
+    expect(container.textContent).toContain('Войти через Google');
 });

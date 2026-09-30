@@ -104,7 +104,8 @@
     "routers/**/*.ts",
     "utils/**/*.ts",
     "mappings/**/*.ts",
-    "shared/**/*.ts"
+    "shared/**/*.ts",
+    "types/**/*.d.ts"
   ],
   "exclude": ["client", "tools", "node_modules"]
 }

@@ -226,14 +226,14 @@ export const HomePage: React.FC = () => {
         return () => observer.disconnect();
     }, [continuation, loadContinuation, expandedSection]);
 
-    if (auth.isLoading || auth.data?.status === 'restoring') {
+    if (auth.isLoading) {
         return <h1>Загружаем рекомендации...</h1>;
     }
     if (!isAuthenticated) {
         return (
             <div className={styles.message}>
                 <h1>Персональные рекомендации</h1>
-                <p>Войдите в YouTube с помощью кнопки в шапке, чтобы открыть свою главную страницу.</p>
+                <p>Войдите через Google с помощью кнопки в шапке, чтобы открыть свою главную страницу.</p>
             </div>
         );
     }
@@ -242,9 +242,7 @@ export const HomePage: React.FC = () => {
             <div className={styles.message}>
                 <h1>Для рекомендаций нужна cookie-авторизация</h1>
                 <p>
-                    Device OAuth больше не принимается персональными endpoint’ами YouTube Music.
-                    Добавьте Cookie из авторизованного запроса music.youtube.com в
-                    переменную YOUTUBE_MUSIC_COOKIE и перезапустите сервер.
+                    Подключите YouTube Music на странице аккаунта, вставив Cookie из авторизованного запроса.
                 </p>
             </div>
         );

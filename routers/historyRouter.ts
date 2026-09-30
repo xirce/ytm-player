@@ -1,18 +1,14 @@
 import { Router } from 'express';
-import ytmusic from '../utils/YTMusicApiWrapper';
-import { asyncHandler, HttpError } from '../middleware/errors';
+import { asyncHandler } from '../middleware/errors';
+import { requireUser } from '../middleware/appAuth';
+import { personalMusicClients } from '../utils/personalMusicClient';
 
 const router = Router();
 
-router.get('/', asyncHandler(async (_req, res) => {
-    if (ytmusic.getAuthenticationState().status !== 'authenticated') {
-        throw new HttpError(401, 'YouTube authentication is required');
-    }
-    if (!ytmusic.hasPersonalizedMusicAccess()) {
-        throw new HttpError(503, 'YouTube Music cookie authentication is required');
-    }
+router.use(requireUser);
 
-    const tracks = await ytmusic.getMusicHistory();
+router.get('/', asyncHandler(async (req, res) => {
+    const tracks = await (await personalMusicClients.get(req.user!.id)).getMusicHistory();
     res.setHeader('Cache-Control', 'no-store');
     res.json(tracks);
 }));

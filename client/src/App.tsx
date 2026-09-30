@@ -11,6 +11,7 @@ import { QueuePage } from "./pages/Queue/QueuePage";
 import { FilteredSearchPage } from './pages/SearchRes/FilteredSearchPage';
 import { HomePage } from './pages/Home/HomePage';
 import { HistoryPage } from './pages/History/HistoryPage';
+import { AccountPage } from './pages/Account/AccountPage';
 import { Layout } from "./layouts/Default/Layout";
 import { FiltersLayout } from "./layouts/Filters/FiltersLayout";
 import { BackNavigationLayout } from './layouts/BackNavigation/BackNavigationLayout';
@@ -26,6 +27,7 @@ export const App: React.FC = () => {
                     <Route path="/" element={<Layout />}>
                         <Route index element={<HomePage />} />
                         <Route path="history" element={<HistoryPage />} />
+                        <Route path="account" element={<AccountPage />} />
                         <Route path="search" element={<FiltersLayout />}>
                             <Route index element={<SearchPage />} />
                             <Route path=":type" element={<FilteredSearchPage />} />

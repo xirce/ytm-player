@@ -140,17 +140,22 @@ export interface IHomeFeed {
     continuation: string | null;
 }
 
-export type YouTubeAuthState =
-    | { status: 'anonymous' | 'starting' | 'restoring' }
+export type AppAuthState =
+    | { status: 'anonymous' }
     | {
         status: 'authenticated';
-        method: 'oauth' | 'cookie' | 'oauth+cookie';
+        user: { email: string; name: string; pictureUrl?: string };
+        musicConnection: 'not_connected' | 'connected' | 'error';
         musicRecommendationsAvailable: boolean;
-    }
-    | {
-        status: 'pending';
-        verificationUrl: string;
-        userCode: string;
-        expiresAt: number;
-    }
-    | { status: 'error'; error: string };
+    };
+
+export interface YouTubeMusicConnectionInput {
+    cookie: string;
+    authUser?: number;
+    pageId?: string;
+    language?: string;
+}
+
+export interface YouTubeMusicConnectionState {
+    status: 'not_connected' | 'connected' | 'error';
+}

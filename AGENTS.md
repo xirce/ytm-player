@@ -43,6 +43,8 @@ npm run build     # production frontend build
 npm run typecheck # backend typecheck
 npm run typecheck --prefix client # frontend typecheck
 npm test --prefix client -- --watchAll=false
+npm run db:up     # start the local PostgreSQL container and wait until healthy
+npm run db:down   # stop the local PostgreSQL container without deleting its volume
 ```
 
 There is currently no root test or lint script. Backend TypeScript is pinned in the root dependency tree; the client has its own compiler and config. `npm run build` invokes CRA/`esbuild`, whose child process can fail with `spawn EPERM` inside a restricted sandbox. If that exact error occurs, rerun the same build with permission to execute outside the sandbox; do not treat it as a project build failure. For backend/type changes, run the root typecheck; for frontend changes, run the client typecheck and/or build. Do not claim checks that were not run.
@@ -51,8 +53,9 @@ There is currently no root test or lint script. Backend TypeScript is pinned in 
 
 Copy `.env.example` to `.env` for local use. Never commit `.env`, cookies, tokens, or cached session data. Relevant groups:
 
-- Server: `HOST`, `PORT`.
-- YouTube Music: `YOUTUBE_MUSIC_COOKIE`, `YOUTUBE_MUSIC_AUTHUSER`, `YOUTUBE_MUSIC_PAGE_ID`, `YOUTUBE_MUSIC_LANGUAGE`, `YOUTUBE_PO_TOKEN_PROVIDER_URL`, `YOUTUBE_CACHE_DIR`.
+- Server: `HOST`, `PORT`, `APP_BASE_URL`, `DATABASE_URL`.
+- Google login: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+- YouTube Music: `YOUTUBE_CREDENTIALS_ENCRYPTION_KEY`, `YOUTUBE_PO_TOKEN_PROVIDER_URL`, `YOUTUBE_CACHE_DIR`. User cookies and account settings are encrypted per user in PostgreSQL.
 - Remote helper: `REMOTE_CODEX_HOST`, `REMOTE_CODEX_PORT`, `REMOTE_CODEX_TOKEN`, `REMOTE_CODEX_EXECUTABLE`.
 
 ## Change guidelines

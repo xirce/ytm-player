@@ -13,7 +13,9 @@ import {
     IAlbumInfo,
     IHomeFeed,
     IHomeSectionPage,
-    YouTubeAuthState,
+    AppAuthState,
+    YouTubeMusicConnectionInput,
+    YouTubeMusicConnectionState,
     ITrackPlaybackSource
 } from "../../shared";
 
@@ -35,7 +37,7 @@ export const axiosBaseQuery = ({ baseUrl }: { baseUrl: string } = { baseUrl: '' 
         return { data: result.data }
     } catch (axiosError) {
         let err = axiosError as AxiosError
-        if (requiresAuth && (err.response?.status === 401 || err.response?.status === 503)) {
+        if (requiresAuth && (err.response?.status === 401 || err.response?.status === 409)) {
             queryApi.dispatch(api.util.invalidateTags(['Auth']));
         }
         return {
@@ -145,17 +147,25 @@ const api = createApi({
             query: () => ({ url: '/history', method: 'GET', requiresAuth: true }),
             providesTags: ['History']
         }),
-        getYouTubeAuthStatus: build.query<YouTubeAuthState, void>({
+        getYouTubeAuthStatus: build.query<AppAuthState, void>({
             query: () => ({ url: '/auth/status', method: 'GET' }),
             providesTags: ['Auth']
         }),
-        startYouTubeAuthentication: build.mutation<YouTubeAuthState, void>({
-            query: () => ({ url: '/auth/device', method: 'POST' }),
-            invalidatesTags: ['Home']
-        }),
         signOutYouTube: build.mutation<void, void>({
-            query: () => ({ url: '/auth/session', method: 'DELETE' }),
-            invalidatesTags: ['Home']
+            query: () => ({ url: '/auth/logout', method: 'POST' }),
+            invalidatesTags: ['Auth', 'Home', 'History']
+        }),
+        getYouTubeMusicConnection: build.query<YouTubeMusicConnectionState, void>({
+            query: () => ({ url: '/youtube-music', method: 'GET', requiresAuth: true }),
+            providesTags: ['Auth']
+        }),
+        connectYouTubeMusic: build.mutation<YouTubeMusicConnectionState, YouTubeMusicConnectionInput>({
+            query: data => ({ url: '/youtube-music', method: 'PUT', data, requiresAuth: true }),
+            invalidatesTags: ['Auth', 'Home', 'History']
+        }),
+        disconnectYouTubeMusic: build.mutation<void, void>({
+            query: () => ({ url: '/youtube-music', method: 'DELETE', requiresAuth: true }),
+            invalidatesTags: ['Auth', 'Home', 'History']
         }),
     })
 });
@@ -177,8 +187,10 @@ export const {
     useLazyGetHomeSectionQuery,
     useGetHistoryQuery,
     useGetYouTubeAuthStatusQuery,
-    useStartYouTubeAuthenticationMutation,
     useSignOutYouTubeMutation,
+    useGetYouTubeMusicConnectionQuery,
+    useConnectYouTubeMusicMutation,
+    useDisconnectYouTubeMusicMutation,
 } = api;
 
 export default api;

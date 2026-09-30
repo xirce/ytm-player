@@ -1,5 +1,4 @@
-.auth,
-.pending {
+.auth {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -12,6 +11,7 @@
     cursor: pointer;
     color: var(--text-light-color);
     background-color: #c00;
+    text-decoration: none;
 }
 
 .button:disabled {
@@ -19,21 +19,28 @@
     opacity: 0.6;
 }
 
-.pending strong {
-    user-select: all;
-    letter-spacing: 1px;
-}
-
-.pending a {
-    color: var(--text-light-color);
-    text-decoration: underline;
-}
-
-.error {
-    max-width: 320px;
-    color: #ff8a80;
-    font-size: 12px;
-}
-.cookie {
+.account {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     color: var(--text-main-color);
+    text-decoration: none;
+    min-width: 0;
+}
+
+.account span {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.account img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+}
+
+@media (max-width: 700px) {
+    .auth { align-items: stretch; flex-direction: column; }
 }

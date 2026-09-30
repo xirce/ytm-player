@@ -9,7 +9,7 @@ export const HistoryPage: React.FC = React.memo(() => {
         && auth.data.musicRecommendationsAvailable;
     const history = useGetHistoryQuery(canLoadHistory ? undefined : skipToken);
 
-    if (auth.isLoading || auth.data?.status === 'restoring') {
+    if (auth.isLoading) {
         return <h1>Загружаем историю...</h1>;
     }
     if (!canLoadHistory) {

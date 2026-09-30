@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import morgan from 'morgan';
 import { existsSync } from 'fs';
 import path from 'path';
@@ -13,13 +12,16 @@ import authRouter from './routers/authRouter';
 import homeRouter from './routers/homeRouter';
 import historyRouter from './routers/historyRouter';
 import playbackTelemetryRouter from './routers/playbackTelemetryRouter';
+import youtubeMusicConnectionRouter from './routers/youtubeMusicConnectionRouter';
 import { errorHandler } from './middleware/errors';
+import { attachUser, requireSameOrigin } from './middleware/appAuth';
 import { metricsRegistry } from './utils/metrics';
 
 const app = express();
 
 app.use(express.json());
-app.use(cors());
+app.use('/api', attachUser);
+app.use('/api', requireSameOrigin);
 app.get('/metrics', async (_req, res, next) => {
     try {
         res.setHeader('Content-Type', metricsRegistry.contentType);
@@ -37,6 +39,7 @@ app.use('/api/albums', albumRouter);
 app.use('/api/artists', artistRouter);
 app.use('/api/radios', radioRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/youtube-music', youtubeMusicConnectionRouter);
 app.use('/api/home', homeRouter);
 app.use('/api/history', historyRouter);
 app.use('/api/playback-telemetry', playbackTelemetryRouter);
