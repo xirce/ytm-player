@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation } from "react-router-dom";
-import { MediaPlayer, type MediaPlayerClass } from 'dashjs';
+import { MediaPlayer, type MediaPlayerClass } from './ShakaPlayerAdapter';
 import Grid from '@mui/material/Grid';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import QueueMusicRoundedIcon from "@mui/icons-material/QueueMusicRounded";
@@ -9,6 +9,7 @@ import { VolumeControl } from './VolumeControl';
 import { TrackControl, type TrackNavigation } from "./TrackControl";
 import { TrackInfo } from "./TrackInfo";
 import { MobilePlayerQueue, MobilePlayerQueueHandle, type QueueStage } from './MobilePlayerQueue';
+import { PlaybackTimingPanel } from './PlaybackTimingPanel';
 import { usePlayerSheet } from '../../hooks/usePlayerSheet';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { getCurrentTrack, getDisplayedTrack, getIsPlaying, playerSlice } from '../../store/player';
@@ -367,6 +368,8 @@ export const PlayerControls: React.FC = React.memo(() => {
     }, [sheet.ref, expanded]);
 
     return (
+        <>
+        <PlaybackTimingPanel />
         <div
             ref={sheet.ref}
             className={isMobile ? styles.sheetHost : undefined}
@@ -491,5 +494,6 @@ export const PlayerControls: React.FC = React.memo(() => {
         )}
         {isMobile && <MobilePlayerQueue ref={mobileQueueRef} stage={queueStage} onStageChange={setQueueStage} onProgress={setQueueProgress} />}
         </div>
+        </>
     );
 });

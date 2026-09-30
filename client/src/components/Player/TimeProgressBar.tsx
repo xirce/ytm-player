@@ -1,6 +1,6 @@
 import React, { MouseEventHandler, TouchEventHandler, useState, useEffect, useMemo } from 'react';
 import Grid from '@mui/material/Grid';
-import { MediaPlayer, MediaPlayerClass } from 'dashjs';
+import { MediaPlayer, MediaPlayerClass } from './ShakaPlayerAdapter';
 import { useReferredState } from '../../hooks/useReferredState';
 import { formatSeconds } from '../../utils/formatting';
 import { SliderWrapper } from '../Slider/SliderWrapper';
@@ -92,7 +92,7 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({
     };
 
     useEffect(() => {
-        // A newly displayed dash.js instance may already have a source attached,
+        // A newly displayed player may already have a source attached,
         // but still be between source attachment and stream initialization.
         // Reading time/duration in that window throws; player events fill these
         // values as soon as the stream is ready.

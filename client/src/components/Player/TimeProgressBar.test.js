@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { act } from 'react-dom/test-utils';
-import { MediaPlayer } from 'dashjs';
+import { MediaPlayer } from './ShakaPlayerAdapter';
 import { TimeProgressBar } from './TimeProgressBar';
 
 let mockSliderProps;

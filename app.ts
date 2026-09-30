@@ -12,12 +12,22 @@ import radioRouter from './routers/radioRouter';
 import authRouter from './routers/authRouter';
 import homeRouter from './routers/homeRouter';
 import historyRouter from './routers/historyRouter';
+import playbackTelemetryRouter from './routers/playbackTelemetryRouter';
 import { errorHandler } from './middleware/errors';
+import { metricsRegistry } from './utils/metrics';
 
 const app = express();
 
 app.use(express.json());
 app.use(cors());
+app.get('/metrics', async (_req, res, next) => {
+    try {
+        res.setHeader('Content-Type', metricsRegistry.contentType);
+        res.send(await metricsRegistry.metrics());
+    } catch (error) {
+        next(error);
+    }
+});
 app.use(morgan('tiny'));
 
 app.use('/api/tracks', trackRouter);
@@ -29,6 +39,7 @@ app.use('/api/radios', radioRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/home', homeRouter);
 app.use('/api/history', historyRouter);
+app.use('/api/playback-telemetry', playbackTelemetryRouter);
 
 const clientBuildPath = path.resolve(__dirname, 'client', 'build');
 const clientIndexPath = path.join(clientBuildPath, 'index.html');

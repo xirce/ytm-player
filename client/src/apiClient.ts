@@ -13,7 +13,8 @@ import {
     IAlbumInfo,
     IHomeFeed,
     IHomeSectionPage,
-    YouTubeAuthState
+    YouTubeAuthState,
+    ITrackPlaybackSource
 } from "../../shared";
 
 export const instance = axios.create({
@@ -67,7 +68,7 @@ const api = createApi({
     keepUnusedDataFor: 30,
     tagTypes: ['Home', 'History', 'Auth'],
     endpoints: (build) => ({
-        getTrackUrl: build.query<string, string>({
+        getTrackUrl: build.query<ITrackPlaybackSource, string>({
             query: (id: string) => ({
                 url: `/tracks/${id}/url`,
                 method: 'GET',

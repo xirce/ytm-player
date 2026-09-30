@@ -16,6 +16,7 @@ import { formatPlayCount, formatSeconds, formatShortPlayCount } from '../../util
 import { ITrackBase } from '../../../../shared';
 import { useAppAction, useAppSelector } from "../../store";
 import { getDisplayedTrack, getIsPlaying } from '../../store/player';
+import { beginPlaybackMeasurement } from '../../utils/playbackMetrics';
 import { useTouchPress } from '../../hooks/useTouchPress';
 import { useLazyGetRadioQuery } from '../../apiClient';
 import { buildRadioQueue } from '../../utils/buildRadioQueue';
@@ -62,6 +63,7 @@ export const Track: React.FC<ITrackProps> = React.memo(({
             updateTrackMetadata(info);
             setIsPlaying(shouldPlay);
         } else {
+            beginPlaybackMeasurement(info.id, info.title);
             const requestId = ++latestPlaybackRequest;
             setTracks(playWithRadioQueue ? [info] : source);
             setTrackIndex(playWithRadioQueue ? 0 : index);

@@ -1,0 +1,9 @@
+apiVersion: 1
+
+providers:
+  - name: ytm-player
+    folder: YouTube Music Player
+    type: file
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards

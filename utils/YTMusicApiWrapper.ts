@@ -1,7 +1,30 @@
-import { Innertube, MusicPlaylistShelfContinuation, Platform, Types, UniversalCache, YTMusic, YTNodes } from 'youtubei.js';
-import { IHomeItem, IHomeSectionPage, IPlaylist, IPlaylistPage, ITrackBase, YouTubeAuthState } from '../shared';
+import { Constants, Innertube, MusicPlaylistShelfContinuation, Platform, Types, UniversalCache, YTMusic, YTNodes } from 'youtubei.js';
+import { IHomeItem, IHomeSectionPage, IPlaylist, IPlaylistPage, ISabrFormat, ITrackBase, YouTubeAuthState } from '../shared';
 import { getThumbnailUrl, mapPlaylistPanelVideoToTrack, mapToArtistInfo, mapToHomeItem, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
+import { performance } from 'node:perf_hooks';
+
+export interface TrackUrlTimings {
+    poToken: number;
+    playerInfo: number;
+    dashManifest: number;
+    total: number;
+}
+
+export interface TrackUrlResult {
+    manifest?: string;
+    poToken: string;
+    streamingUrl?: string;
+    ustreamerConfig?: string;
+    clientInfo: {
+        clientName: number;
+        clientVersion: string;
+        osName: string;
+        osVersion: string;
+    };
+    formats: ISabrFormat[];
+    timings: TrackUrlTimings;
+}
 
 const validateMusicCookie = (cookie: string): string => {
     const invalidIndex = Array.from(cookie).findIndex(character => {
@@ -269,18 +292,89 @@ export class YTMusicApiWrapper {
         );
     }
 
-    public async getTrackUrl(id: string, urlTransformer?: (url: URL) => URL): Promise<string | undefined> {
+    public async getTrackUrl(
+        id: string,
+        urlTransformer?: (url: URL) => URL,
+        seedUrlTransformer?: (url: URL) => URL
+    ): Promise<TrackUrlResult> {
+        const startedAt = performance.now();
         const poToken = await this.tokenProvider.getToken(id);
+        const tokenReadyAt = performance.now();
         const musicInfo = await this.innertube.music.getInfo(id, { po_token: poToken });
+        const infoReadyAt = performance.now();
 
-        const url = await musicInfo.toDash({
-            url_transformer: mediaUrl => {
-                mediaUrl.searchParams.set('pot', poToken);
-                return urlTransformer?.(mediaUrl) ?? mediaUrl;
-            },
-            format_filter: () => false
+        const manifest = await musicInfo.toDash({
+            url_transformer: mediaUrl => urlTransformer?.(mediaUrl) ?? mediaUrl,
+            format_filter: format => !format.has_audio || format.has_video,
+            manifest_options: { is_sabr: true }
         });
-        return url;
+        const serverAbrUrl = musicInfo.streaming_data?.server_abr_streaming_url;
+        const streamingUrl = serverAbrUrl
+            ? await this.innertube.session.player?.decipher(serverAbrUrl)
+            : undefined;
+        const ustreamerConfig = musicInfo.player_config?.media_common_config
+            .media_ustreamer_request_config?.video_playback_ustreamer_config;
+        const context = this.innertube.session.context.client;
+        const clientName = Number(Constants.CLIENT_NAME_IDS[
+            context.clientName as keyof typeof Constants.CLIENT_NAME_IDS
+        ] ?? Constants.CLIENT_NAME_IDS.WEB_REMIX);
+        const formats = await Promise.all((musicInfo.streaming_data?.adaptive_formats ?? [])
+            .filter(format => format.has_audio && !format.has_video)
+            .map(async format => {
+                let seedUrl: string | undefined;
+                try {
+                    const directUrl = await format.decipher(this.innertube.session.player);
+                    if (directUrl) {
+                        seedUrl = seedUrlTransformer?.(new URL(directUrl)).toString();
+                    }
+                } catch {
+                    // Playback remains available when a direct seed URL cannot be deciphered.
+                }
+                return {
+                    itag: format.itag,
+                    seedUrl,
+                    last_modified_ms: format.last_modified_ms,
+                    xtags: format.xtags,
+                    width: format.width,
+                    height: format.height,
+                    mime_type: format.mime_type,
+                    audio_quality: format.audio_quality,
+                    bitrate: format.bitrate,
+                    average_bitrate: format.average_bitrate,
+                    quality: format.quality,
+                    quality_label: format.quality_label,
+                    audio_track: format.audio_track ? { id: format.audio_track.id } : undefined,
+                    approx_duration_ms: format.approx_duration_ms,
+                    content_length: format.content_length,
+                    is_drc: format.is_drc,
+                    language: format.language,
+                    is_dubbed: format.is_dubbed,
+                    is_auto_dubbed: format.is_auto_dubbed,
+                    is_descriptive: format.is_descriptive,
+                    is_secondary: format.is_secondary,
+                    is_original: format.is_original
+                };
+            }));
+        const finishedAt = performance.now();
+        return {
+            manifest,
+            poToken,
+            streamingUrl,
+            ustreamerConfig,
+            clientInfo: {
+                clientName,
+                clientVersion: context.clientVersion,
+                osName: context.osName,
+                osVersion: context.osVersion
+            },
+            formats,
+            timings: {
+                poToken: tokenReadyAt - startedAt,
+                playerInfo: infoReadyAt - tokenReadyAt,
+                dashManifest: finishedAt - infoReadyAt,
+                total: finishedAt - startedAt
+            }
+        };
     }
 
     public async addTrackToHistory(id: string): Promise<void> {

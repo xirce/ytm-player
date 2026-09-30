@@ -89,6 +89,47 @@ export interface IHomeSection {
     continuation?: string | null;
 }
 
+export interface ISabrFormat {
+    itag: number;
+    seedUrl?: string;
+    last_modified_ms?: string;
+    xtags?: string;
+    width?: number;
+    height?: number;
+    mime_type?: string;
+    audio_quality?: string;
+    bitrate: number;
+    average_bitrate?: number;
+    quality?: string;
+    quality_label?: string;
+    audio_track?: { id: string };
+    approx_duration_ms?: number;
+    content_length?: number;
+    is_drc?: boolean;
+    language?: string | null;
+    is_dubbed?: boolean;
+    is_auto_dubbed?: boolean;
+    is_descriptive?: boolean;
+    is_secondary?: boolean;
+    is_original?: boolean;
+}
+
+export interface ITrackPlaybackSource {
+    manifest: string;
+    sabr: {
+        streamingUrl: string;
+        ustreamerConfig: string;
+        poToken: string;
+        clientInfo: {
+            clientName: number;
+            clientVersion: string;
+            osName: string;
+            osVersion: string;
+        };
+        formats: ISabrFormat[];
+    };
+}
+
 export interface IHomeSectionPage {
     items: IHomeItem[];
     continuation: string | null;

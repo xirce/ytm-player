@@ -5,7 +5,7 @@ import Grid from "@mui/material/Grid";
 import { skipToken } from "@reduxjs/toolkit/query";
 import { batch } from "react-redux";
 import { PauseRounded, PlayArrowRounded, RepeatOneRounded, RepeatRounded, ShuffleRounded, SkipNextRounded, SkipPreviousRounded } from "@mui/icons-material";
-import type { MediaPlayerClass } from 'dashjs';
+import type { MediaPlayerClass } from './ShakaPlayerAdapter';
 import { TimeProgressBar } from './TimeProgressBar';
 import { useAppAction, useAppSelector } from "../../store";
 import { getAutoplay, getCurrentTrack, getDisplayedTrack, getIsPlaying, getTracks, getRepeat, getTrackIndex } from '../../store/player';
@@ -13,8 +13,59 @@ import { useDependentRef } from "../../hooks/useDependentRef";
 import styles from "./PlayerControls.module.css";
 import { useAddTrackToHistoryMutation, useGetTrackUrlQuery, useLazyGetRadioQuery } from '../../apiClient';
 import { loadPlayerProgress, savePlayerProgress } from '../../utils/playerPersistence';
+import {
+    completePlaybackMeasurement,
+    ensurePlaybackMeasurement,
+    markPlaybackStage,
+    markPlaybackStageOnce,
+    recordPlaybackMediaDiagnostics,
+    recordPlaybackMediaRequest,
+    recordPlaybackSabrProxyDiagnostic
+} from '../../utils/playbackMetrics';
 
 const CROSSFADE_SECONDS = 3;
+
+interface DashFragmentEvent {
+    request?: {
+        type?: 'IndexSegment' | 'InitializationSegment' | 'MediaSegment' | null;
+        url?: string | null;
+        range?: string | null;
+    };
+}
+
+interface SabrTimingEvent {
+    phase: 'request' | 'response' | 'processed' | 'delivered' | 'server';
+    kind: 'index' | 'init' | 'media';
+    url: string;
+    range?: string;
+    responseHash?: string;
+    prefixHash?: string;
+    mediaEndBytes?: number;
+    coalescingStatus?: string;
+    networkRange?: string;
+    expectedBytes?: number;
+    actualBytes?: number;
+    resourceTiming?: {
+        name: string;
+        entryType: 'resource';
+        startTime: number;
+        duration: number;
+        responseStart: number;
+        responseEnd: number;
+        encodedBodySize: number;
+        serverTiming: ReadonlyArray<{ name: string; duration: number; description?: string }>;
+    };
+    proxyDiagnostic?: {
+        upstreamReadCompleteMs?: number;
+        downstreamFirstWriteMs?: number;
+        downstreamFinishMs?: number;
+        downstreamCloseMs?: number;
+        prematureClose?: boolean;
+        firstBackpressureMs?: number;
+        lastDrainMs?: number;
+        backpressureCount: number;
+    };
+}
 
 const isIOSDevice = () => {
     const navigatorWithTouchPoints = navigator as Navigator & { maxTouchPoints?: number };
@@ -90,6 +141,12 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     const [loadRadio] = useLazyGetRadioQuery();
 
     useEffect(() => {
+        if (currentTrack?.id && isPlaying) {
+            ensurePlaybackMeasurement(currentTrack.id, currentTrack.title);
+        }
+    }, [currentTrack?.id, currentTrack?.title, isPlaying]);
+
+    useEffect(() => {
         if (!autoplay) {
             requestedRadioSeedsRef.current.clear();
             return;
@@ -131,6 +188,8 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             historyRecordedPlayersRef.current.delete(player);
             restoredProgressPlayersRef.current.delete(player);
             if (currentTrack?.id) playerTrackIdsRef.current.set(player, currentTrack.id);
+            markPlaybackStage(currentTrack?.id, 'manifestReady');
+            markPlaybackStage(currentTrack?.id, 'sourceAttached');
             player.attachSource(trackUrl);
         }
     }, [trackUrl, player, currentTrack?.id]);
@@ -178,6 +237,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         };
         const onStreamInitialized = () => {
             initializedPlayersRef.current.add(player);
+            markPlaybackStage(playerTrackIdsRef.current.get(player), 'streamInitialized');
             syncDuration(player);
             const playerTrackId = playerTrackIdsRef.current.get(player);
             const savedProgress = loadPlayerProgress();
@@ -190,7 +250,44 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             }
             if (isPlayingRef.current) player.play();
         };
+        const markActiveStage = (stage: string) => {
+            markPlaybackStageOnce(playerTrackIdsRef.current.get(player), stage);
+        };
+        const onShakaLoadStarted = () => markActiveStage('shakaLoadStarted');
+        const onManifestLoaded = () => markActiveStage('manifestLoaded');
+        const onStreamInitializing = () => markActiveStage('streamInitializing');
+        const onShakaStreaming = () => markActiveStage('shakaStreaming');
+        const onFragmentStarted = (event: DashFragmentEvent) => {
+            const kind = event.request?.type === 'IndexSegment' ? 'index'
+                : event.request?.type === 'InitializationSegment' ? 'init'
+                : event.request?.type === 'MediaSegment' ? 'media'
+                    : null;
+            if (!kind) return;
+            const id = playerTrackIdsRef.current.get(player);
+            markPlaybackStageOnce(id, `${kind}RequestStarted`);
+            recordPlaybackMediaRequest(id, kind, event.request?.url, event.request?.range);
+        };
+        const onFragmentCompleted = (event: DashFragmentEvent) => {
+            const kind = event.request?.type === 'IndexSegment' ? 'index'
+                : event.request?.type === 'InitializationSegment' ? 'init'
+                : event.request?.type === 'MediaSegment' ? 'media'
+                    : null;
+            if (kind) markPlaybackStageOnce(playerTrackIdsRef.current.get(player), `${kind}RequestCompleted`);
+        };
+        const onSabrTiming = (event: SabrTimingEvent) => {
+            const id = playerTrackIdsRef.current.get(player);
+            const stageKind = event.kind[0].toUpperCase() + event.kind.slice(1);
+            markPlaybackStageOnce(id, `sabr${stageKind}${event.phase[0].toUpperCase()}${event.phase.slice(1)}`);
+            if (event.phase === 'request') {
+                recordPlaybackMediaRequest(id, event.kind, event.url, event.range, event);
+            } else if (event.phase === 'response' || event.phase === 'delivered') {
+                recordPlaybackMediaDiagnostics(id, event.kind, event);
+            } else if (event.phase === 'server' && event.proxyDiagnostic) {
+                recordPlaybackSabrProxyDiagnostic(id, event.kind, event.proxyDiagnostic);
+            }
+        };
         const onMetadataLoaded = () => syncDuration(player);
+        const onPlaybackStarted = () => completePlaybackMeasurement(playerTrackIdsRef.current.get(player));
         const getFollowingTrack = () => {
             const currentTracks = tracksRef.current;
             const currentIndex = trackIndexRef.current;
@@ -209,7 +306,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             completedTransitionPlayersRef.current.add(player);
             player.setVolume(masterVolume);
             standbyPlayer.setVolume(masterVolume);
-            // dash.js emits events outside React. Without batching, Redux can update
+            // Player events arrive outside React. Without batching, Redux can update
             // the track before React swaps the players (or vice versa), and the
             // preloading effect attaches a new source to the already playing player.
             batch(() => {
@@ -298,16 +395,43 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         };
 
         // Используем строковые имена событий, без импорта констант
+        const mediaElement = player.getVideoElement() as unknown as HTMLMediaElement;
+        const onNativeMetadataLoaded = () => markActiveStage('nativeLoadedMetadata');
+        const onNativeCanPlay = () => markActiveStage('nativeCanPlay');
+        const onSegmentAppended = () => markActiveStage('segmentAppended');
+
+        player.on('shakaLoadStarted', onShakaLoadStarted);
+        player.on('manifestLoaded', onManifestLoaded);
+        player.on('streamInitializing', onStreamInitializing);
+        player.on('shakaStreaming', onShakaStreaming);
+        player.on('fragmentLoadingStarted', onFragmentStarted);
+        player.on('fragmentLoadingCompleted', onFragmentCompleted);
+        player.on('sabrTiming', onSabrTiming);
+        player.on('segmentAppended', onSegmentAppended);
         player.on('streamInitialized', onStreamInitialized);
         player.on('playbackMetadataLoaded', onMetadataLoaded);
+        player.on('playbackStarted', onPlaybackStarted);
         player.on('playbackEnded', onEnded);
         player.on('playbackTimeUpdated', onTimeUpdated);
+        mediaElement?.addEventListener('loadedmetadata', onNativeMetadataLoaded);
+        mediaElement?.addEventListener('canplay', onNativeCanPlay);
 
         return () => {
+            player.off('shakaLoadStarted', onShakaLoadStarted);
+            player.off('manifestLoaded', onManifestLoaded);
+            player.off('streamInitializing', onStreamInitializing);
+            player.off('shakaStreaming', onShakaStreaming);
+            player.off('fragmentLoadingStarted', onFragmentStarted);
+            player.off('fragmentLoadingCompleted', onFragmentCompleted);
+            player.off('sabrTiming', onSabrTiming);
+            player.off('segmentAppended', onSegmentAppended);
             player.off('streamInitialized', onStreamInitialized);
             player.off('playbackMetadataLoaded', onMetadataLoaded);
+            player.off('playbackStarted', onPlaybackStarted);
             player.off('playbackEnded', onEnded);
             player.off('playbackTimeUpdated', onTimeUpdated);
+            mediaElement?.removeEventListener('loadedmetadata', onNativeMetadataLoaded);
+            mediaElement?.removeEventListener('canplay', onNativeCanPlay);
         };
     }, [player, standbyPlayer, repeatRef, tracksRef, trackIndexRef, isPlayingRef, autoplayRef, skipNext, setIsPlaying, swapPlayers, setDisplayTrackIndex, addTrackToHistory, updateTrackDuration]);
 
@@ -348,7 +472,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                     duration: progressPlayer.duration() || undefined
                 });
             } catch {
-                // dash.js may already be tearing down during page unload.
+                // The player may already be tearing down during page unload.
             }
         };
         window.addEventListener('pagehide', saveFinalProgress);
@@ -472,7 +596,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                 const position = target.time();
                 target.seek(Math.min(duration, Math.max(0, position + offset)));
             } catch {
-                // Ignore a command received while dash.js is switching sources.
+                // Ignore a command received while the player is switching sources.
             }
         };
         const handlers: Partial<Record<MediaSessionAction, MediaSessionActionHandler>> = {
@@ -493,7 +617,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                 try {
                     mediaProgressPlayerRef.current.seek(details.seekTime);
                 } catch {
-                    // Ignore a command received while dash.js is switching sources.
+                    // Ignore a command received while the player is switching sources.
                 }
             }
         };
