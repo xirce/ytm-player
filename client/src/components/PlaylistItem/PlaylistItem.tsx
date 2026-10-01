@@ -14,7 +14,7 @@ export const PlaylistItem: React.FC<IPlaylistItemProps> = ({ info }: IPlaylistIt
         <Link to={to}>
             <div className={styles.container}>
                 <div className={styles.imageContainer}>
-                    <img src={info.imageUrl} className={styles.image} />
+                    <img src={info.imageUrl} className={styles.image} alt={info.name} referrerPolicy="no-referrer" />
                 </div>
                 <span className={styles.name}>{info.name}</span>
                 <span className={styles.year}>Альбом • {info.year}</span>

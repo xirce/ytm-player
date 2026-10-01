@@ -1,0 +1,46 @@
+.auth {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.button {
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-light-color);
+    background-color: #c00;
+    text-decoration: none;
+}
+
+.button:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.account {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-main-color);
+    text-decoration: none;
+    min-width: 0;
+}
+
+.account span {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.account img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+}
+
+@media (max-width: 700px) {
+    .auth { align-items: stretch; flex-direction: column; }
+}

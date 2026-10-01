@@ -22,6 +22,15 @@
     max-width: 300px;
     cursor: default;
     color: var(--text-light-color);
+    font-weight: 500;
+}
+
+.expanded .title {
+    font-weight: 700;
+}
+
+.title a {
+    color: inherit;
 }
 
 .artist {
@@ -32,4 +41,71 @@
 
 .artist:hover {
     color: var(--text-light-color);
+}
+
+@media (max-width: 700px) {
+    .title,
+    .artist {
+        display: block;
+        max-width: min(38vw, 180px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mini {
+        cursor: pointer;
+    }
+
+    .mini .imageContainer {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+    }
+
+    .mini .artist {
+        display: block;
+        max-width: min(48vw, 220px);
+        margin-top: 2px;
+        font-size: 0.78rem;
+    }
+
+    .expanded {
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 20px;
+        width: 100%;
+        text-align: center;
+    }
+
+    .expanded .imageContainer {
+        width: min(calc(100vw - 40px), 65dvh);
+        height: min(calc(100vw - 40px), 65dvh);
+        max-height: none;
+        min-width: 0;
+    }
+
+    .expanded .image {
+        border-radius: 8px;
+        box-shadow: 0 12px 42px rgba(0, 0, 0, 0.42);
+    }
+
+    .expanded .infoContainer,
+    .expanded .title,
+    .expanded .artist {
+        width: 100%;
+        max-width: 100%;
+        text-align: center;
+    }
+
+    .expanded .title {
+        font-size: clamp(1.35rem, 5.5vw, 1.65rem);
+        line-height: 1.25;
+    }
+
+    .expanded .artist {
+        margin-top: 7px;
+        font-size: clamp(1rem, 4.2vw, 1.2rem);
+    }
 }

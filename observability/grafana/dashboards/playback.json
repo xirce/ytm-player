@@ -1,0 +1,96 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "ytm-prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.5 }] }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "up{job=\"ytm-player\"}", "legendFormat": "metrics endpoint", "refId": "A" }],
+      "title": "Сбор метрик работает",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "ytm-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "increase(ytm_playback_starts_total[$__range])", "legendFormat": "запуски", "refId": "A" }],
+      "title": "Запусков за период",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "ytm-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "histogram_quantile(0.50, sum by (le) (rate(ytm_playback_start_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "p50", "refId": "A" }],
+      "title": "Старт p50",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "ytm-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum by (le) (rate(ytm_playback_start_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "p95", "refId": "A" }],
+      "title": "Старт p95",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "ytm-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 5 },
+      "id": 5,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum by (le, stage) (rate(ytm_playback_stage_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "{{stage}}", "refId": "A" }],
+      "title": "Этапы запуска — p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "ytm-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "id": 6,
+      "options": { "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "sum by (outcome) (increase(ytm_sabr_hedge_requests_total[$__rate_interval]))", "legendFormat": "{{outcome}}", "refId": "A" }],
+      "title": "Страхующие запросы",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "ytm-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "id": 7,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum by (le, outcome) (rate(ytm_sabr_hedge_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "{{outcome}}", "refId": "A" }],
+      "title": "Страхующий запрос — p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "ytm-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 22 },
+      "id": 8,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum by (le, stage) (rate(ytm_sabr_proxy_stage_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "{{stage}}", "refId": "A" }],
+      "title": "SABR proxy: завершение чтения и записи — p95",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["ytm-player"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Playback telemetry",
+  "uid": "ytm-playback",
+  "version": 1
+}

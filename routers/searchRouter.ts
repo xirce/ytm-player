@@ -1,111 +1,43 @@
 import { Router } from 'express';
-import { AlbumDetailed, ArtistDetailed, PlaylistFull, SongDetailed } from "ytmusic-api";
-import ytmusic from "../utils/YTMusicApiWrapper";
-import { mapToAlbumInfo, mapToArtistInfo, mapToPlaylistInfo, mapToTrack } from "../mappings/ytmusic-api";
-import { ISearchResponse } from "../shared";
+import ytmusic from '../utils/YTMusicApiWrapper';
+import { mapToAlbumInfo, mapToArtistInfoListItem, mapToPlaylistInfo, mapToTrack } from '../mappings/ytmusic-api';
+import { asyncHandler } from '../middleware/errors';
+import { getRequiredQuery } from '../middleware/validation';
 
 const router = Router();
 
-async function searchAll(query: string): Promise<ISearchResponse> {
-    const searchAll = await ytmusic.search(query as string);
-
-    const songs: SongDetailed[] = [];
-    const artists: ArtistDetailed[] = [];
-    const albums: AlbumDetailed[] = [];
-    const playlists: PlaylistFull[] = [];
-
-    searchAll.forEach(item => {
-        switch (item.type) {
-            case 'SONG':
-                songs.push(item);
-                break;
-            case 'PLAYLIST':
-                playlists.push(item);
-                break;
-            case 'ALBUM':
-                albums.push(item);
-                break;
-            case 'ARTIST':
-                artists.push(item);
-        }
+router.get('', asyncHandler(async (req, res) => {
+    const result = await ytmusic.search(getRequiredQuery(req, 'q'));
+    res.json({
+        artists: result.artists.map(mapToArtistInfoListItem),
+        tracks: result.songs.map(item => mapToTrack(item)),
+        albums: result.albums.map(item => mapToAlbumInfo(item)),
+        playlists: result.playlists.map(mapToPlaylistInfo)
     });
+}));
 
-    return {
-        artists: artists.map(mapToArtistInfo),
-        tracks: songs.map(mapToTrack),
-        albums: albums.map(mapToAlbumInfo),
-        playlists: playlists.map(mapToPlaylistInfo)
-    };
-}
+router.get('/artists', asyncHandler(async (req, res) => {
+    const artists = await ytmusic.searchArtists(getRequiredQuery(req, 'q'));
+    res.json(artists.map(mapToArtistInfoListItem));
+}));
 
-router.get('', async (req, res) => {
-    try {
-        const query = req.query.q;
-        const searchResults = await searchAll(query as string);
-        res.json(searchResults);
-    } catch (error) {
-        console.log(error);
-        res.sendStatus(400);
-    }
-});
+router.get('/tracks', asyncHandler(async (req, res) => {
+    const tracks = await ytmusic.searchSongs(getRequiredQuery(req, 'q'));
+    res.json(tracks.map(item => mapToTrack(item)));
+}));
 
-router.get('/artists', async (req, res) => {
-    try {
-        const query = req.query.q;
-        const artists = await ytmusic.searchArtists(query as string);
-        const mappedArtists = artists.map(mapToArtistInfo);
-        res.json(mappedArtists);
-    } catch (error) {
-        console.log(error);
-        res.sendStatus(400);
-    }
-});
+router.get('/albums', asyncHandler(async (req, res) => {
+    const albums = await ytmusic.searchAlbums(getRequiredQuery(req, 'q'));
+    res.json(albums.map(item => mapToAlbumInfo(item)));
+}));
 
-router.get('/tracks', async (req, res) => {
-    try {
-        const query = req.query.q;
-        const songs = await ytmusic.searchSongs(query as string);
-        const tracks = songs.map(mapToTrack);
-        res.json(tracks);
-    } catch (error) {
-        console.log(error);
-        res.sendStatus(400);
-    }
-});
+router.get('/playlists', asyncHandler(async (req, res) => {
+    const playlists = await ytmusic.searchPlaylists(getRequiredQuery(req, 'q'));
+    res.json(playlists.map(mapToPlaylistInfo));
+}));
 
-router.get('/albums', async (req, res) => {
-    try {
-        const query = req.query.q;
-        const albums = await ytmusic.searchAlbums(query as string);
-        const mappedAlbums = albums.map(mapToAlbumInfo);
-        res.json(mappedAlbums);
-    } catch (error) {
-        console.log(error);
-        res.sendStatus(400);
-    }
-});
-
-router.get('/playlists', async (req, res) => {
-    try {
-        const query = req.query.q;
-        const playlists = await ytmusic.searchPlaylists(query as string);
-        const mappedPlaylists = playlists.map(mapToPlaylistInfo);
-        res.json(mappedPlaylists);
-    } catch (error) {
-        console.log(error);
-        res.sendStatus(400);
-    }
-});
-
-router.get('/suggestions', async (req, res) => {
-    try {
-        const query = req.query.q;
-        const searchSuggestions = await ytmusic.getSearchSuggestions(query as string);
-        res.json(searchSuggestions);
-    } catch (error) {
-        console.log(error);
-        res.sendStatus(400);
-    }
-});
+router.get('/suggestions', asyncHandler(async (req, res) => {
+    res.json(await ytmusic.getSearchSuggestions(getRequiredQuery(req, 'q')));
+}));
 
 export default router;

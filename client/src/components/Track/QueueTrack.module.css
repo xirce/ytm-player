@@ -1,3 +1,36 @@
 .container {
+    position: relative;
     max-height: 100%;
+}
+
+.track {
+    min-width: 0;
+}
+
+.dragHandle {
+    display: none;
+}
+
+@media (max-width: 700px), (pointer: coarse) {
+    .dragHandle {
+        position: absolute;
+        top: 50%;
+        right: 0;
+        z-index: 2;
+        display: grid;
+        width: 48px;
+        height: 52px;
+        place-items: center;
+        color: var(--text-main-color);
+        cursor: grab;
+        touch-action: none;
+        transform: translateY(-50%);
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    .dragHandle:active {
+        color: var(--text-light-color);
+        cursor: grabbing;
+    }
 }

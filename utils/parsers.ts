@@ -1,4 +1,4 @@
-import Parser from 'ytmusic-api/dist/parsers/Parser';
+import { ArtistBasic, VideoDetailed } from "ytmusic-api";
 import { IArtistInfoBase, ITrackBase } from "../shared";
 
 export const parseNextTrack = (source: any): ITrackBase => ({
@@ -6,24 +6,33 @@ export const parseNextTrack = (source: any): ITrackBase => ({
     title: source.title.runs[0].text,
     artist: parseArtistInfoBase(source.longBylineText.runs[0]),
     imageUrl: source.thumbnail.thumbnails[0].url,
-    duration: Parser.parseDuration(source.lengthText.runs[0].text),
+    duration: parseDuration(source.lengthText.runs[0].text),
     radioId: 'RDAMVM' + source.videoId
 });
 
-export const parseArtistInfoBase = (source: any): IArtistInfoBase => ({
-    id: source.navigationEndpoint?.browseEndpoint.browseId as string,
-    name: source.text
+function parseDuration(time: string) {
+    if (!time) return null
+
+    const [seconds, minutes, hours] = time
+        .split(":")
+        .reverse()
+        .map(n => +n) as (number | undefined)[]
+
+    return (seconds || 0) + (minutes || 0) * 60 + (hours || 0) * 60 * 60
+}
+
+export const parseArtistInfoBase = (source: ArtistBasic): IArtistInfoBase => ({
+    id: source.artistId as string,
+    name: source.name
 });
 
-export function parsePlaylistTrack(source: any): ITrackBase {
-    const flexColumns = source.flexColumns;
-
+export function parsePlaylistTrack(source: VideoDetailed): ITrackBase {
     return {
-        id: source.playlistItemData?.videoId as string,
-        title: flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text as string,
-        artist: parseArtistInfoBase(flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs[0]),
-        imageUrl: source.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails[0].url as string,
-        duration: Parser.parseDuration(source.fixedColumns[0].musicResponsiveListItemFixedColumnRenderer.text.runs[0].text),
-        radioId: 'RDAMVM' + (source.playlistItemData?.videoId as string)
+        id: source.videoId as string,
+        title: source.name,
+        artist: parseArtistInfoBase(source.artist),
+        imageUrl: source.thumbnails[0].url as string,
+        duration: source.duration,
+        radioId: 'RDAMVM' + (source.videoId as string)
     };
 }

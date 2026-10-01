@@ -1,0 +1,15 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+!.env.production.example
+.cache
+dist
+client/build
+node_modules
+client/node_modules
+npm-debug.log*
+compose*.yml
+observability
+tools

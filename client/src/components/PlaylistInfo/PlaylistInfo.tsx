@@ -6,24 +6,29 @@ import styles from './PlaylistInfo.module.css';
 
 export interface IPlaylistInfoProps {
     source: IPlaylistInfo | IAlbumInfo;
+    centered?: boolean;
 }
 
-export const PlaylistInfo: React.FC<IPlaylistInfoProps> = React.memo(({ source }) => {
-    if ((source as IAlbumInfo).year) {
+export const PlaylistInfo: React.FC<IPlaylistInfoProps> = React.memo(({ source, centered = false }) => {
+    const className = `${styles.content} ${centered ? styles.centered : ''}`;
+    const count = source.trackCount === null
+        ? null
+        : `${source.trackCount} ${getCountDeclination(source.trackCount, ['трек', 'трека', 'треков'])}`;
+
+    if ('artist' in source) {
         const albumInfo = source as IAlbumInfo;
         return (
-            <div className={styles.content}>
+            <div className={className}>
                 <ArtistLink info={albumInfo.artist} />
-                <span>{albumInfo.year}</span>
+                {albumInfo.year !== null && <span>{albumInfo.year}</span>}
+                {count && <span>{count}</span>}
             </div>
         )
     }
 
-    const playlistInfo = source as IPlaylistInfo;
-
     return (
-        <div className={styles.content}>
-            <span>{playlistInfo.tracksCount + ' ' + getCountDeclination(playlistInfo.tracksCount, ['трек', 'трека', 'треков'])}</span>
+        <div className={className}>
+            {count && <span>{count}</span>}
         </div >
     );
 });

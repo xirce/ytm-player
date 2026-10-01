@@ -1,17 +1,12 @@
 import { Router } from 'express';
+import { asyncHandler } from '../middleware/errors';
+import { getRequiredParam } from '../middleware/validation';
 import ytmusic from '../utils/YTMusicApiWrapper';
 
 const router = Router();
 
-router.get('/:id', async (req, res) => {
-    try {
-        const id = req.params.id;
-        const radio = await ytmusic.getRadio(id);
-        res.json(radio);
-    } catch (error) {
-        console.log(error);
-        res.sendStatus(400);
-    }
-});
+router.get('/:id', asyncHandler(async (req, res) => {
+    res.json(await ytmusic.getRadio(getRequiredParam(req, 'id')));
+}));
 
 export default router;

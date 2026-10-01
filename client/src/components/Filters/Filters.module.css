@@ -9,13 +9,32 @@
     background-color: #333131;
     padding: 5px 7px 7px 7px;
     border-radius: 2px;
+    cursor: pointer;
 }
 
-.item:hover {
-    cursor: pointer;
+@media (hover: hover) and (pointer: fine) {
+    .item:hover {
+        background-color: var(--bg-light-color);
+    }
+}
+
+.item:active {
     background-color: var(--bg-light-color);
 }
 
 .show_all {
 
+}
+
+@media (max-width: 700px) {
+    .container {
+        justify-content: flex-start;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .item {
+        flex: 0 0 auto;
+    }
 }

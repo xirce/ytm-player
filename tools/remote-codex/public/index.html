@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0b0c" />
+    <title>Remote Codex</title>
+    <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<main id="login" class="login hidden">
+    <form id="login-form" class="login-card">
+        <div class="mark">RC</div>
+        <h1>Remote Codex</h1>
+        <p>Введите токен, показанный в терминале при первом запуске.</p>
+        <input id="token" type="password" autocomplete="current-password" placeholder="Токен доступа" required />
+        <button type="submit" class="primary">Войти</button>
+        <span id="login-error" class="error"></span>
+    </form>
+</main>
+
+<main id="app" class="app hidden">
+    <header>
+        <div>
+            <strong>Remote Codex</strong>
+            <span id="workspace">ytm-player</span>
+        </div>
+        <div class="header-actions">
+            <span id="status" class="status">Подключение…</span>
+            <button id="threads-button" class="icon" title="Существующие сессии">☰</button>
+            <button id="new-thread" class="icon" title="Новый диалог">＋</button>
+        </div>
+    </header>
+
+    <section id="messages" class="messages" aria-live="polite"></section>
+
+    <aside id="threads-panel" class="threads-panel hidden">
+        <div class="panel-heading">
+            <strong>Сессии проекта</strong>
+            <button id="threads-close" class="icon" title="Закрыть">×</button>
+        </div>
+        <div id="threads-list" class="threads-list"></div>
+    </aside>
+
+    <aside id="approval" class="approval hidden">
+        <strong>Требуется подтверждение</strong>
+        <pre id="approval-command"></pre>
+        <p id="approval-reason"></p>
+        <div>
+            <button id="decline" class="secondary">Отклонить</button>
+            <button id="accept" class="primary">Разрешить</button>
+        </div>
+    </aside>
+
+    <footer>
+        <form id="composer" class="composer">
+            <textarea id="prompt" rows="1" enterkeyhint="enter" placeholder="Напишите задачу…" maxlength="12000"></textarea>
+            <button id="stop" type="button" class="stop hidden">■</button>
+            <button id="send" type="submit" class="send">➤</button>
+        </form>
+    </footer>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

@@ -6,10 +6,15 @@ import { SearchPage } from './pages/Search/SearchPage';
 import { ProgressBar } from "./components/ProgressBar/ProgressBar";
 import { AlbumPage } from './pages/Album/AlbumPage';
 import { ArtistPage } from './pages/Artist/ArtistPage';
+import { ArtistTracksPage } from './pages/Artist/ArtistTracksPage';
 import { QueuePage } from "./pages/Queue/QueuePage";
 import { FilteredSearchPage } from './pages/SearchRes/FilteredSearchPage';
+import { HomePage } from './pages/Home/HomePage';
+import { HistoryPage } from './pages/History/HistoryPage';
+import { AccountPage } from './pages/Account/AccountPage';
 import { Layout } from "./layouts/Default/Layout";
 import { FiltersLayout } from "./layouts/Filters/FiltersLayout";
+import { BackNavigationLayout } from './layouts/BackNavigation/BackNavigationLayout';
 import { store } from "./store";
 import './App.css';
 
@@ -20,15 +25,21 @@ export const App: React.FC = () => {
                 <ProgressBar />
                 <Routes>
                     <Route path="/" element={<Layout />}>
+                        <Route index element={<HomePage />} />
+                        <Route path="history" element={<HistoryPage />} />
+                        <Route path="account" element={<AccountPage />} />
                         <Route path="search" element={<FiltersLayout />}>
                             <Route index element={<SearchPage />} />
                             <Route path=":type" element={<FilteredSearchPage />} />
                         </Route>
-                        <Route path="playlist/:id" element={<PlaylistPage />} />
-                        <Route path="album/:id" element={<AlbumPage />} />
-                        <Route path="artist/:id" element={<ArtistPage />} />
+                        <Route element={<BackNavigationLayout />}>
+                            <Route path="playlist/:id" element={<PlaylistPage />} />
+                            <Route path="album/:id" element={<AlbumPage />} />
+                            <Route path="artist/:id" element={<ArtistPage />} />
+                            <Route path="artist/:id/tracks" element={<ArtistTracksPage />} />
+                        </Route>
                         <Route path="queue" element={<QueuePage />} />
-                        <Route path='*' element={<Navigate to="queue" replace />} />
+                        <Route path='*' element={<Navigate to="/" replace />} />
                     </Route>
                 </Routes>
             </Provider>

@@ -1,10 +1,12 @@
-import React, {MouseEventHandler} from 'react';
+import React, {MouseEventHandler, TouchEventHandler} from 'react';
 import Slider from "@mui/material/Slider";
 
 export interface SliderProps {
     onChange?: (event: Event, value: number) => void;
+    onChangeCommitted?: (event: Event | React.SyntheticEvent, value: number) => void;
     onMouseDown?: MouseEventHandler;
     onMouseUp?: MouseEventHandler;
+    onTouchStart?: TouchEventHandler;
     value?: number;
     defaultValue?: number;
     min?: number;
@@ -17,8 +19,11 @@ export const SliderWrapper: React.FC<SliderProps> = props => {
         <Slider
             onMouseDown={props.onMouseDown}
             onMouseUp={props.onMouseUp}
+            onTouchStart={props.onTouchStart}
             onChange={(event, value, _) =>
                 props.onChange && props.onChange(event, value as number)}
+            onChangeCommitted={(event, value) =>
+                props.onChangeCommitted && props.onChangeCommitted(event, value as number)}
             value={props.value}
             defaultValue={props.defaultValue}
             min={props.min}
@@ -29,6 +34,10 @@ export const SliderWrapper: React.FC<SliderProps> = props => {
                 color: 'inherit',
                 height: 3.5,
                 padding: 0,
+                '@media (pointer: coarse)': {
+                    height: 4,
+                    padding: '10px 0'
+                },
                 '& .MuiSlider-thumb': {
                     display: 'none',
                     filter: 'brightness(150%)',

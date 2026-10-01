@@ -3,16 +3,16 @@ import { Track } from "../Track/Track";
 import { List } from "../List/List";
 import { ITrackBase } from "../../../../shared";
 import { useAppSelector } from "../../store";
-import { getCurrentTrack, getIsPlaying, getTrackIndex } from "../../store/player";
+import { getDisplayedTrack, getIsPlaying } from "../../store/player";
 
 export interface ITrackListProps {
     title?: string;
     source: ITrackBase[];
+    showPlayCount?: boolean;
 }
 
-export const TrackList: React.FC<ITrackListProps> = React.memo(({ title, source }) => {
-    const trackIndex = useAppSelector(getTrackIndex);
-    const currentTrack = useAppSelector(getCurrentTrack);
+export const TrackList: React.FC<ITrackListProps> = React.memo(({ title, source, showPlayCount = false }) => {
+    const currentTrack = useAppSelector(getDisplayedTrack);
     const isPlaying = useAppSelector(getIsPlaying);
 
     return (
@@ -20,13 +20,14 @@ export const TrackList: React.FC<ITrackListProps> = React.memo(({ title, source 
             title={title}
             source={source}
             renderItem={(info, index) => {
-                const isCurrent = currentTrack && currentTrack.id === info.id && index === trackIndex;
+                const isCurrent = currentTrack?.id === info.id;
 
                 return <Track
                     source={source}
                     index={index}
                     isCurrent={isCurrent}
                     isPlaying={isCurrent && isPlaying}
+                    showPlayCount={showPlayCount}
                 />
             }
             }

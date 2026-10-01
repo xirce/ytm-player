@@ -1,0 +1,48 @@
+.heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.heading h2 {
+    margin: 0;
+}
+
+.empty {
+    color: var(--text-main-color);
+    text-align: center;
+}
+
+.embedded {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+}
+
+.embedded .heading {
+    flex: 0 0 auto;
+    padding: 0 14px 8px;
+}
+
+.embedded .heading h2 {
+    font-size: 1.1rem;
+}
+
+.embedded .autoplay {
+    margin-right: 0;
+}
+
+.embedded .autoplay :global(.MuiFormControlLabel-label) {
+    color: var(--text-main-color);
+    font-size: 0.78rem;
+}
+
+.embedded .list {
+    min-height: 0;
+    padding: 0 8px calc(12px + env(safe-area-inset-bottom));
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}

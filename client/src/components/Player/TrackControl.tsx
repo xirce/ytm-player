@@ -1,129 +1,731 @@
-import React, { MutableRefObject, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Stack from "@mui/material/Stack";
 import Grid from "@mui/material/Grid";
 import { skipToken } from "@reduxjs/toolkit/query";
-import { PauseRounded, PlayArrowRounded, RepeatOneRounded, RepeatRounded, Shuffle, ShuffleRounded, SkipNextRounded, SkipPreviousRounded } from "@mui/icons-material";
+import { batch } from "react-redux";
+import { PauseRounded, PlayArrowRounded, RepeatOneRounded, RepeatRounded, ShuffleRounded, SkipNextRounded, SkipPreviousRounded } from "@mui/icons-material";
+import type { MediaPlayerClass } from './ShakaPlayerAdapter';
 import { TimeProgressBar } from './TimeProgressBar';
 import { useAppAction, useAppSelector } from "../../store";
-import {
-    getCurrentTrack,
-    getIsPlaying, getTracks, getRepeat
-} from '../../store/player';
-import { useGetTrackUrlQuery } from '../../apiClient';
+import { getAutoplay, getCurrentTrack, getDisplayedTrack, getIsPlaying, getTracks, getRepeat, getTrackIndex } from '../../store/player';
 import { useDependentRef } from "../../hooks/useDependentRef";
 import styles from "./PlayerControls.module.css";
+import { useAddTrackToHistoryMutation, useGetTrackUrlQuery, useLazyGetRadioQuery } from '../../apiClient';
+import { loadPlayerProgress, savePlayerProgress } from '../../utils/playerPersistence';
+import {
+    completePlaybackMeasurement,
+    ensurePlaybackMeasurement,
+    markPlaybackStage,
+    markPlaybackStageOnce,
+    recordPlaybackMediaDiagnostics,
+    recordPlaybackMediaRequest,
+    recordPlaybackSabrProxyDiagnostic
+} from '../../utils/playbackMetrics';
 
-export interface TrackControlProps {
-    audio: MutableRefObject<HTMLAudioElement>;
+const CROSSFADE_SECONDS = 3;
+
+interface DashFragmentEvent {
+    request?: {
+        type?: 'IndexSegment' | 'InitializationSegment' | 'MediaSegment' | null;
+        url?: string | null;
+        range?: string | null;
+    };
 }
 
-export const TrackControl: React.FC<TrackControlProps> = React.memo(({ audio }) => {
-    const { setIsPlaying, skipNext, skipPrev, setRepeat, shuffle } = useAppAction();
+interface SabrTimingEvent {
+    phase: 'request' | 'response' | 'processed' | 'delivered' | 'server';
+    kind: 'index' | 'init' | 'media';
+    url: string;
+    range?: string;
+    responseHash?: string;
+    prefixHash?: string;
+    mediaEndBytes?: number;
+    coalescingStatus?: string;
+    networkRange?: string;
+    expectedBytes?: number;
+    actualBytes?: number;
+    resourceTiming?: {
+        name: string;
+        entryType: 'resource';
+        startTime: number;
+        duration: number;
+        responseStart: number;
+        responseEnd: number;
+        encodedBodySize: number;
+        serverTiming: ReadonlyArray<{ name: string; duration: number; description?: string }>;
+    };
+    proxyDiagnostic?: {
+        upstreamReadCompleteMs?: number;
+        downstreamFirstWriteMs?: number;
+        downstreamFinishMs?: number;
+        downstreamCloseMs?: number;
+        prematureClose?: boolean;
+        firstBackpressureMs?: number;
+        lastDrainMs?: number;
+        backpressureCount: number;
+    };
+}
+
+const isIOSDevice = () => {
+    const navigatorWithTouchPoints = navigator as Navigator & { maxTouchPoints?: number };
+    return /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && (navigatorWithTouchPoints.maxTouchPoints || 0) > 1);
+};
+
+const supportsDualPlayerCrossfade = () => !isIOSDevice();
+
+export interface TrackControlProps {
+    player: MediaPlayerClass;
+    standbyPlayer: MediaPlayerClass;
+    swapPlayers: () => void;
+    progressPlayer: MediaPlayerClass;
+    canReadProgressImmediately: boolean;
+    miniControlsContainer?: HTMLDivElement | null;
+    onPlayRequested?: () => void;
+    onTrackNavigationChange?: (navigation: TrackNavigation | null) => void;
+}
+
+export interface TrackNavigation {
+    next: () => void;
+    previous: () => void;
+}
+
+export const TrackControl: React.FC<TrackControlProps> = React.memo(({
+    player,
+    standbyPlayer,
+    swapPlayers,
+    progressPlayer,
+    canReadProgressImmediately,
+    miniControlsContainer,
+    onPlayRequested,
+    onTrackNavigationChange
+}) => {
+    const {
+        setIsPlaying, skipNext, skipPrev, setRepeat, shuffle, setDisplayTrackIndex,
+        appendTracks, setAutoplaySource, updateTrackDuration
+    } = useAppAction();
     const tracksRef = useDependentRef(useAppSelector(getTracks));
     const isPlaying = useAppSelector(getIsPlaying);
+    const isPlayingRef = useDependentRef(isPlaying);
     const currentTrack = useAppSelector(getCurrentTrack);
+    const displayedTrack = useAppSelector(getDisplayedTrack);
+    const tracks = useAppSelector(getTracks);
+    const trackIndex = useAppSelector(getTrackIndex);
+    const trackIndexRef = useDependentRef(trackIndex);
+    const previousTrack = tracks[trackIndex === 0 ? tracks.length - 1 : trackIndex - 1];
+    const nextTrack = tracks[trackIndex + 1];
+    const autoplay = useAppSelector(getAutoplay);
+    const autoplayRef = useDependentRef(autoplay);
     const repeat = useAppSelector(getRepeat);
     const repeatRef = useDependentRef(repeat);
-    const { data: trackUrl, isFetching } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
+    const initializedPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
+    const playerTrackIdsRef = useRef(new WeakMap<MediaPlayerClass, string>());
+    const completedTransitionPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
+    const historyRecordedPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
+    const restoredProgressPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
+    const lastProgressSaveRef = useRef(0);
+    const requestedRadioSeedsRef = useRef(new Set<string>());
+    const autoplayWaitingRef = useRef(false);
+    const crossfadeRef = useRef<{ active: boolean; masterVolume: number }>({
+        active: false,
+        masterVolume: 1
+    });
+    const dualPlayerCrossfadeRef = useRef(supportsDualPlayerCrossfade());
+    // `data` keeps the previous argument's result while a new request is loading.
+    // Attaching it would restart the old track and incorrectly associate its URL
+    // with the newly selected track. `currentData` is scoped to the current ID.
+    const { currentData: trackUrl, isFetching } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
+    const { currentData: nextTrackUrl } = useGetTrackUrlQuery(nextTrack?.id ?? skipToken);
+    const [addTrackToHistory] = useAddTrackToHistoryMutation();
+    const [loadRadio] = useLazyGetRadioQuery();
 
     useEffect(() => {
-        const handlePlay = () => {
-            setIsPlaying(true);
+        if (currentTrack?.id && isPlaying) {
+            ensurePlaybackMeasurement(currentTrack.id, currentTrack.title);
         }
+    }, [currentTrack?.id, currentTrack?.title, isPlaying]);
 
-        const handlePause = () => {
-            setIsPlaying(false);
+    useEffect(() => {
+        if (!autoplay) {
+            requestedRadioSeedsRef.current.clear();
+            return;
         }
+        if (!isPlaying || !tracks.length || tracks.length - trackIndex > 2) return;
 
-        const handleEnd = () => {
+        const seed = tracks[tracks.length - 1];
+        if (!seed?.radioId || requestedRadioSeedsRef.current.has(seed.id)) return;
+        requestedRadioSeedsRef.current.add(seed.id);
+
+        void loadRadio(seed.radioId)
+            .unwrap()
+            .then(radioTracks => {
+                if (!autoplayRef.current) {
+                    autoplayWaitingRef.current = false;
+                    return;
+                }
+                const knownIds = new Set(tracksRef.current.map(track => track.id));
+                const newTracks = radioTracks.filter(track => track.id && !knownIds.has(track.id));
+                if (!newTracks.length) return;
+                batch(() => {
+                    appendTracks(newTracks);
+                    setAutoplaySource({ id: seed.id, title: seed.title });
+                    if (autoplayWaitingRef.current) {
+                        autoplayWaitingRef.current = false;
+                        skipNext();
+                    }
+                });
+            })
+            .catch(() => requestedRadioSeedsRef.current.delete(seed.id));
+    }, [autoplay, isPlaying, tracks, trackIndex, loadRadio, appendTracks, setAutoplaySource, tracksRef, skipNext]);
+
+
+    // Обновление источника при получении манифеста
+    useEffect(() => {
+        if (trackUrl) {
+            if (currentTrack?.id && playerTrackIdsRef.current.get(player) === currentTrack.id) return;
+            initializedPlayersRef.current.delete(player);
+            historyRecordedPlayersRef.current.delete(player);
+            restoredProgressPlayersRef.current.delete(player);
+            if (currentTrack?.id) playerTrackIdsRef.current.set(player, currentTrack.id);
+            markPlaybackStage(currentTrack?.id, 'manifestReady');
+            markPlaybackStage(currentTrack?.id, 'sourceAttached');
+            player.attachSource(trackUrl);
+        }
+    }, [trackUrl, player, currentTrack?.id]);
+
+    // Резервный плеер заранее загружает манифест и начальный буфер следующего трека.
+    useEffect(() => {
+        if (!nextTrackUrl || !nextTrack?.id) return;
+        if (playerTrackIdsRef.current.get(standbyPlayer) === nextTrack.id) return;
+        initializedPlayersRef.current.delete(standbyPlayer);
+        historyRecordedPlayersRef.current.delete(standbyPlayer);
+        restoredProgressPlayersRef.current.delete(standbyPlayer);
+        playerTrackIdsRef.current.set(standbyPlayer, nextTrack.id);
+        standbyPlayer.attachSource(nextTrackUrl);
+    }, [nextTrackUrl, nextTrack?.id, standbyPlayer]);
+
+    // Очистка источника во время загрузки
+    useEffect(() => {
+        if (isFetching && currentTrack?.id && playerTrackIdsRef.current.get(player) !== currentTrack.id) {
+            initializedPlayersRef.current.delete(player);
+            player.attachSource('');
+        }
+    }, [isFetching, player, currentTrack?.id]);
+
+    // Синхронизация внешнего isPlaying с плеером
+    useEffect(() => {
+        if (isPlaying) {
+            if (initializedPlayersRef.current.has(player)) player.play();
+            if (crossfadeRef.current.active && initializedPlayersRef.current.has(standbyPlayer)) {
+                standbyPlayer.play();
+            }
+        } else if (initializedPlayersRef.current.has(player)) {
+            player.pause();
+            if (initializedPlayersRef.current.has(standbyPlayer)) standbyPlayer.pause();
+        }
+    }, [isPlaying, player, standbyPlayer]);
+
+    // Подписка на события плеера
+    useEffect(() => {
+        const syncDuration = (targetPlayer: MediaPlayerClass) => {
+            const id = playerTrackIdsRef.current.get(targetPlayer);
+            const duration = targetPlayer.duration();
+            if (id && Number.isFinite(duration) && duration > 0) {
+                updateTrackDuration({ id, duration });
+            }
+        };
+        const onStreamInitialized = () => {
+            initializedPlayersRef.current.add(player);
+            markPlaybackStage(playerTrackIdsRef.current.get(player), 'streamInitialized');
+            syncDuration(player);
+            const playerTrackId = playerTrackIdsRef.current.get(player);
+            const savedProgress = loadPlayerProgress();
+            if (!restoredProgressPlayersRef.current.has(player)
+                && playerTrackId
+                && savedProgress?.trackId === playerTrackId
+                && savedProgress.position > 0) {
+                player.seek(savedProgress.position);
+                restoredProgressPlayersRef.current.add(player);
+            }
+            if (isPlayingRef.current) player.play();
+        };
+        const markActiveStage = (stage: string) => {
+            markPlaybackStageOnce(playerTrackIdsRef.current.get(player), stage);
+        };
+        const onShakaLoadStarted = () => markActiveStage('shakaLoadStarted');
+        const onManifestLoaded = () => markActiveStage('manifestLoaded');
+        const onStreamInitializing = () => markActiveStage('streamInitializing');
+        const onShakaStreaming = () => markActiveStage('shakaStreaming');
+        const onFragmentStarted = (event: DashFragmentEvent) => {
+            const kind = event.request?.type === 'IndexSegment' ? 'index'
+                : event.request?.type === 'InitializationSegment' ? 'init'
+                : event.request?.type === 'MediaSegment' ? 'media'
+                    : null;
+            if (!kind) return;
+            const id = playerTrackIdsRef.current.get(player);
+            markPlaybackStageOnce(id, `${kind}RequestStarted`);
+            recordPlaybackMediaRequest(id, kind, event.request?.url, event.request?.range);
+        };
+        const onFragmentCompleted = (event: DashFragmentEvent) => {
+            const kind = event.request?.type === 'IndexSegment' ? 'index'
+                : event.request?.type === 'InitializationSegment' ? 'init'
+                : event.request?.type === 'MediaSegment' ? 'media'
+                    : null;
+            if (kind) markPlaybackStageOnce(playerTrackIdsRef.current.get(player), `${kind}RequestCompleted`);
+        };
+        const onSabrTiming = (event: SabrTimingEvent) => {
+            const id = playerTrackIdsRef.current.get(player);
+            const stageKind = event.kind[0].toUpperCase() + event.kind.slice(1);
+            markPlaybackStageOnce(id, `sabr${stageKind}${event.phase[0].toUpperCase()}${event.phase.slice(1)}`);
+            if (event.phase === 'request') {
+                recordPlaybackMediaRequest(id, event.kind, event.url, event.range, event);
+            } else if (event.phase === 'response' || event.phase === 'delivered') {
+                recordPlaybackMediaDiagnostics(id, event.kind, event);
+            } else if (event.phase === 'server' && event.proxyDiagnostic) {
+                recordPlaybackSabrProxyDiagnostic(id, event.kind, event.proxyDiagnostic);
+            }
+        };
+        const onMetadataLoaded = () => syncDuration(player);
+        const onPlaybackStarted = () => completePlaybackMeasurement(playerTrackIdsRef.current.get(player));
+        const getFollowingTrack = () => {
+            const currentTracks = tracksRef.current;
+            const currentIndex = trackIndexRef.current;
+            return currentTracks[currentIndex + 1];
+        };
+        const isFollowingTrackPrepared = () => {
+            const followingTrack = getFollowingTrack();
+            return Boolean(followingTrack
+                && playerTrackIdsRef.current.get(standbyPlayer) === followingTrack.id
+                && initializedPlayersRef.current.has(standbyPlayer));
+        };
+        const finishCrossfade = () => {
+            if (!crossfadeRef.current.active) return false;
+            crossfadeRef.current.active = false;
+            const masterVolume = crossfadeRef.current.masterVolume;
+            completedTransitionPlayersRef.current.add(player);
+            player.setVolume(masterVolume);
+            standbyPlayer.setVolume(masterVolume);
+            // Player events arrive outside React. Without batching, Redux can update
+            // the track before React swaps the players (or vice versa), and the
+            // preloading effect attaches a new source to the already playing player.
+            batch(() => {
+                swapPlayers();
+                skipNext();
+            });
+            return true;
+        };
+        const onTimeUpdated = (event: { timeToEnd?: number }) => {
+            if (completedTransitionPlayersRef.current.has(player)) return;
+            const playedTime = player.time();
+            const playingTrackId = playerTrackIdsRef.current.get(player);
+            const now = Date.now();
+            if (playingTrackId && now - lastProgressSaveRef.current >= 1000) {
+                lastProgressSaveRef.current = now;
+                savePlayerProgress({
+                    trackId: playingTrackId,
+                    position: playedTime,
+                    duration: player.duration() || undefined
+                });
+            }
+            if (playedTime >= 10 && playingTrackId && !historyRecordedPlayersRef.current.has(player)) {
+                historyRecordedPlayersRef.current.add(player);
+                void addTrackToHistory(playingTrackId).unwrap().catch(() => {
+                    historyRecordedPlayersRef.current.delete(player);
+                });
+            }
+            const timeToEnd = event.timeToEnd;
+            if (repeatRef.current || !isPlayingRef.current || typeof timeToEnd !== 'number') return;
+            if ((tracksRef.current?.length || 0) < 2 || player.time() < CROSSFADE_SECONDS) return;
+            // iOS Safari ties audible playback permission to a particular media
+            // element. Starting the preloaded second element automatically can
+            // advance its timeline while producing no sound. Keep the transition
+            // on the already unlocked element on iOS; other browsers use both
+            // players for the real overlap.
+            if (!dualPlayerCrossfadeRef.current) return;
+
+            if (!crossfadeRef.current.active) {
+                if (timeToEnd > CROSSFADE_SECONDS || !isFollowingTrackPrepared()) return;
+                crossfadeRef.current = { active: true, masterVolume: player.getVolume() };
+                standbyPlayer.setMute(player.isMuted());
+                standbyPlayer.setVolume(0);
+                standbyPlayer.play();
+                const currentIndex = trackIndexRef.current;
+                const trackCount = tracksRef.current.length;
+                setDisplayTrackIndex(currentIndex === trackCount - 1 ? 0 : currentIndex + 1);
+            }
+
+            const progress = Math.min(1, Math.max(0, (CROSSFADE_SECONDS - timeToEnd) / CROSSFADE_SECONDS));
+            const masterVolume = crossfadeRef.current.masterVolume;
+            player.setVolume(masterVolume * (1 - progress));
+            standbyPlayer.setVolume(masterVolume * progress);
+        };
+        const onEnded = () => {
+            if (completedTransitionPlayersRef.current.has(player)) return;
+            if (finishCrossfade()) return;
             if (repeatRef.current) {
-                audio.current.currentTime = 0;
-                handlePlay();
+                player.seek(0);
+                player.play();
+            } else if (trackIndexRef.current >= (tracksRef.current?.length || 0) - 1) {
+                autoplayWaitingRef.current = autoplayRef.current;
+                setIsPlaying(false);
+                player.seek(0);
             } else if ((tracksRef.current?.length || 0) > 1) {
+                if (!dualPlayerCrossfadeRef.current) {
+                    // Reusing the active element preserves Safari's user-gesture
+                    // playback permission when the next source is attached.
+                    skipNext();
+                    return;
+                }
+                if (isFollowingTrackPrepared()) {
+                    standbyPlayer.setVolume(player.getVolume());
+                    standbyPlayer.setMute(player.isMuted());
+                    standbyPlayer.play();
+                    batch(() => {
+                        swapPlayers();
+                        skipNext();
+                    });
+                    return;
+                }
                 skipNext();
             } else {
                 setIsPlaying(false);
-                audio.current.currentTime = 0;
+                player.seek(0);
             }
-        }
+        };
 
-        audio.current.autoplay = true;
-        audio.current.addEventListener('play', handlePlay);
-        audio.current.addEventListener('pause', handlePause);
-        audio.current.addEventListener('ended', handleEnd);
+        // Используем строковые имена событий, без импорта констант
+        const mediaElement = player.getVideoElement() as unknown as HTMLMediaElement;
+        const onNativeMetadataLoaded = () => markActiveStage('nativeLoadedMetadata');
+        const onNativeCanPlay = () => markActiveStage('nativeCanPlay');
+        const onSegmentAppended = () => markActiveStage('segmentAppended');
+
+        player.on('shakaLoadStarted', onShakaLoadStarted);
+        player.on('manifestLoaded', onManifestLoaded);
+        player.on('streamInitializing', onStreamInitializing);
+        player.on('shakaStreaming', onShakaStreaming);
+        player.on('fragmentLoadingStarted', onFragmentStarted);
+        player.on('fragmentLoadingCompleted', onFragmentCompleted);
+        player.on('sabrTiming', onSabrTiming);
+        player.on('segmentAppended', onSegmentAppended);
+        player.on('streamInitialized', onStreamInitialized);
+        player.on('playbackMetadataLoaded', onMetadataLoaded);
+        player.on('playbackStarted', onPlaybackStarted);
+        player.on('playbackEnded', onEnded);
+        player.on('playbackTimeUpdated', onTimeUpdated);
+        mediaElement?.addEventListener('loadedmetadata', onNativeMetadataLoaded);
+        mediaElement?.addEventListener('canplay', onNativeCanPlay);
+
         return () => {
-            audio.current.pause();
-            audio.current.removeEventListener('play', handlePlay);
-            audio.current.removeEventListener('pause', handlePause);
-            audio.current.removeEventListener('ended', handleEnd);
-        }
-    }, [audio]);
+            player.off('shakaLoadStarted', onShakaLoadStarted);
+            player.off('manifestLoaded', onManifestLoaded);
+            player.off('streamInitializing', onStreamInitializing);
+            player.off('shakaStreaming', onShakaStreaming);
+            player.off('fragmentLoadingStarted', onFragmentStarted);
+            player.off('fragmentLoadingCompleted', onFragmentCompleted);
+            player.off('sabrTiming', onSabrTiming);
+            player.off('segmentAppended', onSegmentAppended);
+            player.off('streamInitialized', onStreamInitialized);
+            player.off('playbackMetadataLoaded', onMetadataLoaded);
+            player.off('playbackStarted', onPlaybackStarted);
+            player.off('playbackEnded', onEnded);
+            player.off('playbackTimeUpdated', onTimeUpdated);
+            mediaElement?.removeEventListener('loadedmetadata', onNativeMetadataLoaded);
+            mediaElement?.removeEventListener('canplay', onNativeCanPlay);
+        };
+    }, [player, standbyPlayer, repeatRef, tracksRef, trackIndexRef, isPlayingRef, autoplayRef, skipNext, setIsPlaying, swapPlayers, setDisplayTrackIndex, addTrackToHistory, updateTrackDuration]);
 
     useEffect(() => {
-        if (trackUrl) {
-            audio.current.src = trackUrl;
-        }
+        // Плеер снова стал активным с новым треком — старый маркер ended ему больше не нужен.
+        completedTransitionPlayersRef.current.delete(player);
+    }, [player]);
+
+    useEffect(() => {
+        const onStandbyInitialized = () => {
+            initializedPlayersRef.current.add(standbyPlayer);
+            const id = playerTrackIdsRef.current.get(standbyPlayer);
+            const duration = standbyPlayer.duration();
+            if (id && Number.isFinite(duration) && duration > 0) {
+                updateTrackDuration({ id, duration });
+            }
+        };
+        standbyPlayer.on('streamInitialized', onStandbyInitialized);
+        standbyPlayer.on('playbackMetadataLoaded', onStandbyInitialized);
+        return () => {
+            standbyPlayer.off('streamInitialized', onStandbyInitialized);
+            standbyPlayer.off('playbackMetadataLoaded', onStandbyInitialized);
+        };
+    }, [standbyPlayer, updateTrackDuration]);
+
+    useEffect(() => {
         document.title = currentTrack?.title ?? 'UNISON';
-    }, [trackUrl]);
+    }, [currentTrack]);
 
     useEffect(() => {
-        if (isFetching) {
-            audio.current.src = '';
-        }
-    }, [isFetching]);
+        const saveFinalProgress = () => {
+            const trackId = playerTrackIdsRef.current.get(progressPlayer);
+            if (!trackId) return;
+            try {
+                savePlayerProgress({
+                    trackId,
+                    position: progressPlayer.time() || 0,
+                    duration: progressPlayer.duration() || undefined
+                });
+            } catch {
+                // The player may already be tearing down during page unload.
+            }
+        };
+        window.addEventListener('pagehide', saveFinalProgress);
+        return () => window.removeEventListener('pagehide', saveFinalProgress);
+    }, [progressPlayer]);
 
-    useEffect(() => {
-        isPlaying ? audio.current.play() : audio.current.pause();
-    }, [isPlaying]);
+    const cancelCrossfade = () => {
+        if (!crossfadeRef.current.active) return;
+        crossfadeRef.current.active = false;
+        setDisplayTrackIndex(null);
+        player.setVolume(crossfadeRef.current.masterVolume);
+        standbyPlayer.pause();
+        standbyPlayer.seek(0);
+        standbyPlayer.setVolume(crossfadeRef.current.masterVolume);
+    };
 
-    const handlePlaying = async () => {
-        isPlaying ? audio.current.pause() : await audio.current.play();
-    }
-
-    const handleSkipPrev = () => {
-        audio.current.currentTime > 2 ? audio.current.currentTime = 0 : skipPrev();
-    }
-
-    const handleSkipNext = () => {
-        skipNext();
-        if (!isPlaying) {
+    const handlePlaying = () => {
+        if (isPlaying) {
+            setIsPlaying(false);
+        } else {
+            onPlayRequested?.();
             setIsPlaying(true);
         }
-    }
+    };
+
+    const resetTrackToStart = (trackId?: string, duration?: number | null) => {
+        if (!trackId) return;
+        [player, standbyPlayer].forEach(targetPlayer => {
+            if (playerTrackIdsRef.current.get(targetPlayer) !== trackId) return;
+            try {
+                targetPlayer.seek(0);
+            } catch {
+                // The source may be detached while a rapid track change is loading.
+            }
+        });
+        savePlayerProgress({ trackId, position: 0, duration: duration || undefined });
+    };
+
+    const handleSkipPrev = () => {
+        cancelCrossfade();
+        const currentTime = playerTrackIdsRef.current.get(player) === currentTrack?.id
+            ? player.time() || 0
+            : 0;
+        if (currentTime > 2) {
+            resetTrackToStart(currentTrack?.id, currentTrack?.duration);
+        } else {
+            resetTrackToStart(previousTrack?.id, previousTrack?.duration);
+            skipPrev();
+        }
+    };
+
+    const handleSkipNext = () => {
+        cancelCrossfade();
+        skipNext();
+        if (!isPlaying) setIsPlaying(true);
+    };
+
+    const handlePreviousTrack = () => {
+        const wasCrossfading = crossfadeRef.current.active;
+        cancelCrossfade();
+        // During a crossfade the artwork already shows the upcoming track, so
+        // returning to the current track is the expected "previous" action.
+        if (!wasCrossfading) {
+            resetTrackToStart(previousTrack?.id, previousTrack?.duration);
+            skipPrev();
+        }
+        if (!isPlaying) setIsPlaying(true);
+    };
+
+    useEffect(() => {
+        if (!onTrackNavigationChange) return;
+        onTrackNavigationChange({ next: handleSkipNext, previous: handlePreviousTrack });
+        return () => onTrackNavigationChange(null);
+    });
 
     const handleToggleRepeat = () => {
+        cancelCrossfade();
         setRepeat(!repeat);
-    }
-
+    };
     const handleShuffle = () => {
+        cancelCrossfade();
         shuffle();
-    }
+    };
+    const mediaPlayerRef = useDependentRef(player);
+    const mediaProgressPlayerRef = useDependentRef(progressPlayer);
+    const mediaCancelCrossfadeRef = useDependentRef(cancelCrossfade);
+    const mediaSkipNextRef = useDependentRef(handleSkipNext);
+    const mediaSkipPrevRef = useDependentRef(handleSkipPrev);
+
+    useEffect(() => {
+        if (!('mediaSession' in navigator)) return;
+
+        navigator.mediaSession.metadata = displayedTrack
+            ? new MediaMetadata({
+                title: displayedTrack.title,
+                artist: displayedTrack.artist?.name ?? '',
+                album: displayedTrack.album?.name ?? '',
+                artwork: displayedTrack.imageUrls
+                    ? [
+                        { src: displayedTrack.imageUrls.small, sizes: '120x120' },
+                        { src: displayedTrack.imageUrls.medium, sizes: '512x512' },
+                        { src: displayedTrack.imageUrls.large, sizes: '1200x1200' }
+                    ].filter(item => item.src)
+                    : displayedTrack.imageUrl
+                        ? [{ src: displayedTrack.imageUrl }]
+                        : []
+            })
+            : null;
+        navigator.mediaSession.playbackState = displayedTrack
+            ? (isPlaying ? 'playing' : 'paused')
+            : 'none';
+    }, [displayedTrack, isPlaying]);
+
+    useEffect(() => {
+        if (!('mediaSession' in navigator)) return;
+
+        const seekBy = (offset: number) => {
+            try {
+                const target = mediaProgressPlayerRef.current;
+                const duration = target.duration();
+                const position = target.time();
+                target.seek(Math.min(duration, Math.max(0, position + offset)));
+            } catch {
+                // Ignore a command received while the player is switching sources.
+            }
+        };
+        const handlers: Partial<Record<MediaSessionAction, MediaSessionActionHandler>> = {
+            play: () => {
+                onPlayRequested?.();
+                setIsPlaying(true);
+            },
+            pause: () => setIsPlaying(false),
+            stop: () => {
+                mediaCancelCrossfadeRef.current();
+                setIsPlaying(false);
+                mediaPlayerRef.current.seek(0);
+            },
+            nexttrack: () => mediaSkipNextRef.current(),
+            previoustrack: () => mediaSkipPrevRef.current(),
+            seekto: details => {
+                if (typeof details.seekTime !== 'number') return;
+                try {
+                    mediaProgressPlayerRef.current.seek(details.seekTime);
+                } catch {
+                    // Ignore a command received while the player is switching sources.
+                }
+            }
+        };
+        // iOS Control Center has only two secondary media buttons. If interval
+        // seeking handlers are registered, Safari gives those slots to ±10 sec
+        // and hides previous/next track. The timeline still uses `seekto`.
+        const isIOS = isIOSDevice();
+        if (!isIOS) {
+            handlers.seekbackward = details => seekBy(-(details.seekOffset ?? 10));
+            handlers.seekforward = details => seekBy(details.seekOffset ?? 10);
+        }
+
+        const registerHandlers = () => {
+            Object.entries(handlers).forEach(([action, handler]) => {
+                try {
+                    navigator.mediaSession.setActionHandler(action as MediaSessionAction, handler ?? null);
+                } catch {
+                    // Some browsers expose Media Session but support only part of its actions.
+                }
+            });
+        };
+        registerHandlers();
+
+        // WebKit determines the available remote commands when a media element
+        // becomes active. Register again at that point so AirPods next/previous
+        // gestures are routed to the page rather than the element defaults.
+        const playbackPlayers = isIOS ? [player, standbyPlayer] : [];
+        playbackPlayers.forEach(target => target.on('playbackStarted', registerHandlers));
+
+        return () => {
+            playbackPlayers.forEach(target => target.off('playbackStarted', registerHandlers));
+            Object.keys(handlers).forEach(action => {
+                try {
+                    navigator.mediaSession.setActionHandler(action as MediaSessionAction, null);
+                } catch {
+                    // Ignore unsupported actions during cleanup as well.
+                }
+            });
+        };
+    }, [player, standbyPlayer, mediaProgressPlayerRef, mediaPlayerRef, mediaCancelCrossfadeRef,
+        mediaSkipNextRef, mediaSkipPrevRef, onPlayRequested, setIsPlaying]);
+
+    useEffect(() => {
+        if (!('mediaSession' in navigator) || !('setPositionState' in navigator.mediaSession)) return;
+
+        const updatePositionState = () => {
+            try {
+                const duration = progressPlayer.duration();
+                const position = progressPlayer.time();
+                if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(position)) return;
+                navigator.mediaSession.setPositionState({
+                    duration,
+                    playbackRate: 1,
+                    position: Math.min(duration, Math.max(0, position))
+                });
+            } catch {
+                // The player can briefly lose its source while tracks are switched.
+            }
+        };
+
+        progressPlayer.on('playbackTimeUpdated', updatePositionState);
+        progressPlayer.on('playbackMetadataLoaded', updatePositionState);
+        return () => {
+            progressPlayer.off('playbackTimeUpdated', updatePositionState);
+            progressPlayer.off('playbackMetadataLoaded', updatePositionState);
+        };
+    }, [progressPlayer]);
 
     return (
-        <Stack>
-            <Grid container justifyContent='center' alignItems='center' gap={2} marginBottom={1}>
-                <button className={styles.iconBtn}
-                    onClick={handleShuffle}>
-                    <ShuffleRounded />
-                </button>
-                <button className={styles.iconBtn}
-                    onClick={handleSkipPrev}>
-                    <SkipPreviousRounded fontSize='large' />
-                </button>
-                <button className={styles.iconBtn}
-                    onClick={handlePlaying}>
+        <Stack className={styles.trackControlStack}>
+            {miniControlsContainer && createPortal(<>
+                <button className={styles.iconBtn} onClick={handlePlaying} aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}>
                     {isPlaying ? <PauseRounded fontSize='large' /> : <PlayArrowRounded fontSize='large' />}
                 </button>
-                <button className={styles.iconBtn}
-                    onClick={handleSkipNext}>
+                <button className={styles.iconBtn} onClick={handleSkipNext} aria-label='Следующий трек'>
                     <SkipNextRounded fontSize='large' />
                 </button>
-                <button className={styles.iconBtn}
-                    onClick={handleToggleRepeat}>
+                <TimeProgressBar
+                    player={progressPlayer}
+                    canReadImmediately={canReadProgressImmediately}
+                    trackId={displayedTrack?.id}
+                    fallbackDuration={displayedTrack?.duration}
+                    compact
+                />
+            </>, miniControlsContainer)}
+            <Grid className={styles.transportControls} data-player-transport container justifyContent="center" alignItems="center" gap={2} marginBottom={1}>
+                <button className={`${styles.iconBtn} ${styles.mobileSecondaryControl}`} onClick={handleShuffle}>
+                    <ShuffleRounded />
+                </button>
+                <button className={styles.iconBtn} onClick={handleSkipPrev}>
+                    <SkipPreviousRounded fontSize="large" />
+                </button>
+                <button className={styles.iconBtn} onClick={handlePlaying} aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}>
+                    {isPlaying ? <PauseRounded fontSize="large" /> : <PlayArrowRounded fontSize="large" />}
+                </button>
+                <button className={styles.iconBtn} onClick={handleSkipNext} aria-label='Следующий трек'>
+                    <SkipNextRounded fontSize="large" />
+                </button>
+                <button className={`${styles.iconBtn} ${styles.mobileSecondaryControl}`} onClick={handleToggleRepeat}>
                     {repeat ? <RepeatOneRounded /> : <RepeatRounded />}
                 </button>
             </Grid>
-            <TimeProgressBar audio={audio} />
+            <TimeProgressBar
+                player={progressPlayer}
+                canReadImmediately={canReadProgressImmediately}
+                trackId={displayedTrack?.id}
+                fallbackDuration={displayedTrack?.duration}
+            />
         </Stack>
     );
 });

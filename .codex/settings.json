@@ -1,0 +1,7 @@
+{
+  "model": "standard",
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CODEX_CODE_SUBAGENT_MODEL": "fast"
+  }
+}

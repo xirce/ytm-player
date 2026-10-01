@@ -3,3 +3,93 @@
     background-color: var(--bg-dark-color);
     border-bottom: 1px solid var(--bg-main-color);
 }
+
+.home {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.navigation {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.library {
+    padding: 0;
+    border: 0;
+    color: var(--text-light-color);
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+
+.library:hover {
+    color: var(--text-main-color);
+}
+
+.auth {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.mobileMenu,
+.mobileAuth,
+.bottomNavigation {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    .container {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        /* Cover the sheet below its mini row without animating a clipping mask. */
+        z-index: 1201;
+        height: calc(64px + env(safe-area-inset-bottom));
+        padding: 0 8px env(safe-area-inset-bottom);
+        border-top: 1px solid var(--bg-main-color);
+        border-bottom: 0;
+        background: var(--bg-dark-color);
+        will-change: transform;
+    }
+
+    .desktopContent {
+        display: none !important;
+    }
+
+    .bottomNavigation {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        width: 100%;
+        height: 64px;
+    }
+
+    .navItem,
+    .activeNavItem {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        min-width: 0;
+        color: var(--text-main-color);
+        font-size: 0.7rem;
+    }
+
+    .navItem svg,
+    .activeNavItem svg {
+        width: 25px;
+        height: 25px;
+    }
+
+    .activeNavItem {
+        color: var(--text-light-color);
+    }
+
+    .activeNavItem svg {
+        filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.18));
+    }
+}

@@ -1,17 +1,36 @@
-import React, { MouseEventHandler, MutableRefObject, useState, useEffect, useMemo } from 'react';
+import React, { MouseEventHandler, TouchEventHandler, useState, useEffect, useMemo } from 'react';
 import Grid from '@mui/material/Grid';
+import { MediaPlayer, MediaPlayerClass } from './ShakaPlayerAdapter';
 import { useReferredState } from '../../hooks/useReferredState';
 import { formatSeconds } from '../../utils/formatting';
 import { SliderWrapper } from '../Slider/SliderWrapper';
+import { loadPlayerProgress } from '../../utils/playerPersistence';
+import styles from './TimeProgressBar.module.css';
 
 export interface ITimeProgressBarProps {
-    audio: MutableRefObject<HTMLAudioElement>;
+    player: MediaPlayerClass;
+    canReadImmediately?: boolean;
+    trackId?: string;
+    fallbackDuration?: number | null;
+    compact?: boolean;
 }
 
-export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({ audio }) => {
-    const [currentTimeRef, setCurrentTimeRef] = useReferredState(audio.current.currentTime || 0);
+export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({
+    player,
+    canReadImmediately = false,
+    trackId,
+    fallbackDuration,
+    compact = false
+}) => {
+    const cachedProgress = loadPlayerProgress();
+    const cachedForInitialTrack = cachedProgress?.trackId === trackId ? cachedProgress : undefined;
+    const initialPosition = cachedForInitialTrack?.position ?? 0;
+    const initialDuration = cachedForInitialTrack
+        ? cachedForInitialTrack.duration ?? fallbackDuration ?? 0
+        : fallbackDuration ?? 0;
+    const [currentTimeRef, setCurrentTimeRef] = useReferredState(initialPosition);
     const [isChangingTimeRef, setIsChangingTimeRef] = useReferredState(false);
-    const [duration, setDuration] = useState(audio.current.duration || 0);
+    const [duration, setDuration] = useState(initialDuration);
 
     const formattedCurrentTime = useMemo(() => {
         return formatSeconds(currentTimeRef.current as number);
@@ -27,43 +46,75 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({ au
     }, [currentTimeRef.current, duration]);
 
     useEffect(() => {
-        const handleLoadedMetadata = async (event: Event) => {
-            const audioElement = event.target as HTMLAudioElement;
-            const duration = audioElement?.duration ?? 0;
-            setDuration(duration);
-        }
-
-        const handleTimeUpdate = (event: Event) => {
+        const onTimeUpdate = () => {
             if (isChangingTimeRef.current) return;
+            const time = player.time() || 0;
+            setCurrentTimeRef(time);
+            // Обновляем duration при первом получении
+            if (duration === 0) {
+                const dur = player.duration() || 0;
+                setDuration(dur);
+            }
+        };
 
-            const audioElement = event.target as HTMLAudioElement;
-            setCurrentTimeRef(audioElement?.currentTime);
-        }
+        const onMetadataLoaded = () => {
+            const dur = player.duration() || 0;
+            setDuration(dur);
+        };
 
-        const handleMouseUp = () => {
-            if (!isChangingTimeRef.current) return;
-
-            setIsChangingTimeRef(false);
-            audio.current.currentTime = currentTimeRef.current as number;
-        }
-
-        audio.current.addEventListener('loadedmetadata', handleLoadedMetadata);
-        audio.current.addEventListener('timeupdate', handleTimeUpdate);
-        document.addEventListener('mouseup', handleMouseUp);
+        player.on(MediaPlayer.events.PLAYBACK_TIME_UPDATED, onTimeUpdate);
+        player.on(MediaPlayer.events.PLAYBACK_METADATA_LOADED, onMetadataLoaded);
 
         return () => {
-            audio.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
-            audio.current.removeEventListener('timeupdate', handleTimeUpdate);
-            document.removeEventListener('mouseup', handleMouseUp);
-        }
-    }, []);
+            player.off(MediaPlayer.events.PLAYBACK_TIME_UPDATED, onTimeUpdate);
+            player.off(MediaPlayer.events.PLAYBACK_METADATA_LOADED, onMetadataLoaded);
+        };
+    }, [player]);
 
     const changeCurrentTime = (event: Event, value: number) => {
-        setCurrentTimeRef(value * duration);
-    }
-
-    const handleMouseDown: MouseEventHandler = _ => {
         setIsChangingTimeRef(true);
+        setCurrentTimeRef(value * duration);
+    };
+
+    const commitCurrentTime = (_event: Event | React.SyntheticEvent, value: number) => {
+        const position = value * duration;
+        setCurrentTimeRef(position);
+        setIsChangingTimeRef(false);
+        player.seek(position);
+    };
+
+    const handleMouseDown: MouseEventHandler = () => {
+        setIsChangingTimeRef(true);
+    };
+
+    const handleTouchStart: TouchEventHandler = () => {
+        setIsChangingTimeRef(true);
+    };
+
+    useEffect(() => {
+        // A newly displayed player may already have a source attached,
+        // but still be between source attachment and stream initialization.
+        // Reading time/duration in that window throws; player events fill these
+        // values as soon as the stream is ready.
+        const cached = loadPlayerProgress();
+        const cachedForTrack = cached?.trackId === trackId ? cached : undefined;
+        setCurrentTimeRef(canReadImmediately
+            ? player.time() || cachedForTrack?.position || 0
+            : cachedForTrack?.position || 0);
+        setDuration(canReadImmediately
+            ? player.duration() || cachedForTrack?.duration || fallbackDuration || 0
+            : cachedForTrack?.duration || fallbackDuration || 0);
+        // Finishing a crossfade changes canReadImmediately, but keeps the same
+        // player. Resetting on that flag change would erase the known duration.
+    }, [player, trackId]);
+
+    if (compact) {
+        const progress = Math.min(1, Math.max(0, sliderValue));
+        return (
+            <div className={styles.compactProgress} aria-hidden='true'>
+                <div className={styles.compactProgressValue} style={{ width: `${progress * 100}%` }} />
+            </div>
+        );
     }
 
     return (
@@ -73,13 +124,17 @@ export const TimeProgressBar: React.FC<ITimeProgressBarProps> = React.memo(({ au
             direction='row'
             gap={1}
             fontSize='small'
+            width='100%'
+            minWidth={0}
         >
             <Grid item><span>{formattedCurrentTime}</span></Grid>
-            <Grid container item xs>
+            <Grid container item xs minWidth={0}>
                 <SliderWrapper
                     value={sliderValue}
                     onChange={changeCurrentTime}
+                    onChangeCommitted={commitCurrentTime}
                     onMouseDown={handleMouseDown}
+                    onTouchStart={handleTouchStart}
                 />
             </Grid>
             <Grid item><span>{formattedDuration}</span></Grid>

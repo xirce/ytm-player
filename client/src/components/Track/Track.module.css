@@ -12,7 +12,13 @@
     margin-bottom: 0;
 }
 
-.container:hover {
+@media (hover: hover) and (pointer: fine) {
+    .container:hover {
+        background-color: var(--bg-main-color);
+    }
+}
+
+.touchPressed {
     background-color: var(--bg-main-color);
 }
 
@@ -33,6 +39,7 @@
 }
 
 .image {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -43,13 +50,48 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: transparent;
+    color: var(--text-light-color);
+    opacity: 0;
     filter: drop-shadow(0 0 3px var(--bg-darker-color));
+    transition: opacity 0.15s ease;
 }
 
-.imageContainer:hover .playBtn,
+.nowPlayingIcon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-light-color);
+    filter: drop-shadow(0 0 3px var(--bg-darker-color));
+    transition: opacity 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .imageContainer:hover .playBtn {
+        opacity: 1;
+    }
+}
+
+.touchPressed .playBtn {
+    opacity: 1;
+}
+
+.pausedCurrentIcon {
+    opacity: 1;
+}
+
 .title {
     color: var(--text-light-color);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .imageContainer:hover .nowPlayingIcon {
+        opacity: 0;
+    }
+}
+
+.touchPressed .nowPlayingIcon {
+    opacity: 0;
 }
 
 .hidden-overflow {
@@ -59,6 +101,7 @@
 }
 
 .artist,
+.playCount,
 .duration,
 .actionsBtn {
     margin-left: 8px;
@@ -71,11 +114,210 @@
 }
 
 .title {
+    display: flex;
+    align-items: baseline;
+    min-width: 0;
+    flex: 2 1 0;
+    text-align: left;
+}
+
+.trackTitle,
+.artistName,
+.playCount {
     composes: hidden-overflow;
-    flex: 3 1 0;
+}
+
+.trackTitle {
+    min-width: 0;
+    flex: 1 1 auto;
+    color: var(--text-light-color);
+    font-weight: 500;
+}
+
+.trackTitle a {
+    color: inherit;
+}
+
+.playCount {
+    flex: 0 4 140px;
+    min-width: 0;
+    max-width: 140px;
+    color: var(--text-main-color);
+    font-size: 0.85em;
+    text-align: right;
+}
+
+.withoutDuration .playCount {
+    flex-basis: 100px;
+    margin-left: 24px;
 }
 
 .artist {
-    composes: hidden-overflow;
-    flex: 2 1 0;
+    display: flex;
+    align-items: baseline;
+    min-width: 0;
+    flex: 1.5 1 0;
+}
+
+.artistName {
+    min-width: 0;
+}
+
+.duration {
+    flex: 0 0 48px;
+    text-align: right;
+}
+
+@media (max-width: 700px) {
+    .container {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr) 48px 32px;
+        grid-template-rows: 1fr 1fr;
+        min-height: 56px;
+        margin-bottom: 10px;
+    }
+
+    .imageContainer {
+        grid-column: 1;
+        grid-row: 1 / 3;
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
+        margin-right: 0;
+    }
+
+    .title {
+        grid-column: 2;
+        grid-row: 1;
+        align-self: end;
+        margin-left: 10px;
+    }
+
+    .artist {
+        grid-column: 2;
+        grid-row: 2;
+        align-self: start;
+        margin-left: 10px;
+        font-size: 0.85rem;
+    }
+
+    .playCount {
+        display: none;
+    }
+
+    .duration {
+        grid-column: 3;
+        grid-row: 1 / 3;
+        align-self: center;
+        margin-left: 4px;
+        font-size: 0.8rem;
+    }
+
+    .actionsBtn {
+        grid-column: 4;
+        grid-row: 1 / 3;
+        align-self: center;
+        margin-left: 0;
+    }
+
+    .container.withoutDuration {
+        grid-template-columns: 48px minmax(0, 1fr) 32px;
+    }
+
+    .withoutDuration .actionsBtn {
+        grid-column: 3;
+    }
+
+    .mobileDragHandle .actionsBtn {
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .mobileDragHandle {
+        grid-template-columns: 48px minmax(0, 1fr) 58px 48px;
+        cursor: pointer;
+    }
+
+    .mobileDragHandle .duration {
+        padding-right: 10px;
+    }
+
+    .container.mobileCard {
+        position: relative;
+        display: block;
+        min-height: 0;
+        margin: 0;
+        overflow: hidden;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+    }
+
+    .mobileCard .imageContainer {
+        width: 100%;
+        height: auto;
+        min-width: 0;
+        min-height: 0;
+        aspect-ratio: 1;
+        margin: 0;
+        overflow: hidden;
+        border-radius: 8px;
+    }
+
+    .mobileCard .title,
+    .mobileCard .artist {
+        display: block;
+        margin: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .mobileCard .title {
+        margin-top: 8px;
+        font-size: 0.95rem;
+    }
+
+    .mobileCard .artist {
+        margin-top: 3px;
+        font-size: 0.82rem;
+    }
+
+    .mobileCard .trackTitle,
+    .mobileCard .artistName {
+        display: block;
+    }
+
+    .mobileCard .playCount,
+    .mobileCard .duration {
+        display: none;
+    }
+
+    .mobileCard .actionsBtn {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        margin: 0;
+        filter: drop-shadow(0 1px 4px var(--bg-darker-color));
+    }
+
+    [data-cover-caption='true'] .mobileCard .title {
+        position: absolute;
+        inset: auto 0 0;
+        margin: 0;
+        padding: 20px 6px 6px;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+        color: white;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    [data-cover-caption='true'] .mobileCard .title a {
+        color: inherit;
+    }
+
+    [data-cover-caption='true'] .mobileCard .artist {
+        display: none;
+    }
 }

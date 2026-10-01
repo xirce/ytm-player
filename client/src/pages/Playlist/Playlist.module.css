@@ -1,3 +1,9 @@
 .tracks {
     width: 100%;
 }
+.loadMore {
+    min-height: 48px;
+    padding: 16px 0;
+    color: var(--text-main-color);
+    text-align: center;
+}

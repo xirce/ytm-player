@@ -4,8 +4,9 @@ import { PlaylistBase } from './PlaylistBase';
 
 export interface IAlbumProps {
     info: IAlbumInfo;
+    mobileCard?: boolean;
 }
 
-export const Album: React.FC<IAlbumProps> = React.memo(({ info }) => {
-    return <PlaylistBase info={info} link={`/album/${info.id}`} />;
+export const Album: React.FC<IAlbumProps> = React.memo(({ info, mobileCard }) => {
+    return <PlaylistBase info={info} link={`/album/${info.id}`} mobileCard={mobileCard} />;
 });
