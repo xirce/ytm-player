@@ -31,6 +31,7 @@ services:
       - "4416"
     networks:
       - provider-network
+      - provider-egress
     restart: unless-stopped
 
   postgres:
@@ -73,6 +74,7 @@ networks:
     internal: true
   provider-network:
     internal: true
+  provider-egress:
 
 volumes:
   postgres-data:

@@ -29,6 +29,8 @@ if $COMPOSE up -d --wait --remove-orphans; then
 fi
 
 echo 'Deployment failed; attempting rollback' >&2
+$COMPOSE ps >&2 || true
+$COMPOSE logs --no-color --tail=100 app >&2 || true
 if [ -f .env.release.previous ]; then
     mv .env.release.previous .env.release
     $COMPOSE up -d --wait --remove-orphans
