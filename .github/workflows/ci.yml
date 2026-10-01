@@ -2,7 +2,6 @@ name: CI/CD
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -28,7 +27,7 @@ jobs:
       - run: npm run build
 
   publish-image:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/heads/deploy/')))
+    if: github.event_name == 'workflow_dispatch'
     needs: verify
     runs-on: ubuntu-latest
     permissions:
