@@ -3,7 +3,9 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import IconButton from '@mui/material/IconButton';
 import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded';
 import ChevronRightRounded from '@mui/icons-material/ChevronRightRounded';
-import { useSearchParams } from 'react-router-dom';
+import GoogleIcon from '@mui/icons-material/Google';
+import SettingsRounded from '@mui/icons-material/SettingsRounded';
+import { Link, useSearchParams } from 'react-router-dom';
 import { skipToken } from '@reduxjs/toolkit/dist/query';
 import {
     useGetHomeQuery,
@@ -233,7 +235,11 @@ export const HomePage: React.FC = () => {
         return (
             <div className={styles.message}>
                 <h1>Персональные рекомендации</h1>
-                <p>Войдите через Google с помощью кнопки в шапке, чтобы открыть свою главную страницу.</p>
+                <p>Войдите через Google, чтобы открыть свою главную страницу.</p>
+                <a className={styles.messageAction} href='/api/auth/google/start'>
+                    <GoogleIcon />
+                    <span>Войти через Google</span>
+                </a>
             </div>
         );
     }
@@ -244,6 +250,10 @@ export const HomePage: React.FC = () => {
                 <p>
                     Подключите YouTube Music на странице аккаунта, вставив Cookie из авторизованного запроса.
                 </p>
+                <Link className={styles.messageAction} to='/account'>
+                    <SettingsRounded />
+                    <span>Открыть настройки</span>
+                </Link>
             </div>
         );
     }

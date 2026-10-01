@@ -116,3 +116,20 @@
 .message p {
     color: var(--text-main-color);
 }
+
+.messageAction {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 46px;
+    margin-top: 16px;
+    padding: 0 20px;
+    border-radius: 6px;
+    color: #fff;
+    background: #c62828;
+    font-weight: 600;
+}
+
+.messageAction:hover { background: #d93636; }
+.messageAction svg { font-size: 21px; }
