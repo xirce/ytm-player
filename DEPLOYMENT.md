@@ -23,6 +23,7 @@ cp .env.production.example .env.production
 chmod 600 .env.production
 openssl rand -base64 32 # YOUTUBE_CREDENTIALS_ENCRYPTION_KEY
 openssl rand -hex 32    # METRICS_TOKEN
+openssl rand -base64 36 # GRAFANA_ADMIN_PASSWORD
 openssl rand -base64 36 # POSTGRES_PASSWORD; URL-encode it in DATABASE_URL
 ```
 
@@ -39,6 +40,7 @@ curl --fail https://music.example.com/health/ready
 
 Caddy provisions and renews TLS automatically. The app and PostgreSQL have no published host ports.
 The PO-token provider runs in the same Compose project and is reachable only on the internal Docker network as `http://po-token-provider:4416`. Its image is pinned by digest; change `PO_TOKEN_PROVIDER_IMAGE` explicitly when upgrading it.
+Prometheus scrapes `app:3001/metrics` over an internal network. Grafana listens only on host loopback port `3002`; use an SSH tunnel to access it remotely.
 
 If a corporate network requires an authenticated npm proxy, pass the local npm configuration only as a BuildKit secret:
 
@@ -80,7 +82,7 @@ sudo -u deploy cp .env.production.example /opt/ytm-player/.env.production
 sudo -u deploy chmod 600 /opt/ytm-player/.env.production
 ```
 
-Fill `.env.production` on the host; Actions never uploads or overwrites it. Each deployment uploads only Compose, Caddy, and the deployment script. Before changing containers, the script creates a PostgreSQL custom-format dump under `backups/`. If health checks fail, it restores the previous image reference and runs Compose again.
+Fill `.env.production` on the host; Actions never uploads or overwrites it. Each deployment uploads Compose, Caddy, the observability configuration, and the deployment script. Before changing containers, the script creates a PostgreSQL custom-format dump under `backups/`. If health checks fail, it restores the previous image reference and runs Compose again.
 
 ## Backup
 
@@ -95,7 +97,7 @@ Test restore periodically. The `youtube-cache` volume is disposable; Caddy volum
 
 ## Metrics and logs
 
-`/metrics` requires `Authorization: Bearer $METRICS_TOKEN`; without a configured token it returns 404. Do not expose the token in browser code. Collect container logs with rotation configured on the Docker host.
+`METRICS_TOKEN` and `GRAFANA_ADMIN_PASSWORD` are required in production. Prometheus authenticates to `/metrics` with the token; do not expose it in browser code. Access Grafana through an SSH tunnel: `ssh -L 3002:127.0.0.1:3002 deploy@music.example.com`, then open <http://localhost:3002>. Collect container logs with rotation configured on the Docker host.
 
 ## Smoke checks
 
@@ -104,4 +106,4 @@ Test restore periodically. The `youtube-cache` volume is disposable; Caddy volum
 3. Two Google accounts cannot see or replace each other's YouTube connection.
 4. Logout invalidates the server-side session.
 5. Restarting app/PostgreSQL preserves account connections.
-6. `/metrics`, PostgreSQL, ports 3001/4416, and `tools/remote-codex` are not publicly accessible.
+6. `/metrics`, PostgreSQL, Prometheus, Grafana, ports 3001/3002/4416/9090, and `tools/remote-codex` are not publicly accessible.

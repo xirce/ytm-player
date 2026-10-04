@@ -87,8 +87,9 @@ jobs:
         shell: bash
         run: |
           target="$DEPLOY_USER@$DEPLOY_HOST"
-          ssh -p "$DEPLOY_PORT" "$target" "install -d -m 700 '$DEPLOY_PATH'"
+          ssh -p "$DEPLOY_PORT" "$target" "install -d -m 700 '$DEPLOY_PATH' '$DEPLOY_PATH/observability'"
           scp -P "$DEPLOY_PORT" compose.production.yml Caddyfile scripts/deploy-production.sh "$target:$DEPLOY_PATH/"
+          scp -P "$DEPLOY_PORT" -r observability/prometheus observability/grafana "$target:$DEPLOY_PATH/observability/"
       - name: Deploy
         shell: bash
         env:

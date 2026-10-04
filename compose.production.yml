@@ -49,6 +49,52 @@ services:
       - data-network
     restart: unless-stopped
 
+  prometheus:
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus:latest}
+    env_file:
+      - ${ENV_FILE:-.env.production}
+    environment:
+      METRICS_TOKEN: ${METRICS_TOKEN:?METRICS_TOKEN is required}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        test -n "$${METRICS_TOKEN}" || { echo 'METRICS_TOKEN is required' >&2; exit 1; }
+        umask 077
+        printf '%s' "$${METRICS_TOKEN}" > /tmp/metrics-token
+        exec /bin/prometheus \
+          --config.file=/etc/prometheus/prometheus.yml \
+          --storage.tsdb.path=/prometheus \
+          --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-730d}
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - ./observability/prometheus/prometheus.production.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - app-network
+      - observability-network
+    restart: unless-stopped
+
+  grafana:
+    image: ${GRAFANA_IMAGE:-grafana/grafana:latest}
+    depends_on:
+      prometheus:
+        condition: service_started
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3002}:3000"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - observability-network
+    restart: unless-stopped
+
   caddy:
     image: caddy:2-alpine
     env_file:
@@ -75,9 +121,13 @@ networks:
   provider-network:
     internal: true
   provider-egress:
+  observability-network:
+    internal: true
 
 volumes:
   postgres-data:
   youtube-cache:
   caddy-data:
   caddy-config:
+  prometheus-data:
+  grafana-data:

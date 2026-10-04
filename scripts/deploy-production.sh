@@ -22,7 +22,7 @@ if $COMPOSE ps --status running --services 2>/dev/null | grep -qx postgres; then
     mv "$backup.tmp" "$backup"
 fi
 
-$COMPOSE pull app po-token-provider
+$COMPOSE pull app po-token-provider prometheus grafana
 if $COMPOSE up -d --wait --remove-orphans; then
     echo "Deployed $APP_IMAGE"
     exit 0
