@@ -43,8 +43,9 @@ npm run build     # production frontend build
 npm run typecheck # backend typecheck
 npm run typecheck --prefix client # frontend typecheck
 npm test --prefix client -- --watchAll=false
-npm run db:up     # start the local PostgreSQL container and wait until healthy
-npm run db:down   # stop the local PostgreSQL container without deleting its volume
+npm run services:up   # start all external development services
+npm run services:down # stop them without deleting persisted data
+npm run services:logs # follow logs from all development services
 ```
 
 There is currently no root test or lint script. Backend TypeScript is pinned in the root dependency tree; the client has its own compiler and config. `npm run build` invokes CRA/`esbuild`, whose child process can fail with `spawn EPERM` inside a restricted sandbox. If that exact error occurs, rerun the same build with permission to execute outside the sandbox; do not treat it as a project build failure. For backend/type changes, run the root typecheck; for frontend changes, run the client typecheck and/or build. Do not claim checks that were not run.

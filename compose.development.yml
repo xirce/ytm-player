@@ -1,4 +1,30 @@
+# Keep the former database project name so existing containers are updated in place.
+name: ytm-player-db
+
 services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ytm}
+      POSTGRES_USER: ${POSTGRES_USER:-ytm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ytm} -d ${POSTGRES_DB:-ytm}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  po-token-provider:
+    image: ${PO_TOKEN_PROVIDER_IMAGE:-brainicism/bgutil-ytdlp-pot-provider@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c}
+    ports:
+      - "127.0.0.1:4416:4416"
+    restart: unless-stopped
+
   prometheus:
     image: ${PROMETHEUS_IMAGE:-prom/prometheus:latest}
     command:
@@ -31,5 +57,10 @@ services:
     restart: unless-stopped
 
 volumes:
+  # Preserve data created by the previous separate Compose projects.
+  postgres-data:
+    name: ytm-player-db_postgres-data
   prometheus-data:
+    name: ytm-player_prometheus-data
   grafana-data:
+    name: ytm-player_grafana-data

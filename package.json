@@ -14,9 +14,9 @@
     "server": "tsx watch server.ts",
     "client": "npm run start --prefix client",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "db:up": "docker compose -f compose.database.yml up -d --wait",
-    "db:down": "docker compose -f compose.database.yml down",
-    "db:logs": "docker compose -f compose.database.yml logs -f postgres",
+    "services:up": "docker compose -f compose.development.yml up -d --wait",
+    "services:down": "docker compose -f compose.development.yml down",
+    "services:logs": "docker compose -f compose.development.yml logs -f",
     "remote-codex": "tsx tools/remote-codex/watch.ts"
   },
   "repository": {

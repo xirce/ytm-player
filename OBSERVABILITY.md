@@ -4,13 +4,13 @@
 
 ## Запуск
 
-1. Запустить приложение на `localhost:3001` (`npm run dev` или `npm run server`).
-2. Запустить наблюдаемость:
+1. Запустить все внешние сервисы для разработки (PostgreSQL, PO-token provider, Prometheus и Grafana):
 
    ```powershell
-   docker compose -f compose.observability.yml up -d
+   npm run services:up
    ```
 
+2. Запустить приложение на `localhost:3001` (`npm run dev` или `npm run server`).
 3. Открыть Grafana: <http://localhost:3002> (по умолчанию `admin` / `admin`).
 4. Открыть папку **YouTube Music Player** и дашборд **Playback telemetry**.
 
@@ -19,11 +19,12 @@ Prometheus доступен на <http://localhost:9090>. Данные хран�
 Остановка без удаления данных:
 
 ```powershell
-docker compose -f compose.observability.yml down
+npm run services:down
 ```
 
 Удаление контейнеров вместе с накопленными метриками:
 
 ```powershell
-docker compose -f compose.observability.yml down -v
+npm run services:down
+docker volume rm ytm-player_prometheus-data ytm-player_grafana-data
 ```
