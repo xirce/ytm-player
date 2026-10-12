@@ -10,6 +10,8 @@ import { TrackControl, type TrackNavigation } from "./TrackControl";
 import { TrackInfo } from "./TrackInfo";
 import { MobilePlayerQueue, MobilePlayerQueueHandle, type QueueStage } from './MobilePlayerQueue';
 import { PlaybackTimingPanel } from './PlaybackTimingPanel';
+import { TrackRatingControls } from './TrackRatingControls';
+import api from '../../apiClient';
 import { usePlayerSheet } from '../../hooks/usePlayerSheet';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { getCurrentTrack, getDisplayedTrack, getIsPlaying, playerSlice } from '../../store/player';
@@ -63,7 +65,8 @@ export const PlayerControls: React.FC = React.memo(() => {
     }, [dispatch]);
     const isMobile = useMediaQuery('(max-width:700px)');
     const [miniControlsContainer, setMiniControlsContainer] = useState<HTMLDivElement | null>(null);
-    const fullLayout = isMobile || expanded;
+    // The full player is a mobile-only layout. Persisted expansion state must not affect desktop.
+    const fullLayout = isMobile;
     const currentTrack = useAppSelector(getCurrentTrack);
     const sheet = usePlayerSheet(isMobile && !!currentTrack, expanded, setExpanded, {
         isOpen: () => queueStage > 0,
@@ -72,12 +75,26 @@ export const PlayerControls: React.FC = React.memo(() => {
         finish: (y, time, cancelled) => mobileQueueRef.current?.finish(y, time, cancelled)
     });
     const overlayVisible = isMobile ? sheet.visible : expanded;
+
+    useEffect(() => {
+        if (!isMobile && expanded) setExpanded(false);
+    }, [isMobile, expanded, setExpanded]);
     const isPlaying = useAppSelector(getIsPlaying);
     const tracks = useAppSelector(state => state.player.tracks);
     const trackIndex = useAppSelector(state => state.player.trackIndex);
     const displayTrackIndex = useAppSelector(state => state.player.displayTrackIndex);
     const isCrossfading = displayTrackIndex !== null;
     const displayedTrack = useAppSelector(getDisplayedTrack);
+    const prefetchRating = api.usePrefetch('getTrackRating', { ifOlderThan: 300 });
+
+    useEffect(() => {
+        if (tracks.length < 2) return;
+        const previousIndex = trackIndex === 0 ? tracks.length - 1 : trackIndex - 1;
+        const nextIndex = trackIndex === tracks.length - 1 ? 0 : trackIndex + 1;
+        [tracks[previousIndex], tracks[nextIndex]].forEach(track => {
+            if (track?.id) prefetchRating(track.id);
+        });
+    }, [prefetchRating, trackIndex, tracks]);
     const trackNavigationRef = useRef<TrackNavigation | null>(null);
     const artworkCarouselRef = useRef<HTMLDivElement>(null);
     const queueGeometryRef = useRef<{
@@ -314,7 +331,7 @@ export const PlayerControls: React.FC = React.memo(() => {
                 host.style.setProperty('--queue-controls-shift', `${controlsTop - controls.offsetTop}px`);
                 if (transport) {
                     const transportOffset = transport.getBoundingClientRect().top - controls.getBoundingClientRect().top;
-                    host.style.setProperty('--queue-black-top', `${controlsTop + transportOffset - 28}px`);
+                    host.style.setProperty('--controls-shade-top', `${controls.offsetTop + transportOffset - 88}px`);
                 }
             }
         }
@@ -373,10 +390,28 @@ export const PlayerControls: React.FC = React.memo(() => {
         <div
             ref={sheet.ref}
             className={isMobile ? styles.sheetHost : undefined}
+            data-queue-open={isMobile && queueStage > 0 ? 'true' : undefined}
             style={{ visibility: currentTrack ? 'visible' : 'hidden' }}
             {...sheet.handlers}
         >
         {isMobile && <div className={styles.backdrop} data-player-backdrop />}
+        {isMobile && (
+            <div
+                className={`${styles.container} ${styles.mini} ${styles.morphMini}`}
+                data-player-layer='mini'
+                onClick={(event) => {
+                    if (!(event.target as Element).closest('button, a')) {
+                        if (queueStage === 2) setQueueStage(1);
+                        else setExpanded(true);
+                    }
+                }}
+            >
+                <div className={styles.miniInfo}>
+                    <TrackInfo source={displayedTrack} sharedArtwork />
+                </div>
+                <div ref={setMiniControlsContainer} className={styles.miniTransport} />
+            </div>
+        )}
         <Grid
             data-player-panel
             container
@@ -386,23 +421,6 @@ export const PlayerControls: React.FC = React.memo(() => {
             direction='row'
             visibility={currentTrack ? 'visible' : 'hidden'}
         >
-            {isMobile && <>
-                <div
-                    className={`${styles.container} ${styles.mini} ${styles.morphMini}`}
-                    data-player-layer='mini'
-                    onClick={(event) => {
-                        if (!(event.target as Element).closest('button, a')) {
-                            if (queueStage === 2) setQueueStage(1);
-                            else setExpanded(true);
-                        }
-                    }}
-                >
-                    <div className={styles.miniInfo}>
-                        <TrackInfo source={displayedTrack} sharedArtwork />
-                    </div>
-                    <div ref={setMiniControlsContainer} className={styles.miniTransport} />
-                </div>
-            </>}
             <audio
                 ref={keepaliveAudioRef}
                 preload='auto'
@@ -428,10 +446,13 @@ export const PlayerControls: React.FC = React.memo(() => {
                 item
                 xs
                 className={styles.trackInfoColumn}
-                onClick={() => !expanded && setExpanded(true)}
+                onClick={(event) => {
+                    if (isMobile && !expanded && !(event.target as Element).closest('button')) setExpanded(true);
+                }}
                 data-player-layer='full'
             >
                 <TrackInfo source={displayedTrack} expanded={fullLayout} sharedArtwork={isMobile} />
+                {(!isMobile || fullLayout) && displayedTrack?.id && <TrackRatingControls trackId={displayedTrack.id} />}
             </Grid>
             <Grid item xs={4} className={styles.trackControlColumn} data-player-layer='full' data-player-controls>
                 {player && standbyPlayer && (

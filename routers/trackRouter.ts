@@ -5,7 +5,7 @@ import ytmusic from '../utils/YTMusicApiWrapper';
 import { requireUser } from '../middleware/appAuth';
 import { personalMusicClients } from '../utils/personalMusicClient';
 import type { TrackUrlTimings } from '../utils/YTMusicApiWrapper';
-import type { ITrackPlaybackSource } from '../shared';
+import type { ITrackPlaybackSource, TrackRating } from '../shared';
 import { asyncHandler, HttpError } from '../middleware/errors';
 import { getRequiredParam } from '../middleware/validation';
 import { recordSabrHedge, recordSabrProxyStage } from '../utils/metrics';
@@ -483,6 +483,20 @@ router.get('/:id/url', asyncHandler(async (req, res) => {
 router.post('/:id/history', requireUser, asyncHandler(async (req, res) => {
     await (await personalMusicClients.get(req.user!.id)).addTrackToHistory(getRequiredParam(req, 'id'));
     res.status(204).end();
+}));
+
+router.get('/:id/rating', requireUser, asyncHandler(async (req, res) => {
+    const rating = await (await personalMusicClients.get(req.user!.id)).getTrackRating(getRequiredParam(req, 'id'));
+    res.json({ rating });
+}));
+
+router.put('/:id/rating', requireUser, asyncHandler(async (req, res) => {
+    const rating = req.body?.rating as TrackRating | undefined;
+    if (!rating || !['LIKE', 'DISLIKE', 'INDIFFERENT'].includes(rating)) {
+        throw new HttpError(400, 'rating must be LIKE, DISLIKE or INDIFFERENT');
+    }
+    await (await personalMusicClients.get(req.user!.id)).setTrackRating(getRequiredParam(req, 'id'), rating);
+    res.json({ rating });
 }));
 
 

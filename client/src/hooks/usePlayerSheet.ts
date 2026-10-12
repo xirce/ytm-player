@@ -70,7 +70,12 @@ export const usePlayerSheet = (
             const scaleY = (mini.height + (full.height - mini.height) * p) / full.height;
             artwork.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scaleX}, ${scaleY})`;
         }
-        if (miniLayer) miniLayer.style.opacity = String(1 - p);
+        if (miniLayer) {
+            // The mini layer is outside the moving full-player stacking context so
+            // the queue can pass below it. Keep its screen position tied to the panel.
+            miniLayer.style.transform = `translate3d(0, ${panelY}px, 0)`;
+            miniLayer.style.opacity = String(1 - p);
+        }
         for (const layer of fullLayers) layer.style.opacity = String(p);
         if (navigation) navigation.style.transform = `translate3d(0, ${navHeight * p}px, 0)`;
         const playerState = p <= 0 ? 'closed' : p >= 1 ? 'open' : 'moving';
@@ -126,6 +131,7 @@ export const usePlayerSheet = (
     const resetStyles = useCallback(() => {
         layers.current.panel?.style.removeProperty('transform');
         layers.current.backdrop?.style.removeProperty('transform');
+        layers.current.mini?.style.removeProperty('transform');
         layers.current.navigation?.style.removeProperty('transform');
         layers.current.full.forEach(layer => layer.style.removeProperty('opacity'));
     }, []);
@@ -143,7 +149,7 @@ export const usePlayerSheet = (
         const element = ref.current;
         if (element && typeof element.animate === 'function') {
             const targets = [
-                ...[layers.current.panel, layers.current.backdrop, layers.current.artwork, layers.current.navigation]
+                ...[layers.current.panel, layers.current.backdrop, layers.current.artwork, layers.current.mini, layers.current.navigation]
                     .filter((target): target is HTMLElement => target !== null)
                     .map(target => ({ target, property: 'transform' as const })),
                 ...[layers.current.mini, ...layers.current.full]

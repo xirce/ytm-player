@@ -1,6 +1,6 @@
 import { Innertube, Platform, Types, YTMusic, YTNodes } from 'youtubei.js';
-import { IHomeItem, IHomeSectionPage, ITrackBase } from '../shared';
-import { mapToHomeItem, mapToTrack } from '../mappings/ytmusic-api';
+import { IHomeItem, IHomeSectionPage, IPlaylist, IPlaylistPage, ITrackBase, TrackRating } from '../shared';
+import { getThumbnailUrl, mapToHomeItem, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 import { database, YouTubeMusicConnectionRecord } from './database';
 import { decryptSecret, encryptSecret } from './secretEncryption';
@@ -84,10 +84,91 @@ export class PersonalMusicClient {
             .map(item => mapToTrack(item));
     }
 
+    private mapPlaylistPage(page: YTMusic.Playlist, fallbackImageUrl = ''): IPlaylistPage {
+        const items = page.items.filter(
+            (item): item is YTNodes.MusicResponsiveListItem =>
+                item instanceof YTNodes.MusicResponsiveListItem
+        );
+        const continuation = page.items.find(
+            (item): item is YTNodes.ContinuationItem => item instanceof YTNodes.ContinuationItem
+        );
+        return {
+            tracks: items
+                .filter(item => Boolean(item.id))
+                .map(item => mapToTrack(item, { imageUrl: fallbackImageUrl })),
+            continuation: typeof continuation?.endpoint.payload.token === 'string'
+                ? continuation.endpoint.payload.token
+                : null
+        };
+    }
+
+    public async getPlaylistWithVideos(playlistId: string, browseParams?: string): Promise<IPlaylist> {
+        const normalizedId = playlistId.startsWith('VL') ? playlistId : `VL${playlistId}`;
+        const page = browseParams
+            ? new YTMusic.Playlist(await this.innertube.actions.execute('/browse', {
+                browseId: normalizedId,
+                params: browseParams,
+                client: 'YTMUSIC'
+            }), this.innertube.actions)
+            : await this.innertube.music.getPlaylist(normalizedId);
+        const header = page.header;
+        const items = page.items.filter(
+            (item): item is YTNodes.MusicResponsiveListItem =>
+                item instanceof YTNodes.MusicResponsiveListItem
+        );
+        const thumbnail = header && 'thumbnail' in header
+            ? header.thumbnail?.contents
+            : header && 'thumbnails' in header
+                ? header.thumbnails
+                : undefined;
+        const imageUrl = getThumbnailUrl(thumbnail) || getThumbnailUrl(items[0]?.thumbnails);
+        const playlistPage = this.mapPlaylistPage(page, imageUrl);
+        return {
+            info: {
+                id: playlistId,
+                name: header && 'title' in header ? header.title.toString() : '',
+                imageUrl,
+                trackCount: playlistPage.continuation ? null : playlistPage.tracks.length,
+                browseParams,
+                radioId: `RDAMPL${playlistId.replace(/^VL/, '')}`
+            },
+            ...playlistPage
+        };
+    }
+
+    public async getPlaylistContinuation(continuation: string): Promise<IPlaylistPage> {
+        const response = await this.innertube.actions.execute('/browse', {
+            continuation,
+            client: 'YTMUSIC'
+        });
+        return this.mapPlaylistPage(new YTMusic.Playlist(response, this.innertube.actions));
+    }
+
     public async addTrackToHistory(id: string): Promise<void> {
         const poToken = await this.tokenProvider.getToken(id);
         const trackInfo = await this.innertube.music.getInfo(id, { po_token: poToken });
         await trackInfo.addToWatchHistory();
+    }
+
+    public async getTrackRating(id: string): Promise<TrackRating> {
+        const poToken = await this.tokenProvider.getToken(id);
+        // YTMusic.TrackInfo does not parse the rating controls from /next.
+        const { basic_info: info } = await this.innertube.getInfo(id, { po_token: poToken });
+        if (info.is_liked) return 'LIKE';
+        if (info.is_disliked) return 'DISLIKE';
+        return 'INDIFFERENT';
+    }
+
+    public async setTrackRating(id: string, rating: TrackRating): Promise<void> {
+        const endpoint = rating === 'LIKE' ? '/like/like'
+            : rating === 'DISLIKE' ? '/like/dislike'
+                : '/like/removelike';
+        // youtubei.js 18 passes the ID directly, but the API now requires a LikeTarget object.
+        const response = await this.innertube.actions.execute(endpoint, {
+            target: { videoId: id },
+            client: 'TV'
+        });
+        if (!response.success) throw new HttpError(502, 'YouTube Music rejected the track rating');
     }
 }
 

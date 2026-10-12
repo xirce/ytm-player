@@ -89,6 +89,12 @@ export interface IHomeSection {
     continuation?: string | null;
 }
 
+export type TrackRating = 'LIKE' | 'DISLIKE' | 'INDIFFERENT';
+
+export interface ITrackRating {
+    rating: TrackRating;
+}
+
 export interface ISabrFormat {
     itag: number;
     seedUrl?: string;

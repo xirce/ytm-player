@@ -9,6 +9,16 @@
     border-top: 1px solid var(--bg-main-color);
 }
 
+.trackInfoColumn {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 12px;
+    min-width: 0;
+    padding-right: 24px;
+    box-sizing: border-box;
+}
+
 @media (max-width: 700px) {
     .container {
         position: relative;
@@ -30,6 +40,7 @@
         width: 100%;
         min-width: 0;
         max-width: none !important;
+        padding-right: 0;
         overflow: hidden;
     }
 
@@ -76,7 +87,7 @@
         --queue-artwork-radius: 8px;
         --queue-info-shift: 0px;
         --queue-controls-shift: 0px;
-        --queue-black-top: 100dvh;
+        --controls-shade-top: 100dvh;
         background: transparent;
     }
 
@@ -115,12 +126,13 @@
     .sheetHost::after {
         content: '';
         position: fixed;
-        top: var(--queue-black-top);
+        top: var(--controls-shade-top);
         right: 0;
         bottom: 0;
         left: 0;
         z-index: 3;
-        background: linear-gradient(transparent, #000 28px);
+        transform: translateY(calc(var(--queue-progress) * var(--queue-controls-shift)));
+        background: linear-gradient(180deg, transparent 0, #000 88px);
         opacity: var(--queue-progress);
         pointer-events: none;
     }
@@ -148,22 +160,32 @@
     }
 
     .sheet > [data-player-layer='full'] {
-        will-change: opacity;
+        translate: 0 calc(var(--queue-full-progress) * -32px);
+        will-change: translate, opacity;
     }
 
     .sheetHost[data-player-state='closed'] .sheet > [data-player-layer='full'],
-    .sheetHost[data-player-state='open'] .sheet > [data-player-layer='mini'] {
+    .sheetHost[data-player-state='open'] > [data-player-layer='mini'] {
         visibility: hidden;
         pointer-events: none;
     }
 
-    .sheetHost[data-queue-stage='revealing'] .sheet > [data-player-layer='mini'],
-    .sheetHost[data-queue-stage='full'] .sheet > [data-player-layer='mini'] {
+    .sheetHost[data-queue-stage='revealing'] > [data-player-layer='mini'],
+    .sheetHost[data-queue-stage='full'] > [data-player-layer='mini'] {
         visibility: visible;
     }
 
-    .sheetHost[data-queue-stage='full'] .sheet > [data-player-layer='mini'] {
+    .sheetHost[data-queue-stage='full'] > [data-player-layer='mini'] {
         pointer-events: auto;
+    }
+
+.sheetHost[data-queue-open='true'][data-queue-stage='partial'] [data-player-queue] {
+  z-index: 5;
+}
+
+    .sheetHost[data-queue-stage='revealing'] [data-player-queue],
+    .sheetHost[data-queue-stage='full'] [data-player-queue] {
+        z-index: 7;
     }
 
     .sheetHost:not([data-player-state='open']) [data-player-queue] {
@@ -339,12 +361,14 @@
         top: calc(8px + env(safe-area-inset-top));
         left: 12px;
         z-index: 2;
-        opacity: calc(1 - var(--queue-full-progress));
     }
 
     .expanded .trackInfoColumn {
         display: flex;
         flex: 0 1 auto;
+        flex-direction: column;
+        align-items: stretch;
+        column-gap: 0;
         width: 100%;
         min-height: 0;
         padding-top: 46px;
@@ -355,7 +379,6 @@
         position: relative;
         z-index: 7;
         transform: translateY(calc(var(--queue-progress) * var(--queue-info-shift)));
-        opacity: calc(1 - var(--queue-full-progress));
     }
 
     .expanded .trackControlColumn,
@@ -369,16 +392,22 @@
         z-index: 7;
         flex: 0 0 auto;
         max-width: none;
-        margin-top: clamp(28px, 6vh, 58px);
+        margin-top: clamp(18px, 3.5vh, 36px);
         margin-bottom: auto;
         transform: translateY(calc(var(--queue-progress) * var(--queue-controls-shift)));
-        opacity: calc(1 - var(--queue-full-progress));
+        opacity: calc(1 - var(--queue-progress));
     }
 
     .sheetHost[data-queue-stage='full'] .sharedArtwork,
     .sheetHost[data-queue-stage='full'] .expanded [data-player-track-metadata],
     .sheetHost[data-queue-stage='full'] .expanded .trackControlColumn,
+    .sheetHost[data-queue-stage='full'] [data-player-rating],
     .sheetHost[data-queue-stage='full'] .collapseButton {
+        pointer-events: none;
+    }
+
+    .sheetHost[data-queue-open='true'] .expanded .trackControlColumn,
+    .sheetHost[data-queue-open='true'] [data-player-rating] {
         pointer-events: none;
     }
 

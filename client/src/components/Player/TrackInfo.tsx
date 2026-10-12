@@ -40,7 +40,7 @@ export const TrackInfo: React.FC<ITrackInfoProps> = React.memo(({ source, expand
                 )}
             </Grid>
             <Grid item className={styles.infoContainer} data-player-track-metadata={expanded ? '' : undefined}>
-                <Stack direction='column' alignItems={expanded ? 'center' : 'start'}>
+                <Stack direction='column' alignItems={expanded ? 'center' : 'flex-start'}>
                     <span className={styles.title} title={source?.title ?? ''}>
                         {expanded && source?.album?.id
                             ? <AlbumLink info={source.album}>{source.title}</AlbumLink>

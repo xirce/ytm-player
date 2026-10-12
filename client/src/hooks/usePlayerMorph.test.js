@@ -258,7 +258,7 @@ test('native completion stays synchronized and can be caught mid-flight without 
     mount();
     act(() => setOpen(true));
     expect(frames.size).toBe(0);
-    expect(animations).toHaveLength(6);
+    expect(animations).toHaveLength(7);
     for (const [keyframes, options] of HTMLElement.prototype.animate.mock.calls) {
         expect(Object.keys(keyframes[0])).toHaveLength(1);
         expect(options.duration).toBe(PLAYER_TRANSITION_MS);
@@ -269,8 +269,8 @@ test('native completion stays synchronized and can be caught mid-flight without 
     expect(progress()).toBeCloseTo(0.5);
     expect(animations.every(item => item.cancel.mock.calls.length === 1)).toBe(true);
     touch('touchend', 100, 10);
-    expect(animations).toHaveLength(12);
-    act(() => animations[6].onfinish());
+    expect(animations).toHaveLength(14);
+    act(() => animations[7].onfinish());
     expect(element.dataset.playerState).toBe('open');
     expect(progress()).toBe(1);
     expect(navigation.style.transform).toBe('translate3d(0, 64px, 0)');
