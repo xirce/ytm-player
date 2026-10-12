@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useRef } from 'react';
+import React, { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
 import { QueueContent } from '../../pages/Queue/QueueContent';
 import styles from './MobilePlayerQueue.module.css';
 
@@ -26,6 +26,7 @@ export const MobilePlayerQueue = React.memo(forwardRef<MobilePlayerQueueHandle, 
     const travelRef = useRef({ middle: 1, full: 2, contentExtent: 2 });
     const progressRef = useRef<number>(stage);
     const animationRef = useRef<number | null>(null);
+    const [scrollToCurrentRequest, setScrollToCurrentRequest] = useState(0);
     const suppressClickRef = useRef(false);
     const gestureRef = useRef<{ y: number; lastY: number; time: number; velocity: number; progress: number; dragging: boolean } | null>(null);
 
@@ -64,6 +65,7 @@ export const MobilePlayerQueue = React.memo(forwardRef<MobilePlayerQueueHandle, 
         const to = clamp(target);
         if (from === to || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
             paint(to);
+            if (to === 1) setScrollToCurrentRequest(value => value + 1);
             return;
         }
         const start = performance.now();
@@ -72,6 +74,7 @@ export const MobilePlayerQueue = React.memo(forwardRef<MobilePlayerQueueHandle, 
             const eased = 1 - Math.pow(1 - elapsed, 3);
             paint(from + (to - from) * eased);
             animationRef.current = elapsed < 1 ? requestAnimationFrame(frame) : null;
+            if (elapsed >= 1 && to === 1) setScrollToCurrentRequest(value => value + 1);
         };
         animationRef.current = requestAnimationFrame(frame);
     }, [paint, stopAnimation]);
@@ -190,7 +193,13 @@ export const MobilePlayerQueue = React.memo(forwardRef<MobilePlayerQueueHandle, 
                 <span className={styles.grabber} />
                 {stage === 0 && <span className={styles.label}>Очередь</span>}
             </div>
-            <div ref={contentRef} className={styles.content}><QueueContent embedded /></div>
+            <div ref={contentRef} className={styles.content}>
+                <QueueContent
+                    embedded
+                    autoScrollCurrent={stage === 1}
+                    scrollToCurrentRequest={scrollToCurrentRequest}
+                />
+            </div>
         </section>
     );
 }));

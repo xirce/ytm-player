@@ -3,7 +3,12 @@ import ReactDOM from 'react-dom';
 import { act } from 'react-dom/test-utils';
 import { MobilePlayerQueue } from './MobilePlayerQueue';
 
-jest.mock('../../pages/Queue/QueueContent', () => ({ QueueContent: () => null }));
+jest.mock('../../pages/Queue/QueueContent', () => ({
+    QueueContent: ({ autoScrollCurrent, scrollToCurrentRequest }) => <div
+        data-auto-scroll-current={autoScrollCurrent}
+        data-scroll-to-current={scrollToCurrentRequest}
+    />
+}));
 
 test('a slow downward swipe closes the queue without needing a final flick', () => {
     const container = document.createElement('div');
@@ -58,6 +63,7 @@ test('opening updates the queue and artwork progress on intermediate frames', ()
         expect(container.querySelector('[data-player-queue]').style.transform).toContain('translate3d');
         act(() => { frame(320); });
         expect(onProgress.mock.lastCall[0]).toBe(1);
+        expect(container.querySelector('[data-scroll-to-current]').dataset.scrollToCurrent).toBe('1');
     } finally {
         act(() => { ReactDOM.unmountComponentAtNode(container); });
         height.mockRestore();
@@ -88,6 +94,7 @@ test('an upward swipe from the middle opens the full queue, then a downward swip
         });
         expect(onStageChange).toHaveBeenLastCalledWith(2);
         act(() => { ReactDOM.render(<MobilePlayerQueue ref={ref} stage={2} onStageChange={onStageChange} onProgress={() => {}} />, container); });
+        expect(container.querySelector('[data-auto-scroll-current]').dataset.autoScrollCurrent).toBe('false');
         expect(container.querySelector('[data-player-queue]').style.getPropertyValue('--queue-content-height')).toBe('552px');
         act(() => {
             ref.current.begin(200, 400);

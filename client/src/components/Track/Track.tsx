@@ -94,6 +94,7 @@ export const Track: React.FC<ITrackProps> = React.memo(({
     return (
         <div
             className={`${resolvedIsCurrent ? styles.playingContainer : styles.container} ${pressed ? styles.touchPressed : ''} ${!showDuration ? styles.withoutDuration : ''} ${mobileCard ? styles.mobileCard : ''} ${mobileDragHandle ? styles.mobileDragHandle : ''}`}
+            data-current-track={resolvedIsCurrent || undefined}
             onClick={handleRowClick}
             {...touchHandlers}
         >
