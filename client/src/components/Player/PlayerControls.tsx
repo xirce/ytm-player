@@ -324,14 +324,24 @@ export const PlayerControls: React.FC = React.memo(() => {
                 artworkTop: artwork ? artwork.getBoundingClientRect().top - previousShift : 0
             };
             if (info && controls) {
+                const hostTop = host.getBoundingClientRect().top;
+                const renderedProgress = Number.parseFloat(host.style.getPropertyValue('--queue-progress') || '0') || 0;
+                const renderedFullProgress = Number.parseFloat(host.style.getPropertyValue('--queue-full-progress') || '0') || 0;
+                const previousInfoShift = Number.parseFloat(host.style.getPropertyValue('--queue-info-shift') || '0') || 0;
+                const previousControlsShift = Number.parseFloat(host.style.getPropertyValue('--queue-controls-shift') || '0') || 0;
+                const fullLayerShift = -32 * renderedFullProgress;
+                // Measure the untransformed positions. This also keeps recalculation
+                // stable when the viewport changes while the queue is already open.
+                const infoBaseTop = info.getBoundingClientRect().top - hostTop - renderedProgress * previousInfoShift - fullLayerShift;
+                const controlsBaseTop = controls.getBoundingClientRect().top - hostTop - renderedProgress * previousControlsShift - fullLayerShift;
                 const queueTop = host.clientHeight - Math.min(window.innerHeight * 0.4, 560);
                 const controlsTop = queueTop - controls.offsetHeight - 28;
                 const infoTop = controlsTop - info.offsetHeight - 20;
-                host.style.setProperty('--queue-info-shift', `${infoTop - info.offsetTop}px`);
-                host.style.setProperty('--queue-controls-shift', `${controlsTop - controls.offsetTop}px`);
+                host.style.setProperty('--queue-info-shift', `${infoTop - infoBaseTop}px`);
+                host.style.setProperty('--queue-controls-shift', `${controlsTop - controlsBaseTop}px`);
                 if (transport) {
                     const transportOffset = transport.getBoundingClientRect().top - controls.getBoundingClientRect().top;
-                    host.style.setProperty('--controls-shade-top', `${controls.offsetTop + transportOffset - 88}px`);
+                    host.style.setProperty('--controls-shade-top', `${controlsBaseTop + transportOffset - 88}px`);
                 }
             }
         }

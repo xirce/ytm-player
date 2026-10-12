@@ -3,12 +3,12 @@
     --queue-handle-height: 48px;
     position: fixed;
     right: 0;
-    top: calc(env(safe-area-inset-top) + 76px);
+    top: calc(env(safe-area-inset-top) + 68px);
     left: 0;
   z-index: 7;
     display: flex;
     flex-direction: column;
-    height: calc(100dvh - env(safe-area-inset-top) - 76px);
+    height: calc(100dvh - env(safe-area-inset-top) - 68px);
     color: var(--text-light-color);
     background:
         linear-gradient(rgba(0, 0, 0, var(--queue-progress, 0)), rgba(0, 0, 0, var(--queue-progress, 0))),
@@ -23,7 +23,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 8px;
+    padding-top: 16px;
     gap: 5px;
     cursor: grab;
     touch-action: none;
