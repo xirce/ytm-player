@@ -11,7 +11,7 @@ import { useAppAction, useAppSelector } from "../../store";
 import { getAutoplay, getCurrentTrack, getDisplayedTrack, getIsPlaying, getTracks, getRepeat, getTrackIndex } from '../../store/player';
 import { useDependentRef } from "../../hooks/useDependentRef";
 import styles from "./PlayerControls.module.css";
-import { useAddTrackToHistoryMutation, useGetTrackUrlQuery, useLazyGetRadioQuery } from '../../apiClient';
+import { useAddTrackToHistoryMutation, useGetTrackPlaybackQuery, useLazyGetRadioQuery } from '../../apiClient';
 import { loadPlayerProgress, savePlayerProgress } from '../../utils/playerPersistence';
 import {
     completePlaybackMeasurement,
@@ -135,8 +135,8 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     // `data` keeps the previous argument's result while a new request is loading.
     // Attaching it would restart the old track and incorrectly associate its URL
     // with the newly selected track. `currentData` is scoped to the current ID.
-    const { currentData: trackUrl, isFetching } = useGetTrackUrlQuery(currentTrack?.id ?? skipToken);
-    const { currentData: nextTrackUrl } = useGetTrackUrlQuery(nextTrack?.id ?? skipToken);
+    const { currentData: trackPlayback, isFetching } = useGetTrackPlaybackQuery(currentTrack?.id ?? skipToken);
+    const { currentData: nextTrackPlayback } = useGetTrackPlaybackQuery(nextTrack?.id ?? skipToken);
     const [addTrackToHistory] = useAddTrackToHistoryMutation();
     const [loadRadio] = useLazyGetRadioQuery();
 
@@ -182,7 +182,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
 
     // Обновление источника при получении манифеста
     useEffect(() => {
-        if (trackUrl) {
+        if (trackPlayback) {
             if (currentTrack?.id && playerTrackIdsRef.current.get(player) === currentTrack.id) return;
             initializedPlayersRef.current.delete(player);
             historyRecordedPlayersRef.current.delete(player);
@@ -190,20 +190,20 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             if (currentTrack?.id) playerTrackIdsRef.current.set(player, currentTrack.id);
             markPlaybackStage(currentTrack?.id, 'manifestReady');
             markPlaybackStage(currentTrack?.id, 'sourceAttached');
-            player.attachSource(trackUrl);
+            player.attachSource(trackPlayback.source);
         }
-    }, [trackUrl, player, currentTrack?.id]);
+    }, [trackPlayback, player, currentTrack?.id]);
 
     // Резервный плеер заранее загружает манифест и начальный буфер следующего трека.
     useEffect(() => {
-        if (!nextTrackUrl || !nextTrack?.id) return;
+        if (!nextTrackPlayback || !nextTrack?.id) return;
         if (playerTrackIdsRef.current.get(standbyPlayer) === nextTrack.id) return;
         initializedPlayersRef.current.delete(standbyPlayer);
         historyRecordedPlayersRef.current.delete(standbyPlayer);
         restoredProgressPlayersRef.current.delete(standbyPlayer);
         playerTrackIdsRef.current.set(standbyPlayer, nextTrack.id);
-        standbyPlayer.attachSource(nextTrackUrl);
-    }, [nextTrackUrl, nextTrack?.id, standbyPlayer]);
+        standbyPlayer.attachSource(nextTrackPlayback.source);
+    }, [nextTrackPlayback, nextTrack?.id, standbyPlayer]);
 
     // Очистка источника во время загрузки
     useEffect(() => {

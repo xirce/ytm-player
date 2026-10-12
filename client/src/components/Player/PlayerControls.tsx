@@ -11,7 +11,6 @@ import { TrackInfo } from "./TrackInfo";
 import { MobilePlayerQueue, MobilePlayerQueueHandle, type QueueStage } from './MobilePlayerQueue';
 import { PlaybackTimingPanel } from './PlaybackTimingPanel';
 import { TrackRatingControls } from './TrackRatingControls';
-import api from '../../apiClient';
 import { usePlayerSheet } from '../../hooks/usePlayerSheet';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { getCurrentTrack, getDisplayedTrack, getIsPlaying, playerSlice } from '../../store/player';
@@ -85,16 +84,6 @@ export const PlayerControls: React.FC = React.memo(() => {
     const displayTrackIndex = useAppSelector(state => state.player.displayTrackIndex);
     const isCrossfading = displayTrackIndex !== null;
     const displayedTrack = useAppSelector(getDisplayedTrack);
-    const prefetchRating = api.usePrefetch('getTrackRating', { ifOlderThan: 300 });
-
-    useEffect(() => {
-        if (tracks.length < 2) return;
-        const previousIndex = trackIndex === 0 ? tracks.length - 1 : trackIndex - 1;
-        const nextIndex = trackIndex === tracks.length - 1 ? 0 : trackIndex + 1;
-        [tracks[previousIndex], tracks[nextIndex]].forEach(track => {
-            if (track?.id) prefetchRating(track.id);
-        });
-    }, [prefetchRating, trackIndex, tracks]);
     const trackNavigationRef = useRef<TrackNavigation | null>(null);
     const artworkCarouselRef = useRef<HTMLDivElement>(null);
     const queueGeometryRef = useRef<{

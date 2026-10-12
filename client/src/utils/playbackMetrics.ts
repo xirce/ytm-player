@@ -220,7 +220,7 @@ function resourceTimingEntries(measurement: PlaybackMeasurement): ResourceTiming
 
 function findTrackUrlTiming(measurement: PlaybackMeasurement): ResourceTimingWithServerTiming | undefined {
     if (measurement.sourceTiming) return measurement.sourceTiming;
-    const path = `/api/tracks/${encodeURIComponent(measurement.trackId)}/url`;
+    const path = `/api/tracks/${encodeURIComponent(measurement.trackId)}/playback`;
     return resourceTimingEntries(measurement)
         .filter(entry => entry.name.includes(path))
         .at(-1);

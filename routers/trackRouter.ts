@@ -460,7 +460,7 @@ router.get('/proxy', asyncHandler(async (req, res) => {
         .pipe(res);
 }));
 
-router.get('/:id/url', asyncHandler(async (req, res) => {
+router.get('/:id/playback', asyncHandler(async (req, res) => {
     const id = getRequiredParam(req, 'id');
     let proxyBaseUrl = `${req.protocol}://${req.get('host')}`;
     if (typeof req.query.origin === 'string') {
@@ -475,19 +475,27 @@ router.get('/:id/url', asyncHandler(async (req, res) => {
         }
         proxyBaseUrl = clientOrigin.origin;
     }
-    const { source, timings } = await fetchTrackUrl(id, proxyBaseUrl);
+    const ratingPromise: Promise<TrackRating> = req.user
+        ? personalMusicClients.get(req.user.id)
+            .then(client => client.getTrackRating(id))
+            .catch(error => {
+                if (!(error instanceof HttpError && error.status === 409)) {
+                    console.warn(`Could not load rating for track ${id}; playback will continue`, error);
+                }
+                return 'INDIFFERENT';
+            })
+        : Promise.resolve('INDIFFERENT');
+    const [{ source, timings }, rating] = await Promise.all([
+        fetchTrackUrl(id, proxyBaseUrl),
+        ratingPromise
+    ]);
     res.setHeader('Server-Timing', formatServerTiming(timings));
-    res.json(source);
+    res.json({ source, rating });
 }));
 
 router.post('/:id/history', requireUser, asyncHandler(async (req, res) => {
     await (await personalMusicClients.get(req.user!.id)).addTrackToHistory(getRequiredParam(req, 'id'));
     res.status(204).end();
-}));
-
-router.get('/:id/rating', requireUser, asyncHandler(async (req, res) => {
-    const rating = await (await personalMusicClients.get(req.user!.id)).getTrackRating(getRequiredParam(req, 'id'));
-    res.json({ rating });
 }));
 
 router.put('/:id/rating', requireUser, asyncHandler(async (req, res) => {

@@ -136,6 +136,11 @@ export interface ITrackPlaybackSource {
     };
 }
 
+export interface ITrackPlayback {
+    source: ITrackPlaybackSource;
+    rating: TrackRating;
+}
+
 export interface IHomeSectionPage {
     items: IHomeItem[];
     continuation: string | null;

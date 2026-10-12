@@ -16,7 +16,7 @@ import {
     AppAuthState,
     YouTubeMusicConnectionInput,
     YouTubeMusicConnectionState,
-    ITrackPlaybackSource,
+    ITrackPlayback,
     ITrackRating,
     TrackRating
 } from "../../shared";
@@ -66,17 +66,15 @@ export interface IPlaylistContinuationRequest {
     continuation: string;
 }
 
-const knownTrackRatings = new Map<string, TrackRating>();
-
 const api = createApi({
     reducerPath: 'api',
     baseQuery: axiosBaseQuery({ baseUrl: '/api' }),
     keepUnusedDataFor: 30,
-    tagTypes: ['Home', 'History', 'Auth', 'TrackRating', 'Playlist'],
+    tagTypes: ['Home', 'History', 'Auth', 'Playlist'],
     endpoints: (build) => ({
-        getTrackUrl: build.query<ITrackPlaybackSource, string>({
+        getTrackPlayback: build.query<ITrackPlayback, string>({
             query: (id: string) => ({
-                url: `/tracks/${id}/url`,
+                url: `/tracks/${id}/playback`,
                 method: 'GET',
                 params: { origin: window.location.origin }
             })
@@ -124,32 +122,14 @@ const api = createApi({
                 method: 'GET',
                 params: request.params ? { params: request.params } : undefined
             }),
-            providesTags: (_result, _error, { id }) => [{ type: 'Playlist', id }],
-            async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
-                if (id !== 'LM' && id !== 'VLLM') return;
-                try {
-                    const { data } = await queryFulfilled;
-                    data.tracks.forEach(track => knownTrackRatings.set(track.id, 'LIKE'));
-                } catch {
-                    // The playlist query exposes its own error state.
-                }
-            }
+            providesTags: (_result, _error, { id }) => [{ type: 'Playlist', id }]
         }),
         getPlaylistContinuation: build.query<IPlaylistPage, IPlaylistContinuationRequest>({
             query: request => ({
                 url: `/playlists/${request.id}/continuation`,
                 method: 'GET',
                 params: { continuation: request.continuation }
-            }),
-            async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
-                if (id !== 'LM' && id !== 'VLLM') return;
-                try {
-                    const { data } = await queryFulfilled;
-                    data.tracks.forEach(track => knownTrackRatings.set(track.id, 'LIKE'));
-                } catch {
-                    // The continuation query exposes its own error state.
-                }
-            }
+            })
         }),
         getHome: build.query<IHomeFeed, void>({
             query: () => ({ url: '/home', method: 'GET', requiresAuth: true }),
@@ -166,33 +146,17 @@ const api = createApi({
         getHomeSection: build.query<IHomeSectionPage, string>({
             query: cursor => ({ url: '/home/section', method: 'GET', requiresAuth: true, params: { cursor } })
         }),
-        getTrackRating: build.query<ITrackRating, string>({
-            async queryFn(id, _queryApi, _extraOptions, baseQuery) {
-                const knownRating = knownTrackRatings.get(id);
-                if (knownRating) return { data: { rating: knownRating } };
-                const result = await baseQuery({
-                    url: `/tracks/${id}/rating`, method: 'GET', requiresAuth: true
-                });
-                if (result.error) return { error: result.error };
-                return { data: result.data as ITrackRating };
-            },
-            providesTags: (_result, _error, id) => [{ type: 'TrackRating', id }]
-        }),
         setTrackRating: build.mutation<ITrackRating, { id: string; rating: TrackRating }>({
             query: ({ id, rating }) => ({
                 url: `/tracks/${id}/rating`, method: 'PUT', data: { rating }, requiresAuth: true
             }),
             async onQueryStarted({ id, rating }, { dispatch, queryFulfilled }) {
-                const previous = knownTrackRatings.get(id);
-                knownTrackRatings.set(id, rating);
-                const patch = dispatch(api.util.updateQueryData('getTrackRating', id, draft => {
+                const patch = dispatch(api.util.updateQueryData('getTrackPlayback', id, draft => {
                     draft.rating = rating;
                 }));
                 try {
                     await queryFulfilled;
                 } catch {
-                    if (previous) knownTrackRatings.set(id, previous);
-                    else knownTrackRatings.delete(id);
                     patch.undo();
                 }
             },
@@ -229,9 +193,8 @@ const api = createApi({
 });
 
 export const {
-    useGetTrackUrlQuery,
+    useGetTrackPlaybackQuery,
     useAddTrackToHistoryMutation,
-    useGetTrackRatingQuery,
     useSetTrackRatingMutation,
     useSearchQuery,
     useGetSearchSuggestionsQuery,

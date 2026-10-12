@@ -2,10 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { act } from 'react-dom/test-utils';
 import { TrackRatingControls } from './TrackRatingControls';
-import { useGetTrackRatingQuery, useSetTrackRatingMutation } from '../../apiClient';
+import { useGetTrackPlaybackQuery, useSetTrackRatingMutation } from '../../apiClient';
 
 jest.mock('../../apiClient', () => ({
-    useGetTrackRatingQuery: jest.fn(),
+    useGetTrackPlaybackQuery: jest.fn(),
     useSetTrackRatingMutation: jest.fn()
 }));
 
@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 test('toggles the current rating off and switches to the opposite rating', async () => {
-    useGetTrackRatingQuery.mockReturnValue({ currentData: { rating: 'LIKE' }, isLoading: false });
+    useGetTrackPlaybackQuery.mockReturnValue({ currentData: { rating: 'LIKE' }, isLoading: false });
     await act(async () => ReactDOM.render(<TrackRatingControls trackId='track-1' />, container));
     expect(container.querySelector('[data-testid="ThumbUpRoundedIcon"]')).not.toBeNull();
 
@@ -41,7 +41,7 @@ test('toggles the current rating off and switches to the opposite rating', async
 });
 
 test('shows the fetched rating when the current track changes', async () => {
-    useGetTrackRatingQuery.mockImplementation(trackId => ({
+    useGetTrackPlaybackQuery.mockImplementation(trackId => ({
         currentData: { rating: trackId === 'track-1' ? 'LIKE' : 'DISLIKE' },
         isLoading: false
     }));

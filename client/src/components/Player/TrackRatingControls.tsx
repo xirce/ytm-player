@@ -4,7 +4,7 @@ import ThumbDownOutlinedIcon from '@mui/icons-material/ThumbDownOutlined';
 import ThumbUpRoundedIcon from '@mui/icons-material/ThumbUpRounded';
 import ThumbUpOutlinedIcon from '@mui/icons-material/ThumbUpOutlined';
 import type { TrackRating } from '../../../../shared';
-import { useGetTrackRatingQuery, useSetTrackRatingMutation } from '../../apiClient';
+import { useGetTrackPlaybackQuery, useSetTrackRatingMutation } from '../../apiClient';
 import styles from './TrackRatingControls.module.css';
 
 interface TrackRatingControlsProps {
@@ -12,11 +12,11 @@ interface TrackRatingControlsProps {
 }
 
 export const TrackRatingControls: React.FC<TrackRatingControlsProps> = React.memo(({ trackId }) => {
-    const { currentData, isLoading: isRatingLoading } = useGetTrackRatingQuery(trackId);
+    const { currentData, isLoading: isRatingLoading } = useGetTrackPlaybackQuery(trackId);
     const [setTrackRating, { isLoading: isSaving }] = useSetTrackRatingMutation();
     const [rating, setRating] = useState<TrackRating>('INDIFFERENT');
 
-    useEffect(() => setRating(currentData?.rating ?? 'INDIFFERENT'), [currentData, trackId]);
+    useEffect(() => setRating(currentData?.rating ?? 'INDIFFERENT'), [currentData?.rating, trackId]);
 
     const updateRating = async (selected: Exclude<TrackRating, 'INDIFFERENT'>) => {
         if (isSaving || isRatingLoading) return;
