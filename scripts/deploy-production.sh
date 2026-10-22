@@ -22,6 +22,21 @@ if $COMPOSE ps --status running --services 2>/dev/null | grep -qx postgres; then
     mv "$backup.tmp" "$backup"
 fi
 
+echo 'Removing unused application images'
+docker image ls \
+    --filter 'reference=ghcr.io/xirce/ytm-player:*' \
+    --format '{{.ID}}' \
+    | sort -u \
+    | while read -r image_id; do
+        [ -n "$image_id" ] || continue
+
+        # Docker protects the running version; remove only images unused by any container.
+        if [ -z "$(docker ps -aq --filter "ancestor=$image_id")" ]; then
+            docker image rm "$image_id" || true
+        fi
+    done
+docker image prune -f
+
 $COMPOSE pull app po-token-provider prometheus grafana
 if $COMPOSE up -d --wait --remove-orphans; then
     echo "Deployed $APP_IMAGE"
