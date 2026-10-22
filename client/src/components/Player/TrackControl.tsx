@@ -11,7 +11,11 @@ import { useAppAction, useAppSelector } from "../../store";
 import { getAutoplay, getCurrentTrack, getDisplayedTrack, getIsPlaying, getTracks, getRepeat, getTrackIndex } from '../../store/player';
 import { useDependentRef } from "../../hooks/useDependentRef";
 import styles from "./PlayerControls.module.css";
-import { useAddTrackToHistoryMutation, useGetTrackPlaybackQuery, useLazyGetRadioQuery } from '../../apiClient';
+import {
+    useGetTrackPlaybackQuery, useLazyGetRadioQuery,
+    useStartPlaybackTrackingMutation, useUpdatePlaybackTrackingMutation
+} from '../../apiClient';
+import type { IPlaybackTrackingStart, IWatchTimeSegment } from '../../../../shared';
 import { loadPlayerProgress, savePlayerProgress } from '../../utils/playerPersistence';
 import {
     completePlaybackMeasurement,
@@ -65,6 +69,21 @@ interface SabrTimingEvent {
         lastDrainMs?: number;
         backpressureCount: number;
     };
+}
+
+interface PlaybackTelemetry {
+    trackId: string;
+    startedAt: number;
+    startPromise: Promise<IPlaybackTrackingStart>;
+    session?: IPlaybackTrackingStart;
+    pendingSegments: IWatchTimeSegment[];
+    segmentStart: number;
+    lastPosition: number;
+    lastWallTime: number;
+    nextFlushIndex: number;
+    timer?: ReturnType<typeof setTimeout>;
+    sendChain: Promise<void>;
+    final: boolean;
 }
 
 const isIOSDevice = () => {
@@ -122,7 +141,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     const initializedPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
     const playerTrackIdsRef = useRef(new WeakMap<MediaPlayerClass, string>());
     const completedTransitionPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
-    const historyRecordedPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
+    const playbackTelemetryRef = useRef(new WeakMap<MediaPlayerClass, PlaybackTelemetry>());
     const restoredProgressPlayersRef = useRef(new WeakSet<MediaPlayerClass>());
     const lastProgressSaveRef = useRef(0);
     const requestedRadioSeedsRef = useRef(new Set<string>());
@@ -137,7 +156,8 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
     // with the newly selected track. `currentData` is scoped to the current ID.
     const { currentData: trackPlayback, isFetching } = useGetTrackPlaybackQuery(currentTrack?.id ?? skipToken);
     const { currentData: nextTrackPlayback } = useGetTrackPlaybackQuery(nextTrack?.id ?? skipToken);
-    const [addTrackToHistory] = useAddTrackToHistoryMutation();
+    const [startPlaybackTracking] = useStartPlaybackTrackingMutation();
+    const [updatePlaybackTracking] = useUpdatePlaybackTrackingMutation();
     const [loadRadio] = useLazyGetRadioQuery();
 
     useEffect(() => {
@@ -185,7 +205,6 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         if (trackPlayback) {
             if (currentTrack?.id && playerTrackIdsRef.current.get(player) === currentTrack.id) return;
             initializedPlayersRef.current.delete(player);
-            historyRecordedPlayersRef.current.delete(player);
             restoredProgressPlayersRef.current.delete(player);
             if (currentTrack?.id) playerTrackIdsRef.current.set(player, currentTrack.id);
             markPlaybackStage(currentTrack?.id, 'manifestReady');
@@ -199,7 +218,6 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         if (!nextTrackPlayback || !nextTrack?.id) return;
         if (playerTrackIdsRef.current.get(standbyPlayer) === nextTrack.id) return;
         initializedPlayersRef.current.delete(standbyPlayer);
-        historyRecordedPlayersRef.current.delete(standbyPlayer);
         restoredProgressPlayersRef.current.delete(standbyPlayer);
         playerTrackIdsRef.current.set(standbyPlayer, nextTrack.id);
         standbyPlayer.attachSource(nextTrackPlayback.source);
@@ -225,6 +243,145 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             if (initializedPlayersRef.current.has(standbyPlayer)) standbyPlayer.pause();
         }
     }, [isPlaying, player, standbyPlayer]);
+
+    useEffect(() => {
+        const closeSegment = (state: PlaybackTelemetry) => {
+            if (state.lastPosition <= state.segmentStart + 0.05) return;
+            const previous = state.pendingSegments[state.pendingSegments.length - 1];
+            if (previous && state.segmentStart - previous.end <= 0.5) previous.end = state.lastPosition;
+            else state.pendingSegments.push({ start: state.segmentStart, end: state.lastPosition });
+            state.segmentStart = state.lastPosition;
+        };
+        const capturePosition = (state: PlaybackTelemetry, media: HTMLMediaElement) => {
+            const now = performance.now();
+            const position = media.currentTime;
+            const elapsed = Math.max(0, (now - state.lastWallTime) / 1000);
+            const advance = position - state.lastPosition;
+            const maximumNaturalAdvance = elapsed * Math.max(1, media.playbackRate) * 2 + 0.75;
+            if (advance >= -0.05 && advance <= maximumNaturalAdvance) {
+                state.lastPosition = position;
+            } else {
+                closeSegment(state);
+                state.segmentStart = position;
+                state.lastPosition = position;
+            }
+            state.lastWallTime = now;
+        };
+        const flush = (state: PlaybackTelemetry, media: HTMLMediaElement, final: boolean, capture = true) => {
+            if (state.final) return;
+            if (capture) capturePosition(state, media);
+            closeSegment(state);
+            const segments = state.pendingSegments.splice(0);
+            const currentTime = capture ? media.currentTime : state.lastPosition;
+            if (!segments.length && !final) return;
+            if (final) {
+                state.final = true;
+                if (state.timer) clearTimeout(state.timer);
+            }
+            state.sendChain = state.sendChain.then(async () => {
+                const session = state.session ?? await state.startPromise;
+                state.session = session;
+                await updatePlaybackTracking({
+                    id: state.trackId,
+                    sessionId: session.sessionId,
+                    segments,
+                    currentTime,
+                    final
+                }).unwrap();
+            }).catch(() => {
+                if (!final) state.pendingSegments.unshift(...segments);
+            });
+        };
+        const scheduleFlush = (state: PlaybackTelemetry, media: HTMLMediaElement) => {
+            if (state.final || !state.session) return;
+            const scheduled = state.session.scheduledFlushSeconds;
+            const elapsedSeconds = (performance.now() - state.startedAt) / 1000;
+            const target = state.nextFlushIndex < scheduled.length
+                ? scheduled[state.nextFlushIndex++]
+                : (scheduled[scheduled.length - 1] ?? 0)
+                    + state.session.defaultFlushSeconds * (state.nextFlushIndex++ - scheduled.length + 1);
+            state.timer = setTimeout(() => {
+                flush(state, media, false);
+                scheduleFlush(state, media);
+            }, Math.max(0, target - elapsedSeconds) * 1000);
+        };
+        const begin = (target: MediaPlayerClass, media: HTMLMediaElement) => {
+            const trackId = playerTrackIdsRef.current.get(target);
+            if (!trackId) return;
+            const existing = playbackTelemetryRef.current.get(target);
+            if (existing && existing.trackId === trackId && !existing.final) {
+                existing.segmentStart = media.currentTime;
+                existing.lastPosition = media.currentTime;
+                existing.lastWallTime = performance.now();
+                return;
+            }
+            if (existing && !existing.final) flush(existing, media, true, false);
+
+            const startedAt = performance.now();
+            const state: PlaybackTelemetry = {
+                trackId,
+                startedAt,
+                startPromise: startPlaybackTracking({ id: trackId, startTime: media.currentTime }).unwrap(),
+                pendingSegments: [],
+                segmentStart: media.currentTime,
+                lastPosition: media.currentTime,
+                lastWallTime: startedAt,
+                nextFlushIndex: 0,
+                sendChain: Promise.resolve(),
+                final: false
+            };
+            state.startPromise.then(session => {
+                state.session = session;
+                scheduleFlush(state, media);
+            }).catch(() => undefined);
+            playbackTelemetryRef.current.set(target, state);
+        };
+        const bind = (target: MediaPlayerClass) => {
+            const media = target.getVideoElement();
+            if (!media) return () => undefined;
+            const onPlaying = () => begin(target, media);
+            const onTimeUpdate = () => {
+                const state = playbackTelemetryRef.current.get(target);
+                if (state && !state.final && !media.paused && !media.seeking) capturePosition(state, media);
+            };
+            const onPause = () => {
+                const state = playbackTelemetryRef.current.get(target);
+                if (state && !state.final && !media.ended) flush(state, media, false);
+            };
+            const onSeeking = onPause;
+            const onSeeked = () => {
+                const state = playbackTelemetryRef.current.get(target);
+                if (!state || state.final) return;
+                state.segmentStart = media.currentTime;
+                state.lastPosition = media.currentTime;
+                state.lastWallTime = performance.now();
+            };
+            const onEnded = () => {
+                const state = playbackTelemetryRef.current.get(target);
+                if (state) flush(state, media, true);
+            };
+            media.addEventListener('playing', onPlaying);
+            media.addEventListener('timeupdate', onTimeUpdate);
+            media.addEventListener('pause', onPause);
+            media.addEventListener('seeking', onSeeking);
+            media.addEventListener('seeked', onSeeked);
+            media.addEventListener('ended', onEnded);
+            return () => {
+                media.removeEventListener('playing', onPlaying);
+                media.removeEventListener('timeupdate', onTimeUpdate);
+                media.removeEventListener('pause', onPause);
+                media.removeEventListener('seeking', onSeeking);
+                media.removeEventListener('seeked', onSeeked);
+                media.removeEventListener('ended', onEnded);
+            };
+        };
+        const unbindPlayer = bind(player);
+        const unbindStandby = bind(standbyPlayer);
+        return () => {
+            unbindPlayer();
+            unbindStandby();
+        };
+    }, [player, standbyPlayer, startPlaybackTracking, updatePlaybackTracking]);
 
     // Подписка на события плеера
     useEffect(() => {
@@ -328,11 +485,6 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
                     duration: player.duration() || undefined
                 });
             }
-            if (playedTime >= 10 && playingTrackId && !historyRecordedPlayersRef.current.has(player)) {
-                historyRecordedPlayersRef.current.add(player);
-                // A deterministic upstream failure must not retry on every time update.
-                void addTrackToHistory(playingTrackId).unwrap().catch(() => undefined);
-            }
             const timeToEnd = event.timeToEnd;
             if (repeatRef.current || !isPlayingRef.current || typeof timeToEnd !== 'number') return;
             if ((tracksRef.current?.length || 0) < 2 || player.time() < CROSSFADE_SECONDS) return;
@@ -432,7 +584,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             mediaElement?.removeEventListener('loadedmetadata', onNativeMetadataLoaded);
             mediaElement?.removeEventListener('canplay', onNativeCanPlay);
         };
-    }, [player, standbyPlayer, repeatRef, tracksRef, trackIndexRef, isPlayingRef, autoplayRef, skipNext, setIsPlaying, swapPlayers, setDisplayTrackIndex, addTrackToHistory, updateTrackDuration]);
+    }, [player, standbyPlayer, repeatRef, tracksRef, trackIndexRef, isPlayingRef, autoplayRef, skipNext, setIsPlaying, swapPlayers, setDisplayTrackIndex, updateTrackDuration]);
 
     useEffect(() => {
         // Плеер снова стал активным с новым треком — старый маркер ended ему больше не нужен.

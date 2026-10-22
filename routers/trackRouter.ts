@@ -5,7 +5,7 @@ import ytmusic from '../utils/YTMusicApiWrapper';
 import { requireUser } from '../middleware/appAuth';
 import { personalMusicClients } from '../utils/personalMusicClient';
 import type { TrackUrlTimings } from '../utils/YTMusicApiWrapper';
-import type { ITrackPlaybackSource, TrackRating } from '../shared';
+import type { ITrackPlaybackSource, IWatchTimeSegment, TrackRating } from '../shared';
 import { asyncHandler, HttpError } from '../middleware/errors';
 import { getRequiredParam } from '../middleware/validation';
 import { recordSabrHedge, recordSabrProxyStage } from '../utils/metrics';
@@ -493,8 +493,28 @@ router.get('/:id/playback', asyncHandler(async (req, res) => {
     res.json({ source, rating });
 }));
 
-router.post('/:id/history', requireUser, asyncHandler(async (req, res) => {
-    await (await personalMusicClients.get(req.user!.id)).addTrackToHistory(getRequiredParam(req, 'id'));
+router.post('/:id/playback-tracking', requireUser, asyncHandler(async (req, res) => {
+    const startTime = Number(req.body?.startTime);
+    if (!Number.isFinite(startTime) || startTime < 0) throw new HttpError(400, 'startTime must be non-negative');
+    const result = await (await personalMusicClients.get(req.user!.id))
+        .startPlaybackTracking(getRequiredParam(req, 'id'), startTime);
+    res.json(result);
+}));
+
+router.put('/:id/playback-tracking', requireUser, asyncHandler(async (req, res) => {
+    const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId : '';
+    const currentTime = Number(req.body?.currentTime);
+    const segments: IWatchTimeSegment[] = Array.isArray(req.body?.segments) ? req.body.segments : [];
+    const final = req.body?.final === true;
+    if (!sessionId || sessionId.length > 100) throw new HttpError(400, 'sessionId is required');
+    if (!Number.isFinite(currentTime) || currentTime < 0) throw new HttpError(400, 'currentTime must be non-negative');
+    if (segments.length > 100 || segments.some(segment =>
+        !Number.isFinite(segment?.start) || !Number.isFinite(segment?.end)
+        || segment.start < 0 || segment.end < segment.start
+    )) throw new HttpError(400, 'segments must contain valid watched ranges');
+    await (await personalMusicClients.get(req.user!.id)).updatePlaybackTracking(
+        getRequiredParam(req, 'id'), sessionId, segments, currentTime, final
+    );
     res.status(204).end();
 }));
 

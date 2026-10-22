@@ -1,5 +1,9 @@
 import { Constants, Innertube, Platform, Types, YTMusic, YTNodes } from 'youtubei.js';
-import { IHomeItem, IHomeSectionPage, IPlaylist, IPlaylistPage, ITrackBase, TrackRating } from '../shared';
+import { randomUUID } from 'node:crypto';
+import {
+    IHomeItem, IHomeSectionPage, IPlaybackTrackingStart, IPlaylist, IPlaylistPage,
+    ITrackBase, IWatchTimeSegment, TrackRating
+} from '../shared';
 import { getThumbnailUrl, mapToHomeItem, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 import { database, YouTubeMusicConnectionRecord } from './database';
@@ -24,6 +28,14 @@ const validateCookie = (cookie: string): string => {
 };
 
 export class PersonalMusicClient {
+    private playbackSessions?: Map<string, {
+        trackId: string;
+        cpn: string;
+        watchTimeUrl: string;
+        startedAt: number;
+        lastUsed: number;
+    }>;
+
     private constructor(private readonly innertube: Innertube, private readonly tokenProvider: TokenProvider) {}
 
     public static async create(input: Required<Pick<MusicConnectionInput, 'cookie' | 'authUser' | 'language'>>
@@ -144,34 +156,79 @@ export class PersonalMusicClient {
         return this.mapPlaylistPage(new YTMusic.Playlist(response, this.innertube.actions));
     }
 
-    public async addTrackToHistory(id: string): Promise<void> {
-        const poToken = await this.tokenProvider.getToken(id);
-        const trackInfo = await this.innertube.music.getInfo(id, { po_token: poToken });
-        let playbackResponse: Response;
-        try {
-            playbackResponse = await trackInfo.addToWatchHistory();
-        } catch (error) {
-            if (!(error instanceof Error) || error.message !== 'Playback tracking not available') throw error;
-
-            // The authenticated YTMUSIC player can report UNPLAYABLE while WEB returns
-            // a valid tracking URL. Report that URL as WEB_REMIX so it reaches Music history.
-            const fallbackInfo = await this.innertube.getBasicInfo(id, { client: 'WEB' });
-            const playbackTracking = fallbackInfo.page[0].playback_tracking;
-            if (!playbackTracking) throw new HttpError(502, 'YouTube did not provide fallback playback tracking');
-            const url = playbackTracking.videostats_playback_url.replace('https://s.', 'https://music.');
-            playbackResponse = await this.innertube.actions.stats(url, {
+    public async startPlaybackTracking(id: string, startTime: number): Promise<IPlaybackTrackingStart> {
+        const info = await this.innertube.getBasicInfo(id, { client: 'WEB' });
+        const tracking = info.page[0].playback_tracking;
+        if (!tracking?.videostats_playback_url || !tracking.videostats_watchtime_url) {
+            throw new HttpError(502, 'YouTube did not provide playback tracking');
+        }
+        const response = await this.innertube.actions.stats(
+            tracking.videostats_playback_url.replace('https://s.', 'https://music.'),
+            {
                 client_name: Constants.CLIENTS.YTMUSIC.NAME,
                 client_version: Constants.CLIENTS.YTMUSIC.VERSION
-            }, {
-                cpn: fallbackInfo.cpn,
+            },
+            {
+                cpn: info.cpn,
                 fmt: 251,
                 rtn: 0,
-                rt: 0
-            });
+                rt: 0,
+                cmt: startTime.toFixed(3),
+                final: '0'
+            }
+        );
+        if (!response.ok) {
+            throw new HttpError(502, `YouTube Music rejected playback tracking (${response.status})`);
         }
-        if (!playbackResponse.ok) {
-            throw new HttpError(502, `YouTube Music rejected playback tracking (${playbackResponse.status})`);
+
+        const now = Date.now();
+        const sessions = this.getPlaybackSessions(now);
+        const sessionId = randomUUID();
+        sessions.set(sessionId, {
+            trackId: id,
+            cpn: info.cpn,
+            watchTimeUrl: tracking.videostats_watchtime_url.replace('https://s.', 'https://music.'),
+            startedAt: now,
+            lastUsed: now
+        });
+        return { sessionId, scheduledFlushSeconds: [10, 20, 30], defaultFlushSeconds: 40 };
+    }
+
+    public async updatePlaybackTracking(
+        id: string,
+        sessionId: string,
+        segments: IWatchTimeSegment[],
+        currentTime: number,
+        final: boolean
+    ): Promise<void> {
+        const sessions = this.getPlaybackSessions();
+        const session = sessions.get(sessionId);
+        if (!session || session.trackId !== id) throw new HttpError(404, 'Playback tracking session not found');
+
+        const response = await this.innertube.actions.stats(session.watchTimeUrl, {
+            client_name: Constants.CLIENTS.YTMUSIC.NAME,
+            client_version: Constants.CLIENTS.YTMUSIC.VERSION
+        }, {
+            cpn: session.cpn,
+            st: segments.map(segment => segment.start.toFixed(3)).join(','),
+            et: segments.map(segment => segment.end.toFixed(3)).join(','),
+            cmt: currentTime.toFixed(3),
+            rt: ((Date.now() - session.startedAt) / 1000).toFixed(3),
+            final: final ? '1' : '0'
+        });
+        if (!response.ok) {
+            throw new HttpError(502, `YouTube Music rejected watch-time tracking (${response.status})`);
         }
+        if (final) sessions.delete(sessionId);
+        else session.lastUsed = Date.now();
+    }
+
+    private getPlaybackSessions(now = Date.now()): NonNullable<PersonalMusicClient['playbackSessions']> {
+        const sessions = this.playbackSessions ??= new Map();
+        sessions.forEach((session, id) => {
+            if (session.lastUsed + 2 * 60 * 60 * 1000 <= now) sessions.delete(id);
+        });
+        return sessions;
     }
 
     public async getTrackRating(id: string): Promise<TrackRating> {

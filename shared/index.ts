@@ -141,6 +141,24 @@ export interface ITrackPlayback {
     rating: TrackRating;
 }
 
+export interface IWatchTimeSegment {
+    start: number;
+    end: number;
+}
+
+export interface IPlaybackTrackingStart {
+    sessionId: string;
+    scheduledFlushSeconds: number[];
+    defaultFlushSeconds: number;
+}
+
+export interface IPlaybackTrackingUpdate {
+    sessionId: string;
+    segments: IWatchTimeSegment[];
+    currentTime: number;
+    final: boolean;
+}
+
 export interface IHomeSectionPage {
     items: IHomeItem[];
     continuation: string | null;

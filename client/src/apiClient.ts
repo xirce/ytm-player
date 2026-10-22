@@ -17,6 +17,8 @@ import {
     YouTubeMusicConnectionInput,
     YouTubeMusicConnectionState,
     ITrackPlayback,
+    IPlaybackTrackingStart,
+    IPlaybackTrackingUpdate,
     ITrackRating,
     TrackRating
 } from "../../shared";
@@ -79,9 +81,16 @@ const api = createApi({
                 params: { origin: window.location.origin }
             })
         }),
-        addTrackToHistory: build.mutation<void, string>({
-            query: (id: string) => ({ url: `/tracks/${id}/history`, method: 'POST', requiresAuth: true }),
+        startPlaybackTracking: build.mutation<IPlaybackTrackingStart, { id: string; startTime: number }>({
+            query: ({ id, startTime }) => ({
+                url: `/tracks/${id}/playback-tracking`, method: 'POST', data: { startTime }, requiresAuth: true
+            }),
             invalidatesTags: (_result, error) => error ? [] : ['History']
+        }),
+        updatePlaybackTracking: build.mutation<void, { id: string } & IPlaybackTrackingUpdate>({
+            query: ({ id, ...data }) => ({
+                url: `/tracks/${id}/playback-tracking`, method: 'PUT', data, requiresAuth: true
+            })
         }),
         getSearchSuggestions: build.query<string[], string>({
             query: (query: string) => ({
@@ -194,7 +203,8 @@ const api = createApi({
 
 export const {
     useGetTrackPlaybackQuery,
-    useAddTrackToHistoryMutation,
+    useStartPlaybackTrackingMutation,
+    useUpdatePlaybackTrackingMutation,
     useSetTrackRatingMutation,
     useSearchQuery,
     useGetSearchSuggestionsQuery,
