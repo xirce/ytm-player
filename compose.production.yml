@@ -76,25 +76,6 @@ services:
       - observability-network
     restart: unless-stopped
 
-  grafana:
-    image: ${GRAFANA_IMAGE:-grafana/grafana:latest}
-    depends_on:
-      prometheus:
-        condition: service_started
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-    ports:
-      - "127.0.0.1:${GRAFANA_PORT:-3002}:3000"
-    volumes:
-      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - grafana-data:/var/lib/grafana
-    networks:
-      - observability-network
-    restart: unless-stopped
-
   caddy:
     image: caddy:2-alpine
     env_file:
@@ -130,4 +111,3 @@ volumes:
   caddy-data:
   caddy-config:
   prometheus-data:
-  grafana-data:
