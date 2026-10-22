@@ -81,7 +81,7 @@ const api = createApi({
         }),
         addTrackToHistory: build.mutation<void, string>({
             query: (id: string) => ({ url: `/tracks/${id}/history`, method: 'POST', requiresAuth: true }),
-            invalidatesTags: ['History']
+            invalidatesTags: (_result, error) => error ? [] : ['History']
         }),
         getSearchSuggestions: build.query<string[], string>({
             query: (query: string) => ({

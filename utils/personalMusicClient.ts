@@ -1,4 +1,4 @@
-import { Innertube, Platform, Types, YTMusic, YTNodes } from 'youtubei.js';
+import { Constants, Innertube, Platform, Types, YTMusic, YTNodes } from 'youtubei.js';
 import { IHomeItem, IHomeSectionPage, IPlaylist, IPlaylistPage, ITrackBase, TrackRating } from '../shared';
 import { getThumbnailUrl, mapToHomeItem, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
@@ -147,7 +147,31 @@ export class PersonalMusicClient {
     public async addTrackToHistory(id: string): Promise<void> {
         const poToken = await this.tokenProvider.getToken(id);
         const trackInfo = await this.innertube.music.getInfo(id, { po_token: poToken });
-        await trackInfo.addToWatchHistory();
+        let playbackResponse: Response;
+        try {
+            playbackResponse = await trackInfo.addToWatchHistory();
+        } catch (error) {
+            if (!(error instanceof Error) || error.message !== 'Playback tracking not available') throw error;
+
+            // The authenticated YTMUSIC player can report UNPLAYABLE while WEB returns
+            // a valid tracking URL. Report that URL as WEB_REMIX so it reaches Music history.
+            const fallbackInfo = await this.innertube.getBasicInfo(id, { client: 'WEB' });
+            const playbackTracking = fallbackInfo.page[0].playback_tracking;
+            if (!playbackTracking) throw new HttpError(502, 'YouTube did not provide fallback playback tracking');
+            const url = playbackTracking.videostats_playback_url.replace('https://s.', 'https://music.');
+            playbackResponse = await this.innertube.actions.stats(url, {
+                client_name: Constants.CLIENTS.YTMUSIC.NAME,
+                client_version: Constants.CLIENTS.YTMUSIC.VERSION
+            }, {
+                cpn: fallbackInfo.cpn,
+                fmt: 251,
+                rtn: 0,
+                rt: 0
+            });
+        }
+        if (!playbackResponse.ok) {
+            throw new HttpError(502, `YouTube Music rejected playback tracking (${playbackResponse.status})`);
+        }
     }
 
     public async getTrackRating(id: string): Promise<TrackRating> {

@@ -330,9 +330,8 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             }
             if (playedTime >= 10 && playingTrackId && !historyRecordedPlayersRef.current.has(player)) {
                 historyRecordedPlayersRef.current.add(player);
-                void addTrackToHistory(playingTrackId).unwrap().catch(() => {
-                    historyRecordedPlayersRef.current.delete(player);
-                });
+                // A deterministic upstream failure must not retry on every time update.
+                void addTrackToHistory(playingTrackId).unwrap().catch(() => undefined);
             }
             const timeToEnd = event.timeToEnd;
             if (repeatRef.current || !isPlayingRef.current || typeof timeToEnd !== 'number') return;
