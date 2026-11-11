@@ -216,6 +216,7 @@ export const {
     useGetPlaylistQuery,
     useLazyGetPlaylistContinuationQuery,
     useGetHomeQuery,
+    useLazyGetHomeQuery,
     useLazyGetHomeContinuationQuery,
     useLazyGetHomeSectionQuery,
     useGetHistoryQuery,

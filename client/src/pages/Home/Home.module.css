@@ -1,7 +1,35 @@
 .container {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 32px;
+    will-change: transform;
+}
+
+.pullIndicator {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    color: var(--text-main-color);
+    pointer-events: none;
+    transform: translate(-50%, calc(-100% - 10px));
+}
+
+.pullIndicator svg {
+    width: 28px;
+    height: 28px;
+}
+
+.container[data-pull-phase='refreshing'] .pullIndicator svg {
+    animation: refresh-spin 800ms linear infinite;
+}
+
+@keyframes refresh-spin {
+    to { transform: rotate(360deg); }
 }
 
 .section {

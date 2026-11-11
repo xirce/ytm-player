@@ -5,11 +5,13 @@ import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded';
 import ChevronRightRounded from '@mui/icons-material/ChevronRightRounded';
 import GoogleIcon from '@mui/icons-material/Google';
 import SettingsRounded from '@mui/icons-material/SettingsRounded';
+import RefreshRounded from '@mui/icons-material/RefreshRounded';
 import { Link, useSearchParams } from 'react-router-dom';
 import { skipToken } from '@reduxjs/toolkit/dist/query';
 import {
     useGetHomeQuery,
     useGetYouTubeAuthStatusQuery,
+    useLazyGetHomeQuery,
     useLazyGetHomeContinuationQuery,
     useLazyGetHomeSectionQuery
 } from '../../apiClient';
@@ -18,6 +20,8 @@ import { Track } from '../../components/Track/Track';
 import { Album } from '../../components/SearchResult/Album';
 import { Playlist } from '../../components/SearchResult/Playlist';
 import { Artist } from '../../components/SearchResult/Artist';
+import { usePullToRefresh } from '../../hooks/usePullToRefresh';
+import { useScrollContainerRef } from '../../layouts/Default/ScrollContainerContext';
 import styles from './Home.module.css';
 
 const isListenAgainSection = (section: IHomeSection): boolean =>
@@ -177,17 +181,21 @@ const mergeSections = (current: IHomeSection[], incoming: IHomeSection[]): IHome
 
 export const HomePage: React.FC = () => {
     const isMobile = useMediaQuery('(max-width:700px)');
+    const scrollContainerRef = useScrollContainerRef();
     const [searchParams, setSearchParams] = useSearchParams();
     const auth = useGetYouTubeAuthStatusQuery();
     const isAuthenticated = auth.data?.status === 'authenticated';
     const canLoadRecommendations = auth.data?.status === 'authenticated'
         && auth.data.musicRecommendationsAvailable;
     const home = useGetHomeQuery(canLoadRecommendations ? undefined : skipToken);
+    const [refreshHome] = useLazyGetHomeQuery();
     const [loadContinuation, continuationState] = useLazyGetHomeContinuationQuery();
     const [sections, setSections] = useState<IHomeSection[]>([]);
     const [continuation, setContinuation] = useState<string | null>(null);
+    const [feedRevision, setFeedRevision] = useState(0);
     const loadMoreRef = useRef<HTMLDivElement>(null);
     const loadingRef = useRef(false);
+    const feedGenerationRef = useRef(0);
     const mainRef = useRef<HTMLElement>(null);
     const expandedSection = isMobile && searchParams.get('section') === 'listen-again'
         ? sections.find(isListenAgainSection) : undefined;
@@ -204,9 +212,21 @@ export const HomePage: React.FC = () => {
     }, [expandedSection]);
 
     useEffect(() => {
+        feedGenerationRef.current += 1;
         setSections(mergeSections([], home.data?.sections ?? []));
         setContinuation(home.data?.continuation ?? null);
+        setFeedRevision(revision => revision + 1);
     }, [home.data]);
+
+    const pull = usePullToRefresh({
+        scrollContainerRef,
+        disabled: !isMobile || !canLoadRecommendations || Boolean(expandedSection) || !sections.length,
+        onRefresh: async () => {
+            // Ignore any continuation response started for the feed being replaced.
+            feedGenerationRef.current += 1;
+            await refreshHome(undefined, false).unwrap();
+        }
+    });
 
     useEffect(() => {
         const target = loadMoreRef.current;
@@ -215,9 +235,11 @@ export const HomePage: React.FC = () => {
         const observer = new IntersectionObserver(entries => {
             if (!entries[0].isIntersecting || loadingRef.current) return;
             loadingRef.current = true;
+            const generation = feedGenerationRef.current;
             void loadContinuation(continuation, true)
                 .unwrap()
                 .then(page => {
+                    if (generation !== feedGenerationRef.current) return;
                     setSections(current => mergeSections(current, page.sections));
                     setContinuation(page.continuation);
                 })
@@ -257,19 +279,31 @@ export const HomePage: React.FC = () => {
             </div>
         );
     }
-    if (home.isLoading || home.isFetching) return <h1>Загружаем рекомендации...</h1>;
-    if (home.error) return <h1>Не удалось загрузить рекомендации</h1>;
+    if ((home.isLoading || home.isFetching) && !home.data && !sections.length) {
+        return <h1>Загружаем рекомендации...</h1>;
+    }
+    if (home.error && !sections.length) return <h1>Не удалось загрузить рекомендации</h1>;
     if (!sections.length) return <h1>Рекомендации пока пусты</h1>;
 
     return (
-        <main className={styles.container} ref={mainRef}>
+        <main className={styles.container} ref={mainRef} data-pull-phase={pull.phase} style={{
+            transform: `translate3d(0, ${pull.distance}px, 0)`,
+            transition: pull.phase === 'pulling' || pull.phase === 'armed'
+                ? 'none' : 'transform 180ms ease-out'
+        }}>
+            <div className={styles.pullIndicator} role='status' aria-live='polite'
+                aria-label={pull.phase === 'refreshing' ? 'Обновляем рекомендации' : 'Потяните для обновления'}
+                aria-hidden={pull.phase === 'idle'} style={{ opacity: pull.progress }}>
+                <RefreshRounded style={pull.phase === 'refreshing'
+                    ? undefined : { transform: `rotate(${pull.progress * 300}deg)` }} />
+            </div>
             {(expandedSection ? [expandedSection] : sections).map(section => (
                 <HomeSection
                     section={section}
                     compact={isMobile && isListenAgainSection(section) && !expandedSection}
                     expanded={section === expandedSection}
                     onToggle={toggleListenAgain}
-                    key={section.title}
+                    key={`${feedRevision}:${section.title}`}
                 />
             ))}
             {!expandedSection && <div className={styles.loadMore} ref={loadMoreRef}>

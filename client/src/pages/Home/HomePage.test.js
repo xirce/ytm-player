@@ -3,14 +3,16 @@ import ReactDOM from 'react-dom';
 import { act } from 'react-dom/test-utils';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { useGetHomeQuery, useGetYouTubeAuthStatusQuery, useLazyGetHomeContinuationQuery, useLazyGetHomeSectionQuery } from '../../apiClient';
+import { useGetHomeQuery, useGetYouTubeAuthStatusQuery, useLazyGetHomeQuery, useLazyGetHomeContinuationQuery, useLazyGetHomeSectionQuery } from '../../apiClient';
 import { Track } from '../../components/Track/Track';
+import { ScrollContainerContext } from '../../layouts/Default/ScrollContainerContext';
 import { HomePage } from './HomePage';
 
 jest.mock('@mui/material/useMediaQuery', () => ({ __esModule: true, default: jest.fn() }));
 jest.mock('../../apiClient', () => ({
     useGetHomeQuery: jest.fn(),
     useGetYouTubeAuthStatusQuery: jest.fn(),
+    useLazyGetHomeQuery: jest.fn(),
     useLazyGetHomeContinuationQuery: jest.fn(),
     useLazyGetHomeSectionQuery: jest.fn()
 }));
@@ -28,7 +30,7 @@ const again = {
 };
 const quick = { title: 'Quick picks', items: [] };
 const other = { title: 'Новые альбомы', items: [] };
-let host, navigate, intersect, loadContinuation, loadSection;
+let host, navigate, intersect, loadContinuation, loadSection, refreshHome;
 const originalObserver = global.IntersectionObserver;
 const originalScroll = HTMLElement.prototype.scrollIntoView;
 
@@ -37,13 +39,27 @@ function Harness() {
     return <HomePage />;
 }
 
+function ScrollHarness() {
+    const scrollContainerRef = React.useRef(null);
+    return <ScrollContainerContext.Provider value={scrollContainerRef}>
+        <div data-testid='scroll-container' ref={scrollContainerRef}><Harness /></div>
+    </ScrollContainerContext.Provider>;
+}
+
 function mount(sections = [other, quick, again], continuation = null) {
     useGetHomeQuery.mockReturnValue({ data: { sections, continuation } });
-    act(() => { ReactDOM.render(<MemoryRouter><Harness /></MemoryRouter>, host); });
+    act(() => { ReactDOM.render(<MemoryRouter><ScrollHarness /></MemoryRouter>, host); });
 }
 
 const headings = () => Array.from(host.querySelectorAll('h2'), heading => heading.textContent);
 const click = selector => act(() => { host.querySelector(selector).click(); });
+const touch = (target, type, x, y) => act(() => {
+    const event = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'touches', {
+        value: type === 'touchend' || type === 'touchcancel' ? [] : [{ clientX: x, clientY: y }]
+    });
+    target.dispatchEvent(event);
+});
 
 beforeEach(() => {
     jest.clearAllMocks();
@@ -52,6 +68,8 @@ beforeEach(() => {
     useMediaQuery.mockReturnValue(true);
     Track.mockImplementation(({ source, index }) => <button data-card='track'>{source[index].id}</button>);
     useGetYouTubeAuthStatusQuery.mockReturnValue({ data: { status: 'authenticated', musicRecommendationsAvailable: true } });
+    refreshHome = jest.fn();
+    useLazyGetHomeQuery.mockReturnValue([refreshHome, {}]);
     loadContinuation = jest.fn();
     useLazyGetHomeContinuationQuery.mockReturnValue([loadContinuation, {}]);
     loadSection = jest.fn();
@@ -173,4 +191,40 @@ test('full list prefetches before the buffer runs out without duplicates or conc
         .toEqual(tracks.slice(0, 27).map(item => item.data.id));
     click('[aria-label^="Показать все"]');
     expect(host.querySelectorAll('[data-card]')).toHaveLength(41);
+});
+
+test('pulling past the threshold keeps content visible and refreshes once', async () => {
+    let finishRefresh;
+    refreshHome.mockReturnValue({ unwrap: () => new Promise(resolve => { finishRefresh = resolve; }) });
+    mount();
+    const scrollContainer = host.querySelector('[data-testid="scroll-container"]');
+    touch(scrollContainer, 'touchstart', 120, 20);
+    touch(scrollContainer, 'touchmove', 120, 170);
+    touch(scrollContainer, 'touchend', 120, 170);
+    expect(refreshHome).toHaveBeenCalledTimes(1);
+    expect(refreshHome).toHaveBeenCalledWith(undefined, false);
+    expect(host.querySelector('main').dataset.pullPhase).toBe('refreshing');
+    expect(headings()).toHaveLength(3);
+    await act(async () => { finishRefresh({ sections: [], continuation: null }); });
+    expect(host.querySelector('main').dataset.pullPhase).toBe('settling');
+});
+
+test('pull refresh ignores scrolled, horizontal, and below-threshold gestures', () => {
+    mount();
+    const scrollContainer = host.querySelector('[data-testid="scroll-container"]');
+    scrollContainer.scrollTop = 10;
+    touch(scrollContainer, 'touchstart', 100, 20);
+    touch(scrollContainer, 'touchmove', 100, 180);
+    touch(scrollContainer, 'touchend', 100, 180);
+    scrollContainer.scrollTop = 0;
+    touch(scrollContainer, 'touchstart', 20, 20);
+    touch(scrollContainer, 'touchmove', 160, 35);
+    touch(scrollContainer, 'touchend', 160, 35);
+    touch(scrollContainer, 'touchstart', 100, 20);
+    touch(scrollContainer, 'touchmove', 100, 100);
+    touch(scrollContainer, 'touchend', 100, 100);
+    touch(scrollContainer, 'touchstart', 100, 20);
+    touch(scrollContainer, 'touchmove', 100, 170);
+    touch(scrollContainer, 'touchcancel', 100, 170);
+    expect(refreshHome).not.toHaveBeenCalled();
 });

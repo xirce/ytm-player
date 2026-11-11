@@ -14,6 +14,15 @@ const continuations = new Map<string, { userId: string; feed: HomeFeed; expiresA
 type SectionRequest = Parameters<PersonalMusicClient['getHomeSectionPage']>[0];
 const sectionCursors = new Map<string, { userId: string; request: SectionRequest; expiresAt: number }>();
 
+const clearUserCursors = (userId: string): void => {
+    continuations.forEach((value, key) => {
+        if (value.userId === userId) continuations.delete(key);
+    });
+    sectionCursors.forEach((value, key) => {
+        if (value.userId === userId) sectionCursors.delete(key);
+    });
+};
+
 const storeSectionCursor = (userId: string, request: SectionRequest): string => {
     const now = Date.now();
     sectionCursors.forEach((value, key) => {
@@ -72,6 +81,8 @@ router.use(requireUser);
 router.get('/', asyncHandler(async (req, res) => {
     const client = await personalMusicClients.get(req.user!.id);
     const home = await client.getHomeFeed();
+    // Keep existing cursors usable if the upstream refresh fails; replace them only after success.
+    clearUserCursors(req.user!.id);
     const response: IHomeFeed = {
         sections: putQuickPicksFirst(mapSections(req.user!.id, home)),
         continuation: storeContinuation(req.user!.id, home)
