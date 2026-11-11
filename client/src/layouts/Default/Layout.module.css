@@ -7,6 +7,27 @@
     background-color: var(--bg-darker-color);
 }
 
+.iosStatusBarBlurGuard {
+    display: none;
+}
+
+@media (display-mode: standalone) {
+    @supports (-webkit-touch-callout: none) {
+        .iosStatusBarBlurGuard {
+            /* Transparent painted edge nudges iOS 27 out of its system blur composition. */
+            position: fixed;
+            inset: 0 0 auto;
+            z-index: 2147483647;
+            display: block;
+            height: 11px;
+            pointer-events: none;
+            background: #000;
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+    }
+}
+
 .container::-webkit-scrollbar-track {
     margin-bottom: 166px;
 }

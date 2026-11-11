@@ -18,6 +18,7 @@ export const Layout: React.FC = () => {
 
     return (
         <ScrollContainerContext.Provider value={scrollContainerRef}>
+            <div className={styles.iosStatusBarBlurGuard} aria-hidden='true' />
             <Header />
             <div className={styles.container} ref={scrollContainerRef}>
                 <div className={styles.content}>
