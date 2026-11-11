@@ -32,6 +32,13 @@
         gap: 8px;
         overflow-x: auto;
         padding-bottom: 4px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .container::-webkit-scrollbar {
+        display: none;
     }
 
     .item {
