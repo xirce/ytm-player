@@ -55,7 +55,9 @@ app.get('/metrics', authorizeMetrics, async (_req, res, next) => {
         next(error);
     }
 });
-app.use(morgan('tiny', { skip: req => req.path.startsWith('/health/') }));
+app.use(morgan('[:date[iso]] :method :url :status :res[content-length] - :response-time ms', {
+    skip: req => req.path.startsWith('/health/')
+}));
 
 app.use('/api/tracks', trackRouter);
 app.use('/api/search', searchRouter);

@@ -56,6 +56,12 @@ const shakaApi = shaka as unknown as {
     };
     util: {
         AbortableOperation: new <T>(promise: Promise<T>, onAbort: () => Promise<void>) => any;
+        Error: {
+            new (severity: number, category: number, code: number, ...data: unknown[]): Error;
+            Severity: { RECOVERABLE: number };
+            Category: { NETWORK: number };
+            Code: { HTTP_ERROR: number };
+        };
     };
 };
 
@@ -102,7 +108,14 @@ export class MediaPlayerClass {
                     shakaApi.net.NetworkingEngine.registerScheme(scheme, plugin),
                 unregisterScheme: scheme => shakaApi.net.NetworkingEngine.unregisterScheme(scheme),
                 createAbortableOperation: (promise, onAbort) =>
-                    new shakaApi.util.AbortableOperation(promise, onAbort)
+                    new shakaApi.util.AbortableOperation(promise, onAbort),
+                createRecoverableNetworkError: message => {
+                    const ShakaError = shakaApi.util.Error;
+                    return new ShakaError(
+                        ShakaError.Severity.RECOVERABLE, ShakaError.Category.NETWORK,
+                        ShakaError.Code.HTTP_ERROR, '/api/tracks/sabr-proxy', new Error(message), RequestType.SEGMENT
+                    );
+                }
             }
         );
         this.playerReady = this.shakaPlayer.attach(element);

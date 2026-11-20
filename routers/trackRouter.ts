@@ -9,6 +9,7 @@ import type { ITrackPlaybackSource, IWatchTimeSegment, TrackRating } from '../sh
 import { asyncHandler, HttpError } from '../middleware/errors';
 import { getRequiredParam } from '../middleware/validation';
 import { recordSabrHedge, recordSabrProxyStage } from '../utils/metrics';
+import { logger } from '../utils/logger';
 
 const router = Router();
 const mediaRequestNumbers = new Map<string, number>();
@@ -54,7 +55,7 @@ async function logUpstreamError(response: Response, mediaUrl: URL, requestedRang
             .filter((entry): entry is [string, string] => entry[1] !== null)
     );
 
-    console.error('YouTube media request failed', {
+    logger.error('YouTube media request failed', {
         status: response.status,
         statusText: response.statusText,
         host: mediaUrl.hostname,
@@ -454,7 +455,7 @@ router.get('/proxy', asyncHandler(async (req, res) => {
 
     Readable.from(upstream.body as unknown as AsyncIterable<Uint8Array>)
         .on('error', error => {
-            console.error('Track proxy stream error', error);
+            logger.error('Track proxy stream error', error);
             res.destroy(error as Error);
         })
         .pipe(res);
@@ -480,7 +481,7 @@ router.get('/:id/playback', asyncHandler(async (req, res) => {
             .then(client => client.getTrackRating(id))
             .catch(error => {
                 if (!(error instanceof HttpError && error.status === 409)) {
-                    console.warn(`Could not load rating for track ${id}; playback will continue`, error);
+                    logger.warn(`Could not load rating for track ${id}; playback will continue`, error);
                 }
                 return 'INDIFFERENT';
             })

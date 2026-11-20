@@ -49,6 +49,7 @@ interface SchemeRuntime {
     registerScheme(scheme: string, plugin: (...args: any[]) => any): void;
     unregisterScheme(scheme: string): void;
     createAbortableOperation<T>(promise: Promise<T>, onAbort: () => Promise<void>): any;
+    createRecoverableNetworkError(message: string): Error;
 }
 
 type RequestInterceptor = (request: any) => Promise<any> | any;
@@ -118,6 +119,8 @@ interface StreamingRequest {
     context?: ShakaContext;
     timingHeaders: Record<string, string>;
 }
+
+class IncompleteSabrResponseError extends Error {}
 
 let schemeSequence = 0;
 
@@ -402,6 +405,12 @@ export class ShakaSabrPlayerAdapter {
         const controller = new AbortController();
         this.activeStreamingControllers.add(controller);
         const promise = this.fetchStreamingRequest(uri, request, controller, headersReceived)
+            .catch(error => {
+                if (error instanceof IncompleteSabrResponseError && !controller.signal.aborted) {
+                    throw this.schemeRuntime!.createRecoverableNetworkError(error.message);
+                }
+                throw error;
+            })
             .finally(() => this.activeStreamingControllers.delete(controller));
         return this.schemeRuntime!.createAbortableOperation(promise, async () => {
             controller.abort();
@@ -711,6 +720,10 @@ export class ShakaSabrPlayerAdapter {
         prefixHash: string;
         mediaEndBytes?: number;
     }> {
+        if (!response.ok) {
+            void response.body?.cancel().catch(() => undefined);
+            throw new IncompleteSabrResponseError(`SABR HTTP ${response.status}`);
+        }
         const metadata = this.metadataManager?.getRequestMetadata(url);
         if (!metadata?.isUMP || !response.body) {
             const raw = await response.arrayBuffer();
@@ -732,10 +745,12 @@ export class ShakaSabrPlayerAdapter {
         let prefixBytes = 0;
 
         while (true) {
-            const chunk = await reader.read();
+            const chunk = await reader.read().catch(() => {
+                throw new IncompleteSabrResponseError('SABR response interrupted while reading a segment');
+            });
             if (chunk.done) {
                 return {
-                    data: new ArrayBuffer(0),
+                    data: this.finishUmpResponse(metadata),
                     receivedBytes,
                     responseHash: formatHash(responseHash),
                     prefixHash: formatHash(prefixHash)
@@ -770,7 +785,19 @@ export class ShakaSabrPlayerAdapter {
         if (!metadata?.isUMP) return data;
         const { SabrUmpProcessor } = loadSabrRuntime();
         const result = await new SabrUmpProcessor(metadata, this.cache).processChunk(new Uint8Array(data));
-        return result?.data ? this.toArrayBuffer(result.data) : new ArrayBuffer(0);
+        if (!result?.done) return this.finishUmpResponse(metadata);
+        return result.data ? this.toArrayBuffer(result.data) : new ArrayBuffer(0);
+    }
+
+    private finishUmpResponse(metadata: {
+        streamInfo?: { redirect?: { url?: string }; sabrContextUpdate?: { type?: number; value?: Uint8Array } };
+    }): ArrayBuffer {
+        const { redirect, sabrContextUpdate } = metadata.streamInfo ?? {};
+        // A control-only response can ask the SABR interceptor to make a follow-up request.
+        if (redirect?.url || (sabrContextUpdate?.type !== undefined && sabrContextUpdate.value?.length)) {
+            return new ArrayBuffer(0);
+        }
+        throw new IncompleteSabrResponseError('SABR response ended before a complete segment arrived');
     }
 
     private reportTiming(

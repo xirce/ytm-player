@@ -3,6 +3,7 @@ import { IPlaylist, IPlaylistPage, ISabrFormat, ITrackBase } from '../shared';
 import { getThumbnailUrl, mapPlaylistPanelVideoToTrack, mapToArtistInfo, mapToTrack } from '../mappings/ytmusic-api';
 import { HttpTokenProvider, TokenProvider } from './tokenProvider';
 import { performance } from 'node:perf_hooks';
+import { logger } from './logger';
 
 export interface TrackUrlTimings {
     poToken: number;
@@ -45,7 +46,7 @@ export class YTMusicApiWrapper {
         );
         this.innertube ??= await Innertube.create({ cache });
 
-        console.log(`YouTube PO token provider: ${tokenProviderUrl}`);
+        logger.log(`YouTube PO token provider: ${tokenProviderUrl}`);
     }
 
     public async search(query: string) {

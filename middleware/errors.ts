@@ -1,4 +1,5 @@
 import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express';
+import { logger } from '../utils/logger';
 
 export class HttpError extends Error {
     constructor(public readonly status: number, message: string) {
@@ -16,6 +17,6 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     const status = error instanceof HttpError ? error.status : 500;
     const message = error instanceof HttpError ? error.message : 'Internal server error';
 
-    if (status >= 500) console.error(error);
+    if (status >= 500) logger.error(error);
     res.status(status).json({ error: message });
 };

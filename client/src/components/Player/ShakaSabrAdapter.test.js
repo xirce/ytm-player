@@ -49,6 +49,7 @@ describe('ShakaSabrPlayerAdapter', () => {
         const abortRequest = jest.fn();
 
         const result = await adapter.readResponseData('https://example.test/sabr', {
+            ok: true,
             body: { getReader: () => ({ read, cancel }) }
         }, abortRequest);
 
@@ -62,7 +63,9 @@ describe('ShakaSabrPlayerAdapter', () => {
         expect(cancel).toHaveBeenCalledTimes(1);
     });
 
-    it('streams a primary Shaka SABR request and aborts its unused UMP tail', async () => {
+    it.each([
+        'complete', 'truncated', 'interrupted', 'http error'
+    ])('delivers a complete segment when the initial Shaka request is %s', async initialResponse => {
         let requestFilter;
         let responseFilter;
         let schemePlugin;
@@ -70,10 +73,12 @@ describe('ShakaSabrPlayerAdapter', () => {
             registerRequestFilter: jest.fn(filter => { requestFilter = filter; }),
             registerResponseFilter: jest.fn(filter => { responseFilter = filter; })
         };
+        const recoverableError = new Error('Recoverable Shaka network error');
         const runtime = {
             registerScheme: jest.fn((_scheme, plugin) => { schemePlugin = plugin; }),
             unregisterScheme: jest.fn(),
-            createAbortableOperation: (promise, onAbort) => ({ promise, abort: onAbort })
+            createAbortableOperation: (promise, onAbort) => ({ promise, abort: onAbort }),
+            createRecoverableNetworkError: jest.fn(() => recoverableError)
         };
         const cancel = jest.fn().mockResolvedValue(undefined);
         const read = jest.fn()
@@ -81,8 +86,27 @@ describe('ShakaSabrPlayerAdapter', () => {
             .mockResolvedValueOnce({ done: false, value: new Uint8Array([2]) })
             .mockResolvedValueOnce({ done: false, value: new Uint8Array([3]) });
         const originalFetch = global.fetch;
-        global.fetch = jest.fn()
-        .mockResolvedValueOnce({
+        global.fetch = jest.fn();
+        const failedRead = jest.fn().mockResolvedValueOnce({ done: false, value: new Uint8Array([1]) });
+        if (initialResponse === 'interrupted') failedRead.mockRejectedValueOnce(new Error('Connection lost'));
+        else failedRead.mockResolvedValueOnce({ done: true });
+        const failureMessages = {
+            truncated: 'SABR response ended before a complete segment arrived',
+            interrupted: 'SABR response interrupted while reading a segment',
+            'http error': 'SABR HTTP 502'
+        };
+        if (initialResponse in failureMessages) {
+            const httpError = initialResponse === 'http error';
+            global.fetch.mockResolvedValueOnce({
+                ok: !httpError,
+                status: httpError ? 502 : 200,
+                headers: new Map(),
+                body: httpError ? null : { getReader: () => ({ read: failedRead }) }
+            });
+            if (!httpError) mockProcessChunk.mockResolvedValueOnce(undefined);
+        }
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
             body: { getReader: () => ({ read, cancel }) },
             headers: new Map([
                 ['content-type', 'application/x-protobuf'],
@@ -123,10 +147,16 @@ describe('ShakaSabrPlayerAdapter', () => {
             await requestFilter(1, request, { segment: { startTime: 0 } });
             expect(request.uris[0]).toMatch(/^ytmsabr\d+:/);
 
-            const operation = schemePlugin(
+            const requestSegment = () => schemePlugin(
                 request.uris[0], request, 1, jest.fn(), jest.fn()
-            );
-            const response = await operation.promise;
+            ).promise;
+            if (initialResponse in failureMessages) {
+                await expect(requestSegment()).rejects.toBe(recoverableError);
+                expect(runtime.createRecoverableNetworkError).toHaveBeenCalledWith(failureMessages[initialResponse]);
+                expect(timing.mock.calls.some(([event]) => event.phase === 'delivered')).toBe(false);
+            }
+            // Shaka retries the same scheme URI without rerunning request filters.
+            const response = await requestSegment();
             await responseFilter(1, response, { segment: { startTime: 0 } });
 
             expect(global.fetch).toHaveBeenCalledWith(
@@ -164,6 +194,28 @@ describe('ShakaSabrPlayerAdapter', () => {
             adapter.dispose();
             global.fetch = originalFetch;
         }
+    });
+
+    it('passes a redirect-only UMP response to the SABR interceptor', async () => {
+        mockProcessChunk.mockResolvedValue(undefined);
+        const metadata = { isUMP: true, streamInfo: { redirect: { url: 'https://example.test/redirect' } } };
+        const adapter = new ShakaSabrPlayerAdapter(
+            { getNetworkingEngine: () => ({ registerRequestFilter: jest.fn(), registerResponseFilter: jest.fn() }) },
+            {}, 1
+        );
+        adapter.initialize(null, { getRequestMetadata: () => metadata }, {});
+
+        const result = await adapter.readResponseData('https://example.test/sabr', {
+            ok: true,
+            arrayBuffer: async () => new Uint8Array([1]).buffer
+        });
+
+        expect(result.data.byteLength).toBe(0);
+        delete metadata.streamInfo.redirect;
+        await expect(adapter.readResponseData('https://example.test/sabr', {
+            ok: true,
+            arrayBuffer: async () => new Uint8Array([1]).buffer
+        })).rejects.toThrow('SABR response ended before a complete segment arrived');
     });
 
     it('serves a following init range from the full SABR init response cache', async () => {

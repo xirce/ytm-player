@@ -146,11 +146,11 @@ export interface IWatchTimeSegment {
     end: number;
 }
 
-export interface IPlaybackTrackingStart {
+export type IPlaybackTrackingStart = { sessionId: null } | {
     sessionId: string;
     scheduledFlushSeconds: number[];
     defaultFlushSeconds: number;
-}
+};
 
 export interface IPlaybackTrackingUpdate {
     sessionId: string;

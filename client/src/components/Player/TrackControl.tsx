@@ -269,6 +269,10 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
         };
         const flush = (state: PlaybackTelemetry, media: HTMLMediaElement, final: boolean, capture = true) => {
             if (state.final) return;
+            if (state.session?.sessionId === null) {
+                state.final = final;
+                return;
+            }
             if (capture) capturePosition(state, media);
             closeSegment(state);
             const segments = state.pendingSegments.splice(0);
@@ -281,6 +285,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             state.sendChain = state.sendChain.then(async () => {
                 const session = state.session ?? await state.startPromise;
                 state.session = session;
+                if (session.sessionId === null) return;
                 await updatePlaybackTracking({
                     id: state.trackId,
                     sessionId: session.sessionId,
@@ -293,7 +298,7 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             });
         };
         const scheduleFlush = (state: PlaybackTelemetry, media: HTMLMediaElement) => {
-            if (state.final || !state.session) return;
+            if (state.final || !state.session || state.session.sessionId === null) return;
             const scheduled = state.session.scheduledFlushSeconds;
             const elapsedSeconds = (performance.now() - state.startedAt) / 1000;
             const target = state.nextFlushIndex < scheduled.length
@@ -332,7 +337,8 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             };
             state.startPromise.then(session => {
                 state.session = session;
-                scheduleFlush(state, media);
+                if (session.sessionId === null) state.pendingSegments = [];
+                else scheduleFlush(state, media);
             }).catch(() => undefined);
             playbackTelemetryRef.current.set(target, state);
         };
@@ -342,7 +348,9 @@ export const TrackControl: React.FC<TrackControlProps> = React.memo(({
             const onPlaying = () => begin(target, media);
             const onTimeUpdate = () => {
                 const state = playbackTelemetryRef.current.get(target);
-                if (state && !state.final && !media.paused && !media.seeking) capturePosition(state, media);
+                if (state && !state.final && state.session?.sessionId !== null && !media.paused && !media.seeking) {
+                    capturePosition(state, media);
+                }
             };
             const onPause = () => {
                 const state = playbackTelemetryRef.current.get(target);
